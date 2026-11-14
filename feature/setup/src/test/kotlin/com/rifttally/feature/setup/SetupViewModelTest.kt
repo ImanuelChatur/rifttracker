@@ -5,6 +5,7 @@ import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.GameId
 import com.rifttally.core.model.Legend
+import com.rifttally.core.model.PlayerPreset
 import com.rifttally.core.model.SideId
 import com.rifttally.core.testing.MainDispatcherRule
 import com.rifttally.core.testing.repository.FakeGameRepository
@@ -313,5 +314,33 @@ class SetupViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(1, presets.current.size)
+    }
+
+    @Test
+    fun loadedPreset_isLinkedInConfig_untilTheNameIsEdited() = runTest {
+        val presets = FakePlayerPresetRepository(listOf(PlayerPreset("ana", "Ana", "green", "jinx")))
+        val viewModel = SetupViewModel(games, legends, settings, presets)
+        viewModel.uiState.test {
+            @Suppress("ControlFlowWithEmptyBody")
+            while (awaitItem().presets.isEmpty()) {}
+            viewModel.onPresetApply(0, "ana")
+            viewModel.onPresetApply(1, "ana")
+            viewModel.onColorSelect(0, "pink") // a different color keeps the link
+            viewModel.onNameChange(1, "Ann") // a different name breaks it
+            expectMostRecentItem()
+            viewModel.onStartGame(defaultNames, "XP")
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        val players = games.allGames.single().config.players
+        assertEquals(listOf("ana", null), players.map { it.presetId })
+    }
+
+    @Test
+    fun typedPlayer_hasNoPresetId() = runTest {
+        viewModel.onNameChange(0, "Ana")
+        viewModel.onStartGame(defaultNames, "XP")
+
+        assertEquals(listOf(null, null), games.allGames.single().config.players.map { it.presetId })
     }
 }

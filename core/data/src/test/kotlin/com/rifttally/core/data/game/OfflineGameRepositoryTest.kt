@@ -169,6 +169,85 @@ class OfflineGameRepositoryTest {
         assertEquals(2, recent[1].events.size)
         assertEquals(listOf(second), repository.recentGames(limit = 1).first().map { it.id })
     }
+
+    @Test
+    fun endedGames_areAllEndedGames_newestFirst_withTheirOwnEvents() = runTest(dispatcher) {
+        val first = repository.createGame(config)
+        val second = repository.createGame(config)
+        val active = repository.createGame(config)
+        repository.appendEvent(first, points("e1"))
+        repository.appendEvent(first, GameEvent.GameEnded("e2", 100, SIDE_1))
+        repository.appendEvent(active, points("e3"))
+        repository.appendEvent(second, points("e4", SIDE_2))
+        repository.appendEvent(second, GameEvent.GameEnded("e5", 200, SIDE_2))
+
+        val ended = repository.endedGames().first()
+
+        assertEquals(listOf(second, first), ended.map { it.id })
+        assertEquals(listOf("e4", "e5"), ended[0].events.map { it.id })
+        assertEquals(listOf("e1", "e2"), ended[1].events.map { it.id })
+        assertEquals(listOf(200L, 100L), ended.map { it.endedAt })
+    }
+
+    @Test
+    fun endedGames_skipsGamesWithUnreadableConfig() = runTest(dispatcher) {
+        val good = repository.createGame(config)
+        val bad = repository.createGame(config)
+        repository.appendEvent(good, GameEvent.GameEnded("e1", 100, null))
+        repository.appendEvent(bad, GameEvent.GameEnded("e2", 200, null))
+        gameDao.games.value = gameDao.games.value.mapValues { (id, game) ->
+            if (id == bad.value) game.copy(configJson = "{nope") else game
+        }
+
+        assertEquals(listOf(good), repository.endedGames().first().map { it.id })
+    }
+
+    @Test
+    fun endedGames_emitsWhenAGameEnds() = runTest(dispatcher) {
+        val id = repository.createGame(config)
+        repository.endedGames().test {
+            assertEquals(emptyList(), awaitItem())
+            repository.appendEvent(id, GameEvent.GameEnded("e1", 100, SIDE_1))
+            assertEquals(listOf(id), awaitItem().map { it.id })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun deleteGame_removesGameAndEvents_only() = runTest(dispatcher) {
+        val keep = repository.createGame(config)
+        val drop = repository.createGame(config)
+        repository.appendEvent(keep, points("e1"))
+        repository.appendEvent(drop, points("e2"))
+        repository.appendEvent(drop, GameEvent.GameEnded("e3", 100, SIDE_1))
+
+        repository.deleteGame(drop)
+        repository.deleteGame(GameId("missing"))
+
+        assertNull(repository.observeGame(drop).first())
+        assertEquals(emptyList(), repository.endedGames().first())
+        assertEquals(listOf("e1"), eventDao.events.value.map { it.id })
+        assertEquals(keep, repository.activeGame.first()?.id)
+    }
+
+    @Test
+    fun restoreGame_bringsBackTheDeletedGame_exactly() = runTest(dispatcher) {
+        val id = repository.createGame(config)
+        repository.appendEvent(id, points("e1"))
+        repository.appendEvent(id, points("e2", SIDE_2, delta = 3))
+        repository.appendEvent(id, GameEvent.GameEnded("e3", 100, SIDE_2))
+        val record = assertNotNull(repository.observeGame(id).first())
+
+        repository.deleteGame(id)
+        repository.restoreGame(record)
+
+        assertEquals(record, repository.observeGame(id).first())
+        assertEquals(listOf(record), repository.endedGames().first())
+        // Restoring a game that still exists does nothing (no duplicate).
+        repository.restoreGame(record)
+        assertEquals(3, eventDao.events.value.size)
+    }
+
     private companion object {
         val SIDE_1 = SideId("s1")
         val SIDE_2 = SideId("s2")

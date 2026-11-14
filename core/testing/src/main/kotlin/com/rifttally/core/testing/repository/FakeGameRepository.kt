@@ -21,10 +21,17 @@ public class FakeGameRepository : GameRepository {
     /** Every game, oldest first, most recently touched last. */
     public val allGames: List<GameRecord> get() = games.value
 
+    /** Stores [record] as is (e.g. an ended game with a full log), replacing any game with the same id. */
+    public fun addGame(record: GameRecord) {
+        games.update { all -> all.filterNot { it.id == record.id } + record }
+    }
+
     override val activeGame: Flow<GameRecord?> = games.map { all -> all.lastOrNull { it.endedAt == null } }
 
-    override fun recentGames(limit: Int): Flow<List<GameRecord>> = games.map { all ->
-        all.filter { it.endedAt != null }.sortedByDescending { it.endedAt }.take(limit)
+    override fun recentGames(limit: Int): Flow<List<GameRecord>> = endedGames().map { it.take(limit) }
+
+    override fun endedGames(): Flow<List<GameRecord>> = games.map { all ->
+        all.filter { it.endedAt != null }.sortedByDescending { it.endedAt }
     }
 
     override fun observeGame(id: GameId): Flow<GameRecord?> = games.map { all -> all.firstOrNull { it.id == id } }
@@ -52,6 +59,14 @@ public class FakeGameRepository : GameRepository {
                 endedAt = if (last is GameEvent.GameEnded) null else record.endedAt,
             )
         }
+    }
+
+    override suspend fun deleteGame(id: GameId) {
+        games.update { all -> all.filterNot { it.id == id } }
+    }
+
+    override suspend fun restoreGame(record: GameRecord) {
+        games.update { all -> if (all.any { it.id == record.id }) all else all + record }
     }
 
     /** Applies [transform] and moves the game to the end, like `updated_at` ordering. */

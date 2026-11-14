@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_history_title">Match history</string>
+    <string name="feature_history_back">Back</string>
+    <string name="feature_history_empty">No finished games yet. Games show up here once they end.</string>
+    <string name="feature_history_empty_filter">No finished games in this format.</string>
+
+    <!-- Format filter chips and labels. -->
+    <string name="feature_history_filter_all">All</string>
+    <plurals name="feature_history_format_players">
+        <item quantity="one">%1$d player</item>
+        <item quantity="other">%1$d players</item>
+    </plurals>
+    <string name="feature_history_format_teams">2v2</string>
+
+    <!-- List row. %1$s = date and time, %2$s = format (e.g. "2 players"). -->
+    <string name="feature_history_row_header">%1$s · %2$s</string>
+    <!-- %1$s = winner name(s). -->
+    <string name="feature_history_winner">%1$s won</string>
+    <string name="feature_history_no_winner">Ended without a winner</string>
+    <string name="feature_history_winner_icon">Winner</string>
+    <!-- %1$s = player names, e.g. "Ana, Ben". -->
+    <string name="feature_history_row_menu">More options for the game with %1$s</string>
+    <string name="feature_history_delete">Delete</string>
+    <string name="feature_history_deleted">Game deleted</string>
+    <string name="feature_history_undo">Undo</string>
+    <!-- Joins the sides' names in descriptions: "Ana, Ben". -->
+    <string name="feature_history_names_separator">", "</string>
+    <!-- Accessibility label of a side's score. %1$s = name, %2$d = points. -->
+    <plurals name="feature_history_side_points">
+        <item quantity="one">%1$s, %2$d point</item>
+        <item quantity="other">%1$s, %2$d points</item>
+    </plurals>
+
+    <!-- Game detail. -->
+    <string name="feature_history_detail_title">Game</string>
+    <string name="feature_history_not_found">This game can\'t be found.</string>
+    <string name="feature_history_section_scoreboard">Final score</string>
+    <string name="feature_history_section_chart">Score over time</string>
+    <string name="feature_history_section_log">Event log</string>
+    <string name="feature_history_log_empty">No changes were recorded.</string>
+    <!-- %1$s = duration such as "25 minutes". -->
+    <string name="feature_history_duration">Duration: %1$s</string>
+    <plurals name="feature_history_duration_minutes">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+    <!-- %1$d = hours, %2$d = minutes. Example: "1 h 5 min". -->
+    <string name="feature_history_duration_hours">%1$d h %2$d min</string>
+    <!-- %1$d = target score. -->
+    <string name="feature_history_target">Played to %1$d</string>
+    <!-- Accessibility label of the chart. %1$s = final scores, e.g. "Ana, 8 points, Ben, 5 points". -->
+    <string name="feature_history_chart_description">Score over time chart. Final scores: %1$s</string>
+
+    <!-- Event log, copied from the tracker's history log. -->
+    <!-- %1$s = name, %2$+d = signed change, %3$d = new total. Example: "Ana +1 · 6". -->
+    <string name="feature_history_log_points">%1$s %2$+d · %3$d</string>
+    <!-- %1$s = name, %2$s = counter label, %3$+d = signed change, %4$d = new value. Example: "Ana XP +2 · 4". -->
+    <string name="feature_history_log_counter">%1$s %2$s %3$+d · %4$d</string>
+    <string name="feature_history_log_counter_added">%1$s added %2$s</string>
+    <string name="feature_history_log_counter_removed">%1$s removed %2$s</string>
+    <string name="feature_history_log_target">Target score → %1$d</string>
+    <string name="feature_history_log_ended_winner">Game ended · %1$s won</string>
+    <string name="feature_history_log_ended">Game ended</string>
+</resources>

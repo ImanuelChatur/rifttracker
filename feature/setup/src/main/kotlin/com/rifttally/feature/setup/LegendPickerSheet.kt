@@ -92,6 +92,7 @@ internal fun LegendPickerContent(
             onValueChange = onQueryChange,
             label = { Text(stringResource(R.string.feature_setup_legend_search)) },
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            shape = RiftTheme.shapes.medium,
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )

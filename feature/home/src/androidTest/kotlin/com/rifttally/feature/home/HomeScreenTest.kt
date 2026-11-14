@@ -27,6 +27,8 @@ class HomeScreenTest {
         onNewGameClick: () -> Unit = {},
         onResumeClick: (GameId) -> Unit = {},
         onSettingsClick: () -> Unit = {},
+        onHistoryClick: () -> Unit = {},
+        onStatsClick: () -> Unit = {},
     ) {
         composeTestRule.setContent {
             RiftTheme {
@@ -35,6 +37,8 @@ class HomeScreenTest {
                     onNewGameClick = onNewGameClick,
                     onResumeClick = onResumeClick,
                     onSettingsClick = onSettingsClick,
+                    onHistoryClick = onHistoryClick,
+                    onStatsClick = onStatsClick,
                 )
             }
         }
@@ -72,5 +76,22 @@ class HomeScreenTest {
         composeTestRule.onNodeWithText(context.getString(R.string.feature_home_resume)).performClick()
 
         assertEquals(previewActiveGame.gameId, resumed)
+    }
+
+    @Test
+    fun historyAndStats_invokeCallbacks() {
+        var history = 0
+        var stats = 0
+        setContent(
+            HomeUiState.Success(activeGame = null),
+            onHistoryClick = { history++ },
+            onStatsClick = { stats++ },
+        )
+
+        composeTestRule.onNodeWithText(context.getString(R.string.feature_home_history)).performClick()
+        composeTestRule.onNodeWithText(context.getString(R.string.feature_home_stats)).performClick()
+
+        assertEquals(1, history)
+        assertEquals(1, stats)
     }
 }

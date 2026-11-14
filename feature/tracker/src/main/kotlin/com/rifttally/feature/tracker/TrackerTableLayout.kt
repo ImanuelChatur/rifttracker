@@ -37,6 +37,9 @@ import kotlinx.coroutines.delay
  * - 3: left (90°) | bottom (0°) | right (270°), strip at the top of the middle panel.
  * - 4: left (90°) | top (180°) over bottom (0°) | right (270°), strip on the middle seam.
  *
+ * In portrait with 3–4 players the strip hangs from the seam into the bottom seat (never over a sideways
+ * seat); otherwise it is centered on the seam.
+ *
  * [panel] draws side `index`; the [Modifier] it receives already sizes, rotates and fades in the slot.
  * `stripInset` is how much of the panel's own top edge the strip covers (0 when it doesn't meet it).
  * Panels fade in one after another when the table first appears.
@@ -52,7 +55,7 @@ internal fun TrackerTableLayout(
         if (maxWidth > maxHeight) {
             LandscapeTable(panelCount = panelCount, strip = strip, panel = panel)
         } else {
-            PortraitTable(panelCount = panelCount, strip = strip, panel = panel)
+            PortraitTable(panelCount = panelCount, height = maxHeight, strip = strip, panel = panel)
         }
     }
 }
@@ -115,12 +118,20 @@ private fun LandscapeTable(
 @Composable
 private fun PortraitTable(
     panelCount: Int,
+    height: Dp,
     strip: @Composable () -> Unit,
     panel: @Composable (index: Int, modifier: Modifier, stripInset: Dp) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val gap = RiftTheme.spacing.xs
     val halfBar = RiftTheme.sizes.controlBarHeight / 2
+    // 3–4 players: the bar sits wholly inside the bottom panel (which keeps that band free), so it never
+    // covers a sideways seat's edge, glyph or controls (DESIGN.md §8 containment).
+    val fullBar = RiftTheme.sizes.controlBarHeight
+    // ...and is that much taller, so its score gets the same room as the other seats'.
+    val rows = if (panelCount == 4) 3 else 2
+    val rowHeight = (height - fullBar - gap * rows) / rows
+    val bottomWeight = if (rowHeight > 0.dp) (rowHeight + fullBar) / rowHeight else 1f
     Column(modifier = modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(gap)) {
         when (panelCount) {
             3 -> {
@@ -128,8 +139,8 @@ private fun PortraitTable(
                     panel(0, Modifier.weight(1f).seat(LEFT).then(rememberEnterFade(0)), 0.dp)
                     panel(1, Modifier.weight(1f).seat(RIGHT).then(rememberEnterFade(1)), 0.dp)
                 }
-                FloatingStrip(strip)
-                panel(2, Modifier.weight(1f).seat(BOTTOM).then(rememberEnterFade(2)), halfBar)
+                FloatingStrip(strip, insideBelow = true)
+                panel(2, Modifier.weight(bottomWeight).seat(BOTTOM).then(rememberEnterFade(2)), fullBar)
             }
 
             4 -> {
@@ -138,8 +149,8 @@ private fun PortraitTable(
                     panel(3, Modifier.weight(1f).seat(LEFT).then(rememberEnterFade(3)), 0.dp)
                     panel(1, Modifier.weight(1f).seat(RIGHT).then(rememberEnterFade(1)), 0.dp)
                 }
-                FloatingStrip(strip)
-                panel(2, Modifier.weight(1f).seat(BOTTOM).then(rememberEnterFade(2)), halfBar)
+                FloatingStrip(strip, insideBelow = true)
+                panel(2, Modifier.weight(bottomWeight).seat(BOTTOM).then(rememberEnterFade(2)), fullBar)
             }
 
             else -> {
@@ -170,19 +181,25 @@ private fun rememberEnterFade(index: Int): Modifier {
 }
 
 /**
- * A zero-height anchor on the seam between two rows; the strip is centered on it and drawn (and hit
- * tested) above both neighbors, so it floats "between" the players.
+ * A zero-height anchor on the seam between two rows; the strip is drawn (and hit tested) above both
+ * neighbors, so it floats "between" the players. Centered on the seam, or with [insideBelow] hanging
+ * from it into the panel below only (that panel reserves the band via its strip inset).
  */
 @Composable
-private fun FloatingStrip(strip: @Composable () -> Unit, modifier: Modifier = Modifier) {
+private fun FloatingStrip(strip: @Composable () -> Unit, modifier: Modifier = Modifier, insideBelow: Boolean = false) {
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(0.dp)
             .zIndex(1f),
-        contentAlignment = Alignment.Center,
+        contentAlignment = if (insideBelow) Alignment.TopCenter else Alignment.Center,
     ) {
-        Box(modifier = Modifier.wrapContentHeight(unbounded = true)) { strip() }
+        Box(
+            modifier = Modifier.wrapContentHeight(
+                align = if (insideBelow) Alignment.Top else Alignment.CenterVertically,
+                unbounded = true,
+            ),
+        ) { strip() }
     }
 }
 

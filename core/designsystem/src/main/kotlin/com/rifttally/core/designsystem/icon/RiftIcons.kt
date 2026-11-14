@@ -3,7 +3,10 @@ package com.rifttally.core.designsystem.icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.materialIcon
 import androidx.compose.material.icons.materialPath
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.addPathNodes
 
 /**
  * Icons the app needs beyond `material-icons-core`, drawn from the Material paths so the (large)
@@ -40,6 +43,30 @@ public object RiftIcons {
                 curveTo(21.08f, 11.03f, 17.15f, 8.0f, 12.5f, 8.0f)
                 close()
             }
+        }
+    }
+
+    /** Clock with a counter-clockwise arrow (Material "History"): match history. */
+    public val History: ImageVector by lazy {
+        materialIcon(name = "Rift.History") {
+            addPath(
+                pathData = addPathNodes(
+                    "M13,3c-4.97,0 -9,4.03 -9,9L1,12l3.89,3.89 0.07,0.14L9,12L6,12c0,-3.87 3.13,-7 7,-7s7,3.13 7,7 " +
+                        "-3.13,7 -7,7c-1.93,0 -3.68,-0.79 -4.94,-2.06l-1.42,1.42C8.27,19.99 10.51,21 13,21c4.97,0 " +
+                        "9,-4.03 9,-9s-4.03,-9 -9,-9zM12,8v5l4.28,2.54 0.72,-1.21 -3.5,-2.08L13.5,8L12,8z",
+                ),
+                fill = SolidColor(Color.Black),
+            )
+        }
+    }
+
+    /** Three bars (Material "Bar chart"): stats. */
+    public val Stats: ImageVector by lazy {
+        materialIcon(name = "Rift.Stats") {
+            addPath(
+                pathData = addPathNodes("M5,9.2h3V19H5V9.2zM10.6,5h2.8v14h-2.8V5zM16.2,13H19v6h-2.8V13z"),
+                fill = SolidColor(Color.Black),
+            )
         }
     }
 }

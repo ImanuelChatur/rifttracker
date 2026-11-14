@@ -36,10 +36,45 @@ class HomeScreenScreenshotTest {
     @Test
     fun noActiveGame_light() = capture(emptyState(), darkTheme = false, "home_empty_light.png")
 
+    @Test
+    fun firstRun_noGamesAtAll_dark() = capture(
+        HomeUiState.Success(activeGame = null, now = NOW),
+        darkTheme = true,
+        "home_first_run_dark.png",
+    )
+
+    // DESIGN.md §5: text wraps and nothing clips at 200% font scale.
+    @Test
+    @Config(fontScale = 2f)
+    fun activeGame_fontScale200_dark() =
+        capture(activeState(artForBoth = true), darkTheme = true, "home_active_font200_dark.png")
+
+    @Test
+    @Config(fontScale = 2f)
+    fun noActiveGame_fontScale200_light() = capture(emptyState(), darkTheme = false, "home_empty_font200_light.png")
+
+    // DESIGN.md §8: landscape phone (compact height), content capped to a centered column.
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-land-xhdpi")
+    fun activeGame_landscape_dark() =
+        capture(activeState(artForBoth = true), darkTheme = true, "home_active_land_dark.png")
+
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-land-xhdpi")
+    fun noActiveGame_landscape_light() = capture(emptyState(), darkTheme = false, "home_empty_land_light.png")
+
     private fun capture(state: HomeUiState.Success, darkTheme: Boolean, name: String) {
         composeRule.setContent {
             RiftTheme(darkTheme = darkTheme) {
-                HomeScreen(uiState = state, onNewGameClick = {}, onResumeClick = {}, onSettingsClick = {})
+                HomeScreen(
+                    uiState = state,
+                    onNewGameClick = {},
+                    onResumeClick = {},
+                    onSettingsClick = {},
+                    onHistoryClick = {},
+                    onStatsClick = {},
+                    onRecentGameClick = {},
+                )
             }
         }
         val expected = state.activeGame?.sides.orEmpty().count { it.legendImageUri != null } +

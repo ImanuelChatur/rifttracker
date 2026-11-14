@@ -1,30 +1,35 @@
 package com.rifttally.feature.setup
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
+import com.rifttally.core.designsystem.component.RiftConnectedToggleButton
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.model.GameFormat
 
-/** 2 / 3 / 4 players / 2v2. */
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * 2 / 3 / 4 players / 2v2 as a connected button group (DESIGN.md §9; selection morphs on the expressive
+ * spring, §7). Each option is announced in full ("4 players").
+ */
 @Composable
 internal fun FormatSelector(selected: GameFormat, onSelect: (GameFormat) -> Unit, modifier: Modifier = Modifier) {
     val formats = GameFormat.entries
-    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xxs),
+    ) {
         formats.forEachIndexed { index, format ->
             val description = if (format.isTeams) {
                 stringResource(R.string.feature_setup_format_teams_description)
@@ -35,29 +40,37 @@ internal fun FormatSelector(selected: GameFormat, onSelect: (GameFormat) -> Unit
                     format.playerCount,
                 )
             }
-            SegmentedButton(
+            RiftConnectedToggleButton(
+                text = stringResource(format.labelRes),
                 selected = format == selected,
-                modifier = Modifier.semantics { contentDescription = description },
                 onClick = { onSelect(format) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = formats.size),
-                label = { Text(stringResource(format.labelRes)) },
+                index = index,
+                count = formats.size,
+                contentDescription = description,
+                modifier = Modifier.weight(1f),
             )
         }
     }
 }
 
-/** Team A / Team B for one player in 2v2. */
-@OptIn(ExperimentalMaterial3Api::class)
+/** Team A / Team B for one player in 2v2, as a connected button group. */
 @Composable
 internal fun TeamSelector(selected: Team, onSelect: (Team) -> Unit, modifier: Modifier = Modifier) {
     val teams = Team.entries
-    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xxs),
+    ) {
         teams.forEachIndexed { index, team ->
-            SegmentedButton(
+            RiftConnectedToggleButton(
+                text = stringResource(team.labelRes),
                 selected = team == selected,
                 onClick = { onSelect(team) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = teams.size),
-                label = { Text(stringResource(team.labelRes)) },
+                index = index,
+                count = teams.size,
+                modifier = Modifier.weight(1f),
             )
         }
     }
@@ -84,7 +97,10 @@ private val Team.labelRes: Int
 private fun SelectorsPreview() {
     RiftTheme {
         Surface {
-            Column {
+            Column(
+                modifier = Modifier.padding(RiftTheme.spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.md),
+            ) {
                 FormatSelector(selected = GameFormat.TEAMS_2V2, onSelect = {})
                 TeamSelector(selected = Team.B, onSelect = {})
             }

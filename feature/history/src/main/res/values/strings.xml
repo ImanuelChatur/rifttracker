@@ -4,6 +4,8 @@
     <string name="feature_history_back">Back</string>
     <string name="feature_history_empty">No finished games yet. Games show up here once they end.</string>
     <string name="feature_history_empty_filter">No finished games in this format.</string>
+    <string name="feature_history_empty_action">Go back</string>
+    <string name="feature_history_empty_filter_action">Show all formats</string>
 
     <!-- Format filter chips and labels. -->
     <string name="feature_history_filter_all">All</string>

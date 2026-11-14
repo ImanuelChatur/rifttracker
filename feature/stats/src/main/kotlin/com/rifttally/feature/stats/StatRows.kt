@@ -2,11 +2,16 @@ package com.rifttally.feature.stats
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,7 +36,10 @@ internal fun gamesAndRateText(games: Int, winRatePercent: Int): String = stringR
     stringResource(R.string.feature_stats_win_rate, winRatePercent),
 )
 
-/** A player's line: optional [rank], name, games and win rate. Tapping opens their stats. */
+/**
+ * A player's line inside a list tile: optional [rank] badge, name, games and win rate, and a chevron.
+ * Tapping opens their stats.
+ */
 @Composable
 internal fun PlayerStatRow(
     player: PlayerRowUiState,
@@ -43,43 +51,62 @@ internal fun PlayerStatRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = RiftTheme.sizes.minTouchTarget)
+            .heightIn(min = RiftTheme.sizes.heroButtonHeight)
             .clickable(role = Role.Button, onClick = onClick)
             .semantics(mergeDescendants = true) { onClick(label = openLabel, action = null) }
-            .padding(horizontal = RiftTheme.spacing.lg, vertical = RiftTheme.spacing.sm),
+            .padding(start = RiftTheme.spacing.lg, end = RiftTheme.spacing.sm)
+            .padding(vertical = RiftTheme.spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.md),
     ) {
-        if (rank != null) {
+        if (rank != null) RankBadge(rank)
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = rank.toString(),
-                style = RiftTheme.typography.titleMedium,
-                color = RiftTheme.colorScheme.primary,
+                text = player.name,
+                style = RiftTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = gamesAndRateText(player.games, player.winRatePercent),
+                style = RiftTheme.typography.bodyMedium,
+                color = RiftTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Text(
-            text = player.name,
-            style = RiftTheme.typography.bodyLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = gamesAndRateText(player.games, player.winRatePercent),
-            style = RiftTheme.typography.bodyMedium,
-            color = RiftTheme.colorScheme.onSurfaceVariant,
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = RiftTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
-/** A Legend's line: portrait (or fallback), name, games and win rate. */
+/** Ranking position on a small tonal circle. */
+@Composable
+private fun RankBadge(rank: Int, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RiftTheme.shapes.full,
+        color = RiftTheme.colorScheme.secondaryContainer,
+        contentColor = RiftTheme.colorScheme.onSecondaryContainer,
+    ) {
+        Box(
+            modifier = Modifier.sizeIn(minWidth = RiftTheme.sizes.avatarSmall, minHeight = RiftTheme.sizes.avatarSmall),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(text = rank.toString(), style = RiftTheme.typography.titleLarge)
+        }
+    }
+}
+
+/** A Legend's line inside a list tile: portrait (or fallback), name, games and win rate. */
 @Composable
 internal fun LegendStatRow(legend: LegendRowUiState, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) {}
-            .padding(horizontal = RiftTheme.spacing.lg, vertical = RiftTheme.spacing.sm),
+            .padding(horizontal = RiftTheme.spacing.lg, vertical = RiftTheme.spacing.md),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.md),
     ) {
@@ -106,12 +133,13 @@ internal fun LegendStatRow(legend: LegendRowUiState, modifier: Modifier = Modifi
 @Composable
 private fun StatRowsPreview() {
     RiftTheme {
-        Surface {
-            Column {
-                PlayerStatRow(player = previewPlayers[0], onClick = {}, rank = 1)
-                PlayerStatRow(player = previewPlayers[1], onClick = {})
-                LegendStatRow(legend = previewLegends[0])
-            }
+        Column(
+            modifier = Modifier.padding(RiftTheme.spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xxs),
+        ) {
+            SegmentedTile(index = 0, count = 3) { PlayerStatRow(player = previewPlayers[0], onClick = {}, rank = 1) }
+            SegmentedTile(index = 1, count = 3) { PlayerStatRow(player = previewPlayers[1], onClick = {}) }
+            SegmentedTile(index = 2, count = 3) { LegendStatRow(legend = previewLegends[0]) }
         }
     }
 }

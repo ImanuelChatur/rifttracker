@@ -6,7 +6,12 @@ import com.rifttally.core.model.SideId
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
-/** Builds [GameEvent]s stamped with a fresh id from [idGenerator] and the current time from [clock]. */
+/**
+ * Builds [GameEvent]s stamped with a fresh id from [idGenerator] and the current time from [clock].
+ *
+ * Callers should not append an event that would change nothing (e.g. `−` at 0 points or on a counter
+ * at 0). [reduce] tolerates such events, but they would make the next undo look like it did nothing.
+ */
 @OptIn(ExperimentalTime::class)
 public class GameEventFactory(
     private val clock: Clock,

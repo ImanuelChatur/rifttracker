@@ -1,6 +1,7 @@
 package com.rifttally.core.data.legend
 
 import app.cash.turbine.test
+import com.rifttally.core.model.Legend
 import java.io.IOException
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

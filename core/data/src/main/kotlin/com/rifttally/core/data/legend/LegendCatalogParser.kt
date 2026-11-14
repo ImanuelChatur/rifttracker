@@ -1,5 +1,6 @@
 package com.rifttally.core.data.legend
 
+import com.rifttally.core.model.Legend
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json

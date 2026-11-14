@@ -1,6 +1,7 @@
 package com.rifttally.core.data.legend
 
 import com.rifttally.core.common.dispatchers.IoDispatcher
+import com.rifttally.core.model.Legend
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton

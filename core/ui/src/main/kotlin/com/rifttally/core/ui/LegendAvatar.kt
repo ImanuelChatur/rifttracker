@@ -21,7 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
@@ -164,7 +163,15 @@ private fun BoxScope.ScoreOnPortrait(score: Int, size: Dp) {
     Box(
         modifier = Modifier
             .matchParentSize()
-            .background(Brush.radialGradient(listOf(colors.scrimCenter, colors.scrimEdge))),
+            // Hold full scrim strength past the digits (~60% of the radius for two digits) so every
+            // glyph keeps AA contrast on a bright portrait, then fade toward the ring.
+            .background(
+                Brush.radialGradient(
+                    0f to colors.scrimCenter,
+                    SCRIM_SOLID_STOP to colors.scrimCenter,
+                    1f to colors.scrimEdge,
+                ),
+            ),
     )
     val density = LocalDensity.current
     val shadow = with(density) {
@@ -204,12 +211,13 @@ private const val WATERMARK_ALPHA = 0.16f
 private const val SCORE_RATIO = 0.5f
 private const val SCORE_RATIO_LONG = 0.36f
 private const val MAX_TWO_DIGITS = 99
+private const val SCRIM_SOLID_STOP = 0.7f
 
 // region Previews
 
 /** Stands in for a Legend portrait in previews (a flat, light color: worst case for the score). */
 @OptIn(ExperimentalCoilApi::class)
-private val previewImageHandler = AsyncImagePreviewHandler { _ -> ColorImage(Color(0xFFE9DCC0).toArgb()) }
+private val previewImageHandler = AsyncImagePreviewHandler { _ -> ColorImage(PlayerColors.Yellow.color.toArgb()) }
 
 private const val PREVIEW_IMAGE_URI = "file:///android_asset/legends/preview.webp"
 

@@ -160,7 +160,7 @@ private fun TrackerTable(
                     onEndGameClick = { overlay = TrackerOverlay.EndGame },
                 )
             },
-            panel = { index, panelModifier ->
+            panel = { index, panelModifier, facesStrip ->
                 val panel = state.panels[index]
                 SidePanel(
                     panel = panel,
@@ -170,6 +170,7 @@ private fun TrackerTable(
                     onCounterRemove = onCounterRemove,
                     onAddCounterClick = { playerId -> addCounterFor = playerId.value },
                     modifier = panelModifier,
+                    topInset = if (facesStrip) RiftTheme.sizes.controlBarHeight / 2 else RiftTheme.spacing.none,
                 )
             },
         )

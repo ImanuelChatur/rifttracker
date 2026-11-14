@@ -41,7 +41,16 @@ class TrackerViewModelTest {
 
     private val games = FakeGameRepository()
     private val legends =
-        FakeLegendRepository(listOf(Legend("jinx", "Jinx", "file:///android_asset/legends/jinx.webp")))
+        FakeLegendRepository(
+            listOf(
+                Legend(
+                    "jinx",
+                    "Jinx",
+                    "file:///android_asset/legends/jinx.webp",
+                    "file:///android_asset/legends/jinx_wide.webp",
+                ),
+            ),
+        )
     private val settings = FakeUserSettingsRepository(UserSettings(hapticsEnabled = false))
     private var eventIds = 0
     private val factory = GameEventFactory(TestClock(), IdGenerator { "e${++eventIds}" })
@@ -87,6 +96,10 @@ class TrackerViewModelTest {
         assertEquals(listOf(0, 0), state.panels.map { it.points })
         assertEquals("Jinx", state.panels[0].players.single().legendName)
         assertEquals("file:///android_asset/legends/jinx.webp", state.panels[0].players.single().legendImageUri)
+        assertEquals(
+            "file:///android_asset/legends/jinx_wide.webp",
+            state.panels[0].players.single().legendWideImageUri,
+        )
         assertNull(state.panels[1].players.single().legendName)
         assertEquals(3, state.targetScore)
         assertTrue(!state.canUndo)

@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 
 internal val DarkColorScheme: ColorScheme = darkColorScheme(
@@ -137,6 +138,19 @@ public object RiftTheme {
         @Composable @ReadOnlyComposable
         get() = MaterialTheme.typography
 
+    /** Table-screen colors (panel scrim, control bar, target glow). Theme-aware. */
+    public val tableColors: RiftTableColors
+        // Follows the active color scheme (also with dynamic color), so no extra CompositionLocal is needed.
+        @Composable @ReadOnlyComposable
+        get() = if (MaterialTheme.colorScheme.background.luminance() < HALF_LUMINANCE) {
+            DarkTableColors
+        } else {
+            LightTableColors
+        }
+
+    /** Motion durations (same in every theme). */
+    public val motion: RiftMotion = RiftMotion()
+
     public val colorScheme: ColorScheme
         @Composable @ReadOnlyComposable
         get() = MaterialTheme.colorScheme
@@ -147,3 +161,4 @@ public object RiftTheme {
     /** Scrim and text colors for scores drawn over a Legend portrait (same in light and dark). */
     public val portraitColors: RiftPortraitColors = RiftPortraitColors()
 }
+private const val HALF_LUMINANCE = 0.5f

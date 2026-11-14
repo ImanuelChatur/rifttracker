@@ -3,12 +3,14 @@ package com.rifttally.feature.tracker
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,7 +22,10 @@ import com.rifttally.core.designsystem.component.RiftIconButton
 import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.RiftTheme
 
-/** Center strip between the panels: Undo · target · Menu. */
+/**
+ * Floating control bar between the panels: a rounded, translucent pill with Undo · target · Menu.
+ * (The target is a small read-only label; it is changed from the menu.)
+ */
 @Composable
 internal fun ControlStrip(
     targetScore: Int,
@@ -35,36 +40,41 @@ internal fun ControlStrip(
     onEndGameClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = RiftTheme.spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        modifier = modifier.height(RiftTheme.sizes.controlBarHeight),
+        shape = CircleShape,
+        color = RiftTheme.tableColors.controlBar,
+        contentColor = RiftTheme.tableColors.onControlBar,
+        shadowElevation = RiftTheme.spacing.sm,
     ) {
-        RiftIconButton(
-            imageVector = RiftIcons.Undo,
-            contentDescription = stringResource(R.string.feature_tracker_undo),
-            onClick = onUndo,
-            enabled = canUndo,
-        )
-        Text(
-            text = stringResource(R.string.feature_tracker_target_label, targetScore),
-            style = RiftTheme.typography.titleMedium,
-            color = RiftTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.weight(1f),
-        )
-        Box {
+        Row(
+            modifier = Modifier.padding(horizontal = RiftTheme.spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             RiftIconButton(
-                imageVector = Icons.Filled.MoreVert,
-                contentDescription = stringResource(R.string.feature_tracker_menu),
-                onClick = onMenuOpen,
+                imageVector = RiftIcons.Undo,
+                contentDescription = stringResource(R.string.feature_tracker_undo),
+                onClick = onUndo,
+                enabled = canUndo,
             )
-            DropdownMenu(expanded = isMenuOpen, onDismissRequest = onMenuDismiss) {
-                MenuItem(R.string.feature_tracker_menu_target, onChangeTargetClick)
-                MenuItem(R.string.feature_tracker_menu_history, onHistoryClick)
-                MenuItem(R.string.feature_tracker_menu_restart, onRestartClick)
-                MenuItem(R.string.feature_tracker_menu_end, onEndGameClick)
+            Text(
+                text = stringResource(R.string.feature_tracker_target_label, targetScore),
+                style = RiftTheme.typography.titleLarge,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = RiftTheme.spacing.sm),
+            )
+            Box {
+                RiftIconButton(
+                    imageVector = Icons.Filled.MoreVert,
+                    contentDescription = stringResource(R.string.feature_tracker_menu),
+                    onClick = onMenuOpen,
+                )
+                DropdownMenu(expanded = isMenuOpen, onDismissRequest = onMenuDismiss) {
+                    MenuItem(R.string.feature_tracker_menu_target, onChangeTargetClick)
+                    MenuItem(R.string.feature_tracker_menu_history, onHistoryClick)
+                    MenuItem(R.string.feature_tracker_menu_restart, onRestartClick)
+                    MenuItem(R.string.feature_tracker_menu_end, onEndGameClick)
+                }
             }
         }
     }

@@ -203,6 +203,7 @@ private fun buildUiState(
                     colorId = player.colorId,
                     legendName = legend?.name,
                     legendImageUri = legend?.imageUri,
+                    legendWideImageUri = legend?.wideImageUri,
                     counters = state.countersOf(player.id)
                         .map { CounterUiState(id = it.id, label = it.label, value = it.value) }
                         .toImmutableList(),

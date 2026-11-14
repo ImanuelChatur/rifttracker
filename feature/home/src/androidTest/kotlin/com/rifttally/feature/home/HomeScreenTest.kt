@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.rifttally.core.designsystem.theme.RiftTheme
+import com.rifttally.core.model.GameId
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -21,14 +22,28 @@ class HomeScreenTest {
 
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
+    private fun setContent(
+        uiState: HomeUiState,
+        onNewGameClick: () -> Unit = {},
+        onResumeClick: (GameId) -> Unit = {},
+        onSettingsClick: () -> Unit = {},
+    ) {
+        composeTestRule.setContent {
+            RiftTheme {
+                HomeScreen(
+                    uiState = uiState,
+                    onNewGameClick = onNewGameClick,
+                    onResumeClick = onResumeClick,
+                    onSettingsClick = onSettingsClick,
+                )
+            }
+        }
+    }
+
     @Test
     fun clickingNewGame_invokesCallback() {
         var newGameClicks = 0
-        composeTestRule.setContent {
-            RiftTheme {
-                HomeScreen(onNewGameClick = { newGameClicks++ }, onSettingsClick = {})
-            }
-        }
+        setContent(HomeUiState.Success(activeGame = null), onNewGameClick = { newGameClicks++ })
 
         composeTestRule.onNodeWithText(context.getString(R.string.feature_home_new_game))
             .assertIsDisplayed()
@@ -40,15 +55,22 @@ class HomeScreenTest {
     @Test
     fun clickingSettings_invokesCallback() {
         var settingsClicks = 0
-        composeTestRule.setContent {
-            RiftTheme {
-                HomeScreen(onNewGameClick = {}, onSettingsClick = { settingsClicks++ })
-            }
-        }
+        setContent(HomeUiState.Success(activeGame = null), onSettingsClick = { settingsClicks++ })
 
         composeTestRule.onNodeWithContentDescription(context.getString(R.string.feature_home_settings))
             .performClick()
 
         assertEquals(1, settingsClicks)
+    }
+
+    @Test
+    fun activeGame_showsResumeCard_andResumesThatGame() {
+        var resumed: GameId? = null
+        setContent(HomeUiState.Success(activeGame = previewActiveGame), onResumeClick = { resumed = it })
+
+        composeTestRule.onNodeWithText("Ana").assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.feature_home_resume)).performClick()
+
+        assertEquals(previewActiveGame.gameId, resumed)
     }
 }

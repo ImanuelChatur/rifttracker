@@ -3,4 +3,8 @@
     <string name="feature_home_title">Rift Tally</string>
     <string name="feature_home_new_game">New game</string>
     <string name="feature_home_settings">Settings</string>
+    <string name="feature_home_game_in_progress">Game in progress</string>
+    <string name="feature_home_resume">Resume</string>
+    <!-- %1$d = target score. -->
+    <string name="feature_home_target">Playing to %1$d</string>
 </resources>

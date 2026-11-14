@@ -4,22 +4,23 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
-import androidx.navigation.toRoute
-import com.rifttally.feature.tracker.TrackerScreen
+import com.rifttally.core.model.GameId
+import com.rifttally.feature.tracker.TrackerRoute as TrackerRouteContent
 import kotlinx.serialization.Serializable
 
+/** The live table for game [gameId]. The id survives process death via the back stack. */
 @Serializable
 data class TrackerRoute(val gameId: String)
 
-fun NavController.navigateToTracker(gameId: String, navOptions: NavOptions? = null) {
-    navigate(route = TrackerRoute(gameId), navOptions = navOptions)
+fun NavController.navigateToTracker(gameId: GameId, navOptions: NavOptions? = null) {
+    navigate(route = TrackerRoute(gameId.value), navOptions = navOptions)
 }
 
-fun NavGraphBuilder.trackerScreen(onBackClick: () -> Unit) {
-    composable<TrackerRoute> { entry ->
-        TrackerScreen(
-            gameId = entry.toRoute<TrackerRoute>().gameId,
-            onBackClick = onBackClick,
-        )
+/**
+ * [onExit] is called after the game ended; [onOpenGame] after a restart created a new game.
+ */
+fun NavGraphBuilder.trackerScreen(onBackClick: () -> Unit, onExit: () -> Unit, onOpenGame: (GameId) -> Unit) {
+    composable<TrackerRoute> {
+        TrackerRouteContent(onBackClick = onBackClick, onExit = onExit, onOpenGame = onOpenGame)
     }
 }

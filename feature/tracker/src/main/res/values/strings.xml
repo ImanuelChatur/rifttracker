@@ -1,6 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="feature_tracker_title">Tracker</string>
-    <string name="feature_tracker_game_id">Game: %1$s</string>
     <string name="feature_tracker_back">Back</string>
+    <string name="feature_tracker_not_found">This game can\'t be found.</string>
+
+    <!-- Tap zones. %1$s = player (or team) name. -->
+    <string name="feature_tracker_increase">%1$s, increase points</string>
+    <string name="feature_tracker_decrease">%1$s, decrease points</string>
+    <string name="feature_tracker_at_target">Reached the target</string>
+
+    <!-- Center strip. -->
+    <string name="feature_tracker_undo">Undo</string>
+    <string name="feature_tracker_menu">Game menu</string>
+    <!-- %1$d = target score. -->
+    <string name="feature_tracker_target_label">Target %1$d</string>
+    <string name="feature_tracker_menu_target">Change target score</string>
+    <string name="feature_tracker_menu_history">History</string>
+    <string name="feature_tracker_menu_restart">Restart</string>
+    <string name="feature_tracker_menu_end">End game</string>
+
+    <!-- Winner banner. %1$s = names of everyone at the target, e.g. "Ana" or "Ana, Ben". -->
+    <string name="feature_tracker_banner_title">Winner?</string>
+    <string name="feature_tracker_banner_body">%1$s reached the target</string>
+    <string name="feature_tracker_banner_end">End game</string>
+    <string name="feature_tracker_banner_keep_playing">Keep playing</string>
+
+    <!-- Dialogs. -->
+    <string name="feature_tracker_target_dialog_title">Target score</string>
+    <string name="feature_tracker_target_increase">Increase target score</string>
+    <string name="feature_tracker_target_decrease">Decrease target score</string>
+    <string name="feature_tracker_dialog_save">Save</string>
+    <string name="feature_tracker_dialog_cancel">Cancel</string>
+    <string name="feature_tracker_end_dialog_title">End this game?</string>
+    <string name="feature_tracker_end_dialog_body">It will be saved and closed.</string>
+    <string name="feature_tracker_restart_dialog_title">Restart?</string>
+    <string name="feature_tracker_restart_dialog_body">This game ends and a new one starts with the same players.</string>
+
+    <!-- History log. -->
+    <string name="feature_tracker_history_title">History</string>
+    <string name="feature_tracker_history_empty">No changes yet</string>
+    <!-- %1$s = name, %2$+d = signed change, %3$d = new total. Example: "Ana +1 · 6". -->
+    <string name="feature_tracker_history_points">%1$s %2$+d · %3$d</string>
+    <!-- %1$s = name, %2$s = counter label, %3$+d = signed change, %4$d = new value. Example: "Ana XP +2 · 4". -->
+    <string name="feature_tracker_history_counter">%1$s %2$s %3$+d · %4$d</string>
+    <string name="feature_tracker_history_counter_added">%1$s added %2$s</string>
+    <string name="feature_tracker_history_counter_removed">%1$s removed %2$s</string>
+    <string name="feature_tracker_history_target">Target score → %1$d</string>
+    <string name="feature_tracker_history_ended_winner">Game ended · %1$s won</string>
+    <string name="feature_tracker_history_ended">Game ended</string>
 </resources>

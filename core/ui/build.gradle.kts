@@ -12,4 +12,6 @@ dependencies {
     api(projects.core.model)
     // LegendAvatar loads portraits from assets (Phase 1B). No network module: v1 is offline.
     implementation(libs.coil.compose)
+    // Window insets controller for immersive mode.
+    implementation(libs.androidx.core.ktx)
 }

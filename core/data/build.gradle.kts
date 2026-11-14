@@ -10,6 +10,8 @@ android {
 
 dependencies {
     api(projects.core.model)
+    // Repositories expose GameEvent and GameEventFactory to features.
+    api(projects.core.game)
     implementation(projects.core.common)
     implementation(projects.core.database)
     implementation(projects.core.datastore)

@@ -3,4 +3,17 @@
     <string name="feature_setup_title">New game</string>
     <string name="feature_setup_start">Start</string>
     <string name="feature_setup_back">Back</string>
+    <!-- %1$d = seat number, starting at 1. Also the name used when the field is left blank. -->
+    <string name="feature_setup_default_player_name">Player %1$d</string>
+    <!-- %1$d = position in the palette, %2$d = palette size. -->
+    <string name="feature_setup_color_description">Color %1$d of %2$d</string>
+    <!-- %1$s = player name. -->
+    <string name="feature_setup_choose_legend">Choose Legend for %1$s</string>
+    <string name="feature_setup_legend_none">None</string>
+    <string name="feature_setup_no_legend">No Legend</string>
+    <string name="feature_setup_legend_search">Search Legends</string>
+    <string name="feature_setup_legend_empty">No Legends match</string>
+    <string name="feature_setup_target_score">Target score</string>
+    <string name="feature_setup_target_increase">Increase target score</string>
+    <string name="feature_setup_target_decrease">Decrease target score</string>
 </resources>

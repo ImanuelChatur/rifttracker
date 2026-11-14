@@ -4,7 +4,8 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
-import com.rifttally.feature.setup.SetupScreen
+import com.rifttally.core.model.GameId
+import com.rifttally.feature.setup.SetupRoute as SetupRouteContent
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -15,14 +16,8 @@ fun NavController.navigateToSetup(navOptions: NavOptions? = null) {
 }
 
 /** [onGameStarted] receives the id of the newly created game. */
-fun NavGraphBuilder.setupScreen(onBackClick: () -> Unit, onGameStarted: (gameId: String) -> Unit) {
+fun NavGraphBuilder.setupScreen(onBackClick: () -> Unit, onGameStarted: (gameId: GameId) -> Unit) {
     composable<SetupRoute> {
-        SetupScreen(
-            onBackClick = onBackClick,
-            onStartClick = { onGameStarted(PLACEHOLDER_GAME_ID) },
-        )
+        SetupRouteContent(onBackClick = onBackClick, onGameStart = onGameStarted)
     }
 }
-
-// Phase 0 only: real game ids come from the game repository in Phase 2.
-private const val PLACEHOLDER_GAME_ID = "placeholder"

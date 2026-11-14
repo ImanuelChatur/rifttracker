@@ -1,6 +1,7 @@
 package com.rifttally.feature.setup
 
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,17 +20,57 @@ class SetupScreenTest {
 
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
-    @Test
-    fun clickingStart_invokesCallback() {
-        var clicks = 0
+    private var starts = 0
+    private var legendClicks = mutableListOf<Int>()
+    private var targetIncreases = 0
+
+    private fun setContent(uiState: SetupUiState = previewSetupState) {
         composeTestRule.setContent {
             RiftTheme {
-                SetupScreen(onBackClick = {}, onStartClick = { clicks++ })
+                SetupScreen(
+                    uiState = uiState,
+                    onBackClick = {},
+                    onNameChange = { _, _ -> },
+                    onColorSelect = { _, _ -> },
+                    onLegendClick = { legendClicks += it },
+                    onTargetIncrease = { targetIncreases++ },
+                    onTargetDecrease = {},
+                    onStartClick = { starts++ },
+                )
             }
         }
+    }
+
+    @Test
+    fun clickingStart_invokesCallback() {
+        setContent()
 
         composeTestRule.onNodeWithText(context.getString(R.string.feature_setup_start)).performClick()
 
-        assertEquals(1, clicks)
+        assertEquals(1, starts)
+    }
+
+    @Test
+    fun blankName_showsDefaultName_andLegendButtonOpensPickerForThatPlayer() {
+        setContent()
+
+        val label = context.getString(
+            R.string.feature_setup_choose_legend,
+            context.getString(R.string.feature_setup_default_player_name, 2),
+        )
+        composeTestRule.onNodeWithContentDescription(label).performClick()
+
+        assertEquals(listOf(1), legendClicks)
+    }
+
+    @Test
+    fun targetScore_isShown_andIncreaseInvokesCallback() {
+        setContent()
+
+        composeTestRule.onNodeWithText("8").assertExists()
+        composeTestRule.onNodeWithContentDescription(context.getString(R.string.feature_setup_target_increase))
+            .performClick()
+
+        assertEquals(1, targetIncreases)
     }
 }

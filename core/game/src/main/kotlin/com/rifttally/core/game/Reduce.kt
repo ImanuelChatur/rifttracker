@@ -20,38 +20,60 @@ import com.rifttally.core.model.SideId
  * - Initial counters from [config] are clamped at 0; for duplicate counter ids the first one wins.
  */
 public fun reduce(config: GameConfig, events: List<GameEvent>): GameState {
-    val points = LinkedHashMap<SideId, Int>()
-    config.sides.forEach { points[it.id] = 0 }
+    val reducer = Reducer(config)
+    events.forEach(reducer::apply)
+    return reducer.snapshot()
+}
 
-    val counters = LinkedHashMap<PlayerId, MutableList<Counter>>()
-    config.players.forEach { player ->
-        counters[player.id] = config.initialCounters[player.id].orEmpty()
-            .distinctBy { it.id }
-            .map { it.copy(value = it.value.coerceAtLeast(0)) }
-            .toMutableList()
+/**
+ * Replays [events] like [reduce] and pairs each event with the state right after it, oldest first.
+ * Drives the history log ("Jinx +1 · 6").
+ */
+public fun history(config: GameConfig, events: List<GameEvent>): List<HistoryEntry> {
+    val reducer = Reducer(config)
+    return events.map { event ->
+        reducer.apply(event)
+        HistoryEntry(event = event, stateAfter = reducer.snapshot())
+    }
+}
+
+/** Mutable accumulator behind [reduce] and [history]. Never escapes this file. */
+private class Reducer(private val config: GameConfig) {
+    private val points = LinkedHashMap<SideId, Int>().apply { config.sides.forEach { put(it.id, 0) } }
+
+    private val counters = LinkedHashMap<PlayerId, MutableList<Counter>>().apply {
+        config.players.forEach { player ->
+            put(
+                player.id,
+                config.initialCounters[player.id].orEmpty()
+                    .distinctBy { it.id }
+                    .map { it.copy(value = it.value.coerceAtLeast(0)) }
+                    .toMutableList(),
+            )
+        }
     }
 
-    var targetScore = config.targetScore.coerceAtLeast(MIN_TARGET_SCORE)
-    var winner: SideId? = null
-    var isEnded = false
+    private var targetScore = config.targetScore.coerceAtLeast(MIN_TARGET_SCORE)
+    private var winner: SideId? = null
+    private var isEnded = false
 
-    for (event in events) {
-        if (isEnded) break
+    fun apply(event: GameEvent) {
+        if (isEnded) return
         when (event) {
             is GameEvent.PointsAdjusted -> {
-                val current = points[event.sideId] ?: continue
+                val current = points[event.sideId] ?: return
                 points[event.sideId] = current.plusFloored(event.delta)
             }
 
             is GameEvent.CounterAdded -> {
-                val list = counters[event.playerId] ?: continue
+                val list = counters[event.playerId] ?: return
                 if (list.none { it.id == event.counterId }) {
                     list += Counter(id = event.counterId, label = event.label, value = 0)
                 }
             }
 
             is GameEvent.CounterAdjusted -> {
-                val list = counters[event.playerId] ?: continue
+                val list = counters[event.playerId] ?: return
                 val index = list.indexOfFirst { it.id == event.counterId }
                 if (index >= 0) {
                     list[index] = list[index].copy(value = list[index].value.plusFloored(event.delta))
@@ -75,7 +97,7 @@ public fun reduce(config: GameConfig, events: List<GameEvent>): GameState {
         }
     }
 
-    return GameState(
+    fun snapshot(): GameState = GameState(
         config = config,
         points = points.toMap(),
         counters = counters.mapValuesTo(LinkedHashMap()) { (_, list) -> list.toList() },

@@ -7,11 +7,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.navOptions
 import com.rifttally.feature.home.navigation.HomeRoute
 import com.rifttally.feature.home.navigation.homeScreen
+import com.rifttally.feature.home.navigation.navigateToHome
 import com.rifttally.feature.settings.navigation.navigateToSettings
 import com.rifttally.feature.settings.navigation.settingsScreen
 import com.rifttally.feature.setup.navigation.SetupRoute
 import com.rifttally.feature.setup.navigation.navigateToSetup
 import com.rifttally.feature.setup.navigation.setupScreen
+import com.rifttally.feature.tracker.navigation.TrackerRoute
 import com.rifttally.feature.tracker.navigation.navigateToTracker
 import com.rifttally.feature.tracker.navigation.trackerScreen
 
@@ -24,19 +26,37 @@ fun RiftNavHost(navController: NavHostController, modifier: Modifier = Modifier)
         modifier = modifier,
     ) {
         homeScreen(
-            onNewGameClick = { navController.navigateToSetup() },
+            // Single top: a double tap must not stack two setups (or two trackers below).
+            onNewGameClick = { navController.navigateToSetup(navOptions { launchSingleTop = true }) },
+            onResumeClick = { gameId ->
+                navController.navigateToTracker(gameId, navOptions { launchSingleTop = true })
+            },
             onSettingsClick = { navController.navigateToSettings() },
         )
         setupScreen(
             onBackClick = { navController.navigateUp() },
             onGameStarted = { gameId ->
+                // Back from the tracker goes Home, not to a stale setup form.
                 navController.navigateToTracker(
                     gameId = gameId,
                     navOptions = navOptions { popUpTo<SetupRoute> { inclusive = true } },
                 )
             },
         )
-        trackerScreen(onBackClick = { navController.navigateUp() })
+        trackerScreen(
+            onBackClick = { navController.navigateUp() },
+            onExit = {
+                if (!navController.popBackStack<HomeRoute>(inclusive = false)) {
+                    navController.navigateToHome(navOptions { popUpTo(0) })
+                }
+            },
+            onOpenGame = { gameId ->
+                navController.navigateToTracker(
+                    gameId = gameId,
+                    navOptions = navOptions { popUpTo<TrackerRoute> { inclusive = true } },
+                )
+            },
+        )
         settingsScreen(onBackClick = { navController.navigateUp() })
     }
 }

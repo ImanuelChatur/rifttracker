@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_setup_title">New game</string>
+    <string name="feature_setup_start">Start</string>
+    <string name="feature_setup_back">Back</string>
+</resources>

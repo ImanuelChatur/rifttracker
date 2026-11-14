@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Window theme only; all UI theming lives in Compose (RiftTheme). Dark-first background avoids a white flash. -->
+    <style name="Theme.RiftTally" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+
+    <color name="window_background">#FF0E0F13</color>
+</resources>

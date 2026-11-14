@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_tracker_title">Tracker</string>
+    <string name="feature_tracker_game_id">Game: %1$s</string>
+    <string name="feature_tracker_back">Back</string>
+</resources>

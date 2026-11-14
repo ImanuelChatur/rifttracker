@@ -22,6 +22,7 @@ dependencies {
     compileOnly(libs.compose.gradlePlugin)
     compileOnly(libs.kotlin.gradlePlugin)
     compileOnly(libs.ksp.gradlePlugin)
+    compileOnly(libs.roborazzi.gradlePlugin)
     compileOnly(libs.room.gradlePlugin)
 }
 
@@ -46,6 +47,10 @@ gradlePlugin {
         register("androidRoom") {
             id = libs.plugins.rifttally.android.room.get().pluginId
             implementationClass = "AndroidRoomConventionPlugin"
+        }
+        register("androidScreenshot") {
+            id = libs.plugins.rifttally.android.screenshot.get().pluginId
+            implementationClass = "AndroidScreenshotConventionPlugin"
         }
         register("hilt") {
             id = libs.plugins.rifttally.hilt.get().pluginId

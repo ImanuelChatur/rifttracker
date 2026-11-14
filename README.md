@@ -4,8 +4,10 @@ A fast, offline, table-side **points tracker** for *Riftbound*, the League of Le
 Each player's score sits on their Legend's portrait. See `HANDOFF.md` for the full spec, `CLAUDE.md` for
 conventions and `AGENT_WORKFLOW.md` for how the work is run.
 
-> Unofficial fan app. Not affiliated with or endorsed by Riot Games. Riftbound and League of Legends are
-> trademarks of Riot Games, Inc.
+> *Rift Tally was created under Riot Games' "Legal Jibber Jabber" policy using assets owned by Riot Games.
+> Riot Games does not endorse or sponsor this project.*
+>
+> Rift Tally is free: no ads, paywalls or donations.
 
 ## Build & check
 
@@ -49,15 +51,35 @@ DataStore and assets.
 
 Legends are data files. You don't need to change any code.
 
-1. Add a line to `core/data/src/main/assets/legends/legends.json`:
+1. Add a line to `core/data/src/main/assets/legends/legends.json` (keep it sorted by name):
    ```json
    { "id": "jinx", "name": "Jinx" }
    ```
-   Ids are lowercase `snake_case`.
-2. Optionally, drop a portrait at `core/data/src/main/assets/legends/<id>.webp` (`.png` also works).
-   Square images look best; they're cropped to a circle.
+   Ids are the champion name in lowercase `snake_case` (`kai_sa`, `lee_sin`, `jarvan_iv`).
+2. Fetch its art (see below).
 
-A Legend without an image shows a circle in the player's color with the Legend's initial. The repo ships no
-Legend images or Riot art. Add your own.
+A Legend without an image shows a circle in the player's color with the Legend's initial, so a missing
+file never breaks anything.
 
-*(The Legend catalog and avatar land in Phase 1 and 2.)*
+## Adding Legend art
+
+Legend art comes from Riot's [Data Dragon](https://developer.riotgames.com/docs/lol#data-dragon) CDN and is
+bundled at build time. The app itself never goes online.
+
+```sh
+pip install -r scripts/requirements.txt   # Pillow + requests, once
+python scripts/fetch_legend_art.py         # add --force to re-download existing files
+```
+
+For every Legend in `legends.json` the script writes, into `core/data/src/main/assets/legends/`:
+
+- `<id>.webp`: a 512×512 portrait cropped from the top of the champion's loading-screen art;
+- `<id>_wide.webp`: the 960 px wide centered splash, used as the tracker panel background;
+- `ATTRIBUTION.md`: every source URL and the Data Dragon version.
+
+It matches Legends to champions by name, skips files that already exist, retries failed downloads and prints
+a summary table. Commit the generated files.
+
+**Using your own portrait:** drop `legend-art-inbox/<id>.png` (or `.jpg`/`.webp`), for example the Riftbound
+card art, and run the script again with `--force`. The inbox folder is git-ignored; only the processed
+`.webp` is committed.

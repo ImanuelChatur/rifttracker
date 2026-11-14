@@ -123,6 +123,49 @@ class LegendCatalogParserTest {
     }
 
     @Test
+    fun resolvesWideImage_webpPreferred() {
+        assertEquals(
+            "file:///android_asset/legends/jinx_wide.webp",
+            resolveLegendWideImageUri("jinx", setOf("jinx.webp", "jinx_wide.png", "jinx_wide.webp")),
+        )
+        assertEquals(
+            "file:///android_asset/legends/jinx_wide.png",
+            resolveLegendWideImageUri("jinx", setOf("jinx_wide.png")),
+        )
+    }
+
+    @Test
+    fun missingWideImage_isNull() {
+        assertNull(resolveLegendWideImageUri("jinx", setOf("jinx.webp", "jinx_wide.jpg", "viktor_wide.webp")))
+    }
+
+    @Test
+    fun parse_attachesWideUrisIndependentlyOfPortraits() {
+        val json = """[{ "id": "jinx", "name": "Jinx" }, { "id": "viktor", "name": "Viktor" }]"""
+
+        val legends = parseLegendCatalog(json, setOf("jinx_wide.webp", "viktor.webp")).legends
+
+        assertEquals(
+            listOf(
+                Legend("jinx", "Jinx", imageUri = null, wideImageUri = "file:///android_asset/legends/jinx_wide.webp"),
+                Legend("viktor", "Viktor", imageUri = "file:///android_asset/legends/viktor.webp", wideImageUri = null),
+            ),
+            legends,
+        )
+    }
+
+    @Test
+    fun shippedArt_resolvesForEveryLegend() {
+        val dir = File("src/main/assets/legends")
+        val fileNames = dir.list().orEmpty().toSet()
+
+        val legends = parseLegendCatalog(File(dir, "legends.json").readText(), fileNames).legends
+
+        val missing = legends.filter { it.imageUri == null || it.wideImageUri == null }.map { it.id }
+        assertTrue(missing.isEmpty(), "Legends without bundled art: $missing")
+    }
+
+    @Test
     fun shippedSeedCatalog_isValid() {
         // Unit tests run with the module directory as the working directory.
         val seed = File("src/main/assets/legends/legends.json")
@@ -131,7 +174,7 @@ class LegendCatalogParserTest {
         val parsed = parseLegendCatalog(seed.readText(), emptySet())
 
         assertEquals(0, parsed.skippedEntries)
-        assertTrue(parsed.legends.size >= 8, "seed should have a handful of Legends")
+        assertTrue(parsed.legends.size >= 57, "catalog should list every Legend through Radiance")
         assertTrue(parsed.legends.all { it.imageUri == null })
     }
 }

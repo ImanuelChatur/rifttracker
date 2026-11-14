@@ -12,6 +12,9 @@ internal const val LEGENDS_ASSET_DIR: String = "legends"
 /** Catalog file name inside [LEGENDS_ASSET_DIR]. */
 internal const val LEGENDS_CATALOG_FILE: String = "legends.json"
 
+/** Suffix of the wide art file name: `<id>_wide.<ext>`. */
+internal const val LEGEND_WIDE_IMAGE_SUFFIX: String = "_wide"
+
 /** Image extensions checked for `<id>.<ext>`, in order of preference. */
 internal val LEGEND_IMAGE_EXTENSIONS: List<String> = listOf("webp", "png")
 
@@ -28,7 +31,7 @@ private data class LegendEntry(val id: String, val name: String)
 private val catalogJson = Json { ignoreUnknownKeys = true }
 
 /**
- * Parses `legends.json` (a JSON array of `{ "id", "name" }` objects) and resolves each image against
+ * Parses `legends.json` (a JSON array of `{ "id", "name" }` objects) and resolves each portrait and wide image against
  * [assetFileNames] (the file names in the legends asset folder).
  *
  * Invalid entries (missing/blank fields, an id that isn't lowercase snake_case, or a duplicate id) are
@@ -56,7 +59,12 @@ internal fun parseLegendCatalog(json: String, assetFileNames: Set<String>): Pars
             skipped++
             null
         } else {
-            Legend(id = id, name = name, imageUri = resolveLegendImageUri(id, assetFileNames))
+            Legend(
+                id = id,
+                name = name,
+                imageUri = resolveLegendImageUri(id, assetFileNames),
+                wideImageUri = resolveLegendWideImageUri(id, assetFileNames),
+            )
         }
     }
     return ParsedLegendCatalog(
@@ -70,3 +78,7 @@ internal fun resolveLegendImageUri(id: String, assetFileNames: Set<String>): Str
     .map { ext -> "$id.$ext" }
     .firstOrNull { it in assetFileNames }
     ?.let { fileName -> "$ANDROID_ASSET_URI_PREFIX$LEGENDS_ASSET_DIR/$fileName" }
+
+/** The asset URI of `<id>_wide.webp` (preferred) or `<id>_wide.png` if present in [assetFileNames], else `null`. */
+internal fun resolveLegendWideImageUri(id: String, assetFileNames: Set<String>): String? =
+    resolveLegendImageUri("$id$LEGEND_WIDE_IMAGE_SUFFIX", assetFileNames)

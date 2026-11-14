@@ -1,6 +1,6 @@
 # CLAUDE.md: Project conventions
 
-Riftbound points tracker for Android (future Riftbound companion app). The full spec and phase plan is in `HANDOFF.md`. How to run the work (single agent vs parallel subagents, reviews) is in `AGENT_WORKFLOW.md`. **Work one phase at a time.**
+Riftbound points tracker for Android (future Riftbound companion app). The full spec and phase plan is in `HANDOFF.md` (v1) and `HANDOFF_V2.md` (v2: Legend art, design pass, history & stats). How to run the work (single agent vs parallel subagents, reviews) is in `AGENT_WORKFLOW.md`. **Work one phase at a time.**
 
 ## Workflow
 - Before coding a phase, restate its scope in 3–5 bullets and list the files/modules you'll touch.
@@ -11,7 +11,8 @@ Riftbound points tracker for Android (future Riftbound companion app). The full 
 - If the spec is ambiguous, pick the simplest option consistent with `HANDOFF.md` and note the decision in your summary.
 
 ## Adding Legends (keep this working)
-- Legends live in `core/data/src/main/assets/legends/legends.json` (`id`, `name`) with optional images `<id>.webp`/`.png` in the same folder.
+- Legends live in `core/data/src/main/assets/legends/legends.json` (`id`, `name`) with optional images `<id>.webp`/`.png` (square portrait) and `<id>_wide.webp` (panel background) in the same folder.
+- Art is fetched from Riot's Data Dragon at build time by `scripts/fetch_legend_art.py` and committed (see README). The app never fetches art at runtime.
 - A missing image must fall back to a colored circle with an initial. Never crash or show a broken image.
 
 ## Architecture rules
@@ -51,6 +52,7 @@ Riftbound points tracker for Android (future Riftbound companion app). The full 
 
 ## Don'ts
 - No network permission or network code in v1.
-- Don't download, generate or bundle Legend images or any Riot logos/art. The developer adds Legend images to `core/data/src/main/assets/legends/` themselves; code must work with or without them.
+- Legend art comes only from `scripts/fetch_legend_art.py` (Data Dragon) or the developer's `legend-art-inbox/`. Don't bundle other Riot logos/art, and code must still work without any image. Tests use generated placeholder images, never real Riot art.
+- Keep the app free: no ads, paywalls or donations. Keep the "Legal Jibber Jabber" notice in About and the README.
 - Keep the tracker simple: no best-of series, turn tracking or rules enforcement.
-- Don't build future roadmap features (cards, decks, collection, stats) or add placeholder code for them.
+- Don't build future roadmap features (cards, decks, collection) or add placeholder code for them. Match history and stats (v2, `HANDOFF_V2.md`) are derived from stored games only.

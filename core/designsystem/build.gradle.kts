@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.rifttally.android.library)
     alias(libs.plugins.rifttally.android.compose)
+    alias(libs.plugins.rifttally.android.screenshot)
 }
 
 android {

@@ -2,20 +2,27 @@ package com.rifttally.feature.tracker
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
+import com.rifttally.core.designsystem.component.RiftButton
 import com.rifttally.core.designsystem.component.RiftIconButton
 import com.rifttally.core.designsystem.component.RiftTextButton
 import com.rifttally.core.designsystem.icon.RiftIcons
@@ -104,5 +111,57 @@ private fun ConfirmDialogPreview() {
             onConfirm = {},
             onDismiss = {},
         )
+    }
+}
+
+/**
+ * Adds a counter for [playerName]: one tap on the "XP" preset, or a custom label (trimmed, at most
+ * [maxLabelLength] characters).
+ */
+@Composable
+internal fun AddCounterDialog(
+    playerName: String,
+    maxLabelLength: Int,
+    onAdd: (label: String) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var label by rememberSaveable { mutableStateOf("") }
+    val xp = stringResource(R.string.feature_tracker_counter_preset_xp)
+    AlertDialog(
+        modifier = modifier,
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.feature_tracker_counter_dialog_title, playerName)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.md)) {
+                RiftButton(text = xp, onClick = { onAdd(xp) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = label,
+                    onValueChange = { label = it.take(maxLabelLength) },
+                    label = { Text(stringResource(R.string.feature_tracker_counter_custom_label)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            RiftTextButton(
+                text = stringResource(R.string.feature_tracker_counter_add),
+                onClick = { onAdd(label) },
+                enabled = label.isNotBlank(),
+            )
+        },
+        dismissButton = {
+            RiftTextButton(text = stringResource(R.string.feature_tracker_dialog_cancel), onClick = onDismiss)
+        },
+    )
+}
+
+@PreviewRiftThemes
+@Composable
+private fun AddCounterDialogPreview() {
+    RiftTheme {
+        AddCounterDialog(playerName = "Ana", maxLabelLength = 12, onAdd = {}, onDismiss = {})
     }
 }

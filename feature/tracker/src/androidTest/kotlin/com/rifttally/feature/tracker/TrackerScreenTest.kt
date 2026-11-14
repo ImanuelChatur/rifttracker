@@ -1,6 +1,9 @@
 package com.rifttally.feature.tracker
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -8,6 +11,8 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.rifttally.core.designsystem.theme.RiftTheme
+import com.rifttally.core.model.CounterId
+import com.rifttally.core.model.PlayerId
 import com.rifttally.core.model.SideId
 import kotlinx.collections.immutable.persistentListOf
 import org.junit.Assert.assertEquals
@@ -28,6 +33,8 @@ class TrackerScreenTest {
     private var ends = 0
     private var keepPlaying = 0
     private var backs = 0
+    private val counterAdds = mutableListOf<Pair<PlayerId, String>>()
+    private val counterChanges = mutableListOf<Triple<PlayerId, CounterId, Int>>()
 
     private fun setContent(uiState: TrackerUiState) {
         composeTestRule.setContent {
@@ -41,6 +48,9 @@ class TrackerScreenTest {
                     onEndGame = { ends++ },
                     onKeepPlaying = { keepPlaying++ },
                     onRestart = {},
+                    onCounterAdd = { player, label -> counterAdds += player to label },
+                    onCounterChange = { player, counter, delta -> counterChanges += Triple(player, counter, delta) },
+                    onCounterRemove = { _, _ -> },
                 )
             }
         }
@@ -88,6 +98,24 @@ class TrackerScreenTest {
 
         composeTestRule.onNodeWithText(context.getString(R.string.feature_tracker_history_title)).assertIsDisplayed()
         composeTestRule.onNodeWithText("Ana +1 · 6").assertIsDisplayed()
+    }
+
+    @Test
+    fun counterRow_changesValue_andAddCounterDialogAddsXp() {
+        setContent(previewTrackerState)
+
+        // Ana has an XP counter in the preview state.
+        composeTestRule.onNodeWithContentDescription("Ana, XP, increase").performClick()
+        assertEquals(listOf(Triple(PlayerId("p1"), CounterId("xp"), 1)), counterChanges)
+
+        composeTestRule.onNodeWithContentDescription(
+            context.getString(R.string.feature_tracker_add_counter_for, "Ben"),
+        ).performClick()
+        // Ana's existing "XP" counter label is on screen too: target the dialog's preset button.
+        composeTestRule.onNode(
+            hasText(context.getString(R.string.feature_tracker_counter_preset_xp)) and hasAnyAncestor(isDialog()),
+        ).performClick()
+        assertEquals(listOf(PlayerId("p2") to "XP"), counterAdds)
     }
 
     @Test

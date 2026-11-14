@@ -31,7 +31,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
 import com.rifttally.core.designsystem.component.RiftIconButton
 import com.rifttally.core.designsystem.theme.RiftTheme
+import com.rifttally.core.model.CounterId
 import com.rifttally.core.model.GameId
+import com.rifttally.core.model.PlayerId
 import com.rifttally.core.model.SideId
 import com.rifttally.core.ui.ImmersiveModeEffect
 import kotlinx.collections.immutable.persistentListOf
@@ -68,6 +70,9 @@ internal fun TrackerRoute(
         onEndGame = viewModel::onEndGame,
         onKeepPlaying = viewModel::onKeepPlaying,
         onRestart = viewModel::onRestart,
+        onCounterAdd = viewModel::onCounterAdd,
+        onCounterChange = viewModel::onCounterChange,
+        onCounterRemove = viewModel::onCounterRemove,
         // Ref-counted by Compose, so overlapping trackers (restart transition) don't release it early.
         modifier = if (keepScreenOn) modifier.keepScreenOn() else modifier,
     )
@@ -86,6 +91,9 @@ internal fun TrackerScreen(
     onEndGame: () -> Unit,
     onKeepPlaying: () -> Unit,
     onRestart: () -> Unit,
+    onCounterAdd: (PlayerId, String) -> Unit,
+    onCounterChange: (PlayerId, CounterId, Int) -> Unit,
+    onCounterRemove: (PlayerId, CounterId) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = RiftTheme.colorScheme.background) {
@@ -102,6 +110,9 @@ internal fun TrackerScreen(
                 onEndGame = onEndGame,
                 onKeepPlaying = onKeepPlaying,
                 onRestart = onRestart,
+                onCounterAdd = onCounterAdd,
+                onCounterChange = onCounterChange,
+                onCounterRemove = onCounterRemove,
             )
         }
     }
@@ -116,10 +127,15 @@ private fun TrackerTable(
     onEndGame: () -> Unit,
     onKeepPlaying: () -> Unit,
     onRestart: () -> Unit,
+    onCounterAdd: (PlayerId, String) -> Unit,
+    onCounterChange: (PlayerId, CounterId, Int) -> Unit,
+    onCounterRemove: (PlayerId, CounterId) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var overlay by rememberSaveable { mutableStateOf(TrackerOverlay.None) }
     val dismiss = { overlay = TrackerOverlay.None }
+    // Player whose "+ Counter" dialog is open (id value, saveable), or null.
+    var addCounterFor by rememberSaveable { mutableStateOf<String?>(null) }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -151,6 +167,9 @@ private fun TrackerTable(
                     panel = panel,
                     hapticsEnabled = state.hapticsEnabled,
                     onPointsChange = { delta -> onPointsChange(panel.sideId, delta) },
+                    onCounterChange = onCounterChange,
+                    onCounterRemove = onCounterRemove,
+                    onAddCounterClick = { playerId -> addCounterFor = playerId.value },
                     rotationDegrees = if (index == 0 && state.panels.size == 2) FACING_AWAY_DEGREES else 0f,
                     modifier = Modifier
                         .weight(1f)
@@ -205,6 +224,20 @@ private fun TrackerTable(
             onDismiss = dismiss,
         )
     }
+    val counterOwner = addCounterFor?.let { id ->
+        state.panels.asSequence().flatMap { it.players }.firstOrNull { it.playerId.value == id }
+    }
+    if (counterOwner != null) {
+        AddCounterDialog(
+            playerName = counterOwner.name,
+            maxLabelLength = MAX_COUNTER_LABEL_LENGTH,
+            onAdd = { label ->
+                onCounterAdd(counterOwner.playerId, label)
+                addCounterFor = null
+            },
+            onDismiss = { addCounterFor = null },
+        )
+    }
 }
 
 @Composable
@@ -252,6 +285,9 @@ private fun TrackerScreenTwoPlayersPreview() {
             onEndGame = {},
             onKeepPlaying = {},
             onRestart = {},
+            onCounterAdd = { _, _ -> },
+            onCounterChange = { _, _, _ -> },
+            onCounterRemove = { _, _ -> },
         )
     }
 }
@@ -269,6 +305,9 @@ private fun TrackerScreenBannerPreview() {
             onEndGame = {},
             onKeepPlaying = {},
             onRestart = {},
+            onCounterAdd = { _, _ -> },
+            onCounterChange = { _, _, _ -> },
+            onCounterRemove = { _, _ -> },
         )
     }
 }

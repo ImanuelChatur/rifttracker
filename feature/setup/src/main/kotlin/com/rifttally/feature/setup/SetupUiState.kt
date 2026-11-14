@@ -11,6 +11,8 @@ internal data class SetupUiState(
     val canDecreaseTarget: Boolean = false,
     /** Open Legend picker, or `null` when closed. */
     val legendPicker: LegendPickerUiState? = null,
+    /** "Add XP counter to all players" (remembered across games). */
+    val addXpCounter: Boolean = false,
     val isStarting: Boolean = false,
 )
 

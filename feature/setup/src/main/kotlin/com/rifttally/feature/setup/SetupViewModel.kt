@@ -4,7 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rifttally.core.data.game.GameRepository
 import com.rifttally.core.data.legend.LegendRepository
+import com.rifttally.core.data.repository.UserSettingsRepository
 import com.rifttally.core.designsystem.theme.PlayerColors
+import com.rifttally.core.model.Counter
+import com.rifttally.core.model.CounterId
 import com.rifttally.core.model.GameConfig
 import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.GameId
@@ -23,16 +26,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Phase 2: two players (name, color, Legend) and the target score. */
+/** Two players (name, color, Legend), the target score, and the remembered "XP counter for all" toggle. */
 @HiltViewModel
 internal class SetupViewModel @Inject constructor(
     private val gameRepository: GameRepository,
     legendRepository: LegendRepository,
+    private val userSettingsRepository: UserSettingsRepository,
 ) : ViewModel() {
 
     private val format = GameFormat.TWO_PLAYERS
@@ -51,9 +56,17 @@ internal class SetupViewModel @Inject constructor(
     /** One-off navigation requests (e.g. open the tracker for a new game). */
     val navigationEvents: Flow<SetupNavigationEvent> = navigation.receiveAsFlow()
 
-    val uiState: StateFlow<SetupUiState> = combine(form, legendRepository.legends) { form, legends ->
-        form.toUiState(legends)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), form.value.toUiState(emptyList()))
+    val uiState: StateFlow<SetupUiState> = combine(
+        form,
+        legendRepository.legends,
+        userSettingsRepository.userSettings,
+    ) { form, legends, settings -> form.toUiState(legends, settings.addXpCounterByDefault) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), form.value.toUiState(emptyList(), false))
+
+    /** Remembered for next time (Settings also exposes the default). */
+    fun onAddXpCounterToggle(enabled: Boolean) {
+        viewModelScope.launch { userSettingsRepository.setAddXpCounterByDefault(enabled) }
+    }
 
     fun onNameChange(index: Int, name: String) = updatePlayer(index) { it.copy(name = name.take(MAX_NAME_LENGTH)) }
 
@@ -79,14 +92,15 @@ internal class SetupViewModel @Inject constructor(
 
     /**
      * Creates the game and asks to open the tracker. [defaultNames] are the localized "Player N" names
-     * used for players left blank (index-aligned).
+     * used for players left blank (index-aligned); [xpLabel] is the localized "XP" for the optional counter.
      */
-    fun onStartGame(defaultNames: List<String>) {
+    fun onStartGame(defaultNames: List<String>, xpLabel: String) {
         val current = form.value
         if (current.isStarting) return
         form.update { it.copy(isStarting = true) }
         viewModelScope.launch {
-            val gameId = gameRepository.createGame(current.toConfig(defaultNames))
+            val addXp = userSettingsRepository.userSettings.first().addXpCounterByDefault
+            val gameId = gameRepository.createGame(current.toConfig(defaultNames, xpLabel.takeIf { addXp }))
             navigation.send(SetupNavigationEvent.OpenTracker(gameId))
         }
     }
@@ -96,7 +110,7 @@ internal class SetupViewModel @Inject constructor(
         state.copy(players = state.players.mapIndexed { i, player -> if (i == index) transform(player) else player })
     }
 
-    private fun SetupForm.toUiState(legends: List<Legend>): SetupUiState {
+    private fun SetupForm.toUiState(legends: List<Legend>, addXpCounter: Boolean): SetupUiState {
         val byId = legends.associateBy { it.id }
         val pickerIndex = pickerFor
         return SetupUiState(
@@ -120,11 +134,12 @@ internal class SetupViewModel @Inject constructor(
                     selectedLegendId = players.getOrNull(index)?.legendId,
                 )
             },
+            addXpCounter = addXpCounter,
             isStarting = isStarting,
         )
     }
 
-    private fun SetupForm.toConfig(defaultNames: List<String>): GameConfig {
+    private fun SetupForm.toConfig(defaultNames: List<String>, xpLabel: String?): GameConfig {
         val gamePlayers = players.mapIndexed { index, player ->
             Player(
                 id = PlayerId("p${index + 1}"),
@@ -138,6 +153,11 @@ internal class SetupViewModel @Inject constructor(
             sides = gamePlayers.mapIndexed { index, player -> Side(SideId("s${index + 1}"), listOf(player.id)) },
             players = gamePlayers,
             targetScore = targetScore,
+            initialCounters = if (xpLabel == null) {
+                emptyMap()
+            } else {
+                gamePlayers.associate { it.id to listOf(Counter(id = XP_COUNTER_ID, label = xpLabel)) }
+            },
         )
     }
 
@@ -153,6 +173,7 @@ internal class SetupViewModel @Inject constructor(
 
     private companion object {
         const val MAX_NAME_LENGTH = 24
+        val XP_COUNTER_ID = CounterId("xp")
     }
 }
 

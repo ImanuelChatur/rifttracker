@@ -8,6 +8,7 @@ import com.rifttally.core.model.SideId
 import com.rifttally.core.testing.MainDispatcherRule
 import com.rifttally.core.testing.repository.FakeGameRepository
 import com.rifttally.core.testing.repository.FakeLegendRepository
+import com.rifttally.core.testing.repository.FakeUserSettingsRepository
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -21,12 +22,13 @@ class SetupViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val games = FakeGameRepository()
+    private val settings = FakeUserSettingsRepository()
     private val legends = FakeLegendRepository(
         listOf(Legend("jinx", "Jinx", null), Legend("viktor", "Viktor", null), Legend("lee_sin", "Lee Sin", null)),
     )
 
     // Lazy: created inside each test, after MainDispatcherRule has installed the test Main dispatcher.
-    private val viewModel by lazy { SetupViewModel(games, legends) }
+    private val viewModel by lazy { SetupViewModel(games, legends, settings) }
 
     private val defaultNames = listOf("Player 1", "Player 2")
 
@@ -109,7 +111,7 @@ class SetupViewModelTest {
         viewModel.onTargetScoreIncrease()
 
         viewModel.navigationEvents.test {
-            viewModel.onStartGame(defaultNames)
+            viewModel.onStartGame(defaultNames, "XP")
             assertEquals(SetupNavigationEvent.OpenTracker(GameId("game1")), awaitItem())
         }
 
@@ -124,9 +126,40 @@ class SetupViewModelTest {
 
     @Test
     fun startGame_twice_createsOneGame() = runTest {
-        viewModel.onStartGame(defaultNames)
-        viewModel.onStartGame(defaultNames)
+        viewModel.onStartGame(defaultNames, "XP")
+        viewModel.onStartGame(defaultNames, "XP")
 
         assertEquals(1, games.allGames.size)
+    }
+
+    @Test
+    fun xpToggle_isRemembered_andReflectedInState() = runTest {
+        viewModel.uiState.test {
+            assertTrue(!awaitItem().addXpCounter)
+            viewModel.onAddXpCounterToggle(true)
+            assertTrue(expectMostRecentItem().addXpCounter)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertTrue(settings.current.addXpCounterByDefault)
+    }
+
+    @Test
+    fun startGame_withXpToggle_givesEveryPlayerAnXpCounter() = runTest {
+        settings.setAddXpCounterByDefault(true)
+
+        viewModel.onStartGame(defaultNames, "XP")
+
+        val config = games.allGames.single().config
+        assertEquals(config.players.map { it.id }.toSet(), config.initialCounters.keys)
+        config.initialCounters.values.forEach { counters ->
+            assertEquals(listOf("XP" to 0), counters.map { it.label to it.value })
+        }
+    }
+
+    @Test
+    fun startGame_withoutXpToggle_hasNoCounters() = runTest {
+        viewModel.onStartGame(defaultNames, "XP")
+
+        assertTrue(games.allGames.single().config.initialCounters.isEmpty())
     }
 }

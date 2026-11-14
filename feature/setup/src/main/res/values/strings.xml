@@ -16,4 +16,7 @@
     <string name="feature_setup_target_score">Target score</string>
     <string name="feature_setup_target_increase">Increase target score</string>
     <string name="feature_setup_target_decrease">Decrease target score</string>
+    <string name="feature_setup_xp_toggle">Add XP counter to all players</string>
+    <!-- Label of the XP counter created by the toggle above. -->
+    <string name="feature_setup_xp_label">XP</string>
 </resources>

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -71,6 +73,7 @@ internal fun SetupRoute(
         }
     }
     val defaultNames = uiState.players.map { stringResource(R.string.feature_setup_default_player_name, it.index + 1) }
+    val xpLabel = stringResource(R.string.feature_setup_xp_label)
     SetupScreen(
         uiState = uiState,
         onBackClick = onBackClick,
@@ -79,7 +82,8 @@ internal fun SetupRoute(
         onLegendClick = viewModel::onLegendPickerOpen,
         onTargetIncrease = viewModel::onTargetScoreIncrease,
         onTargetDecrease = viewModel::onTargetScoreDecrease,
-        onStartClick = { viewModel.onStartGame(defaultNames) },
+        onAddXpCounterToggle = viewModel::onAddXpCounterToggle,
+        onStartClick = { viewModel.onStartGame(defaultNames, xpLabel) },
         modifier = modifier,
     )
     uiState.legendPicker?.let { picker ->
@@ -102,6 +106,7 @@ internal fun SetupScreen(
     onLegendClick: (index: Int) -> Unit,
     onTargetIncrease: () -> Unit,
     onTargetDecrease: () -> Unit,
+    onAddXpCounterToggle: (Boolean) -> Unit,
     onStartClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -154,6 +159,7 @@ internal fun SetupScreen(
                 onIncrease = onTargetIncrease,
                 onDecrease = onTargetDecrease,
             )
+            XpCounterToggleRow(checked = uiState.addXpCounter, onCheckedChange = onAddXpCounterToggle)
         }
     }
 }
@@ -307,7 +313,28 @@ private fun SetupScreenPreview() {
             onLegendClick = {},
             onTargetIncrease = {},
             onTargetDecrease = {},
+            onAddXpCounterToggle = {},
             onStartClick = {},
         )
+    }
+}
+
+@Composable
+private fun XpCounterToggleRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+    Card(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
+                .padding(horizontal = RiftTheme.spacing.lg, vertical = RiftTheme.spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.feature_setup_xp_toggle),
+                style = RiftTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+            )
+            // The row handles the toggle, so the switch itself is not separately focusable.
+            Switch(checked = checked, onCheckedChange = null)
+        }
     }
 }

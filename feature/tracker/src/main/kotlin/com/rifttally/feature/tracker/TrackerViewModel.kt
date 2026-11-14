@@ -14,9 +14,11 @@ import com.rifttally.core.game.HistoryEntry
 import com.rifttally.core.game.history
 import com.rifttally.core.game.reduce
 import com.rifttally.core.game.sidesAtTarget
+import com.rifttally.core.model.CounterId
 import com.rifttally.core.model.GameId
 import com.rifttally.core.model.Legend
 import com.rifttally.core.model.MIN_TARGET_SCORE
+import com.rifttally.core.model.PlayerId
 import com.rifttally.core.model.SideId
 import com.rifttally.core.model.UserSettings
 import com.rifttally.feature.tracker.navigation.TrackerRoute
@@ -109,6 +111,29 @@ internal class TrackerViewModel @Inject constructor(
         append(eventFactory.targetScoreChanged(newScore))
     }
 
+    /** Adds a counter (e.g. "XP") under [playerId]'s points. Blank labels are ignored. */
+    fun onCounterAdd(playerId: PlayerId, label: String) {
+        val state = latest?.state ?: return
+        val trimmed = label.trim().take(MAX_COUNTER_LABEL_LENGTH)
+        if (state.isEnded || trimmed.isEmpty() || playerId !in state.counters) return
+        if (state.countersOf(playerId).size >= MAX_COUNTERS_PER_PLAYER) return
+        append(eventFactory.counterAdded(playerId, trimmed))
+    }
+
+    fun onCounterChange(playerId: PlayerId, counterId: CounterId, delta: Int) {
+        val state = latest?.state ?: return
+        if (state.isEnded || delta == 0) return
+        val counter = state.countersOf(playerId).firstOrNull { it.id == counterId } ?: return
+        if (delta < 0 && counter.value == 0) return
+        append(eventFactory.counterAdjusted(playerId, counterId, delta))
+    }
+
+    fun onCounterRemove(playerId: PlayerId, counterId: CounterId) {
+        val state = latest?.state ?: return
+        if (state.isEnded || state.countersOf(playerId).none { it.id == counterId }) return
+        append(eventFactory.counterRemoved(playerId, counterId))
+    }
+
     /** "Keep playing": hides the banner until another side reaches the target. */
     fun onKeepPlaying() {
         val state = latest?.state ?: return
@@ -173,10 +198,14 @@ private fun buildUiState(
             players = side.playerIds.mapNotNull(playersById::get).map { player ->
                 val legend = player.legendId?.let(legendsById::get)
                 PanelPlayerUiState(
+                    playerId = player.id,
                     name = player.name,
                     colorId = player.colorId,
                     legendName = legend?.name,
                     legendImageUri = legend?.imageUri,
+                    counters = state.countersOf(player.id)
+                        .map { CounterUiState(id = it.id, label = it.label, value = it.value) }
+                        .toImmutableList(),
                 )
             }.toImmutableList(),
         )

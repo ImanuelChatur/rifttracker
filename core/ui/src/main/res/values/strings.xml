@@ -8,4 +8,10 @@
         <item quantity="one">%1$s, %2$d point</item>
         <item quantity="other">%1$s, %2$d points</item>
     </plurals>
+
+    <!-- CounterRow. %1$s = player name, %2$s = counter label (e.g. XP), %3$d = value. -->
+    <string name="core_ui_counter_description">%1$s, %2$s %3$d</string>
+    <string name="core_ui_counter_increase">%1$s, %2$s, increase</string>
+    <string name="core_ui_counter_decrease">%1$s, %2$s, decrease</string>
+    <string name="core_ui_counter_remove">Remove</string>
 </resources>

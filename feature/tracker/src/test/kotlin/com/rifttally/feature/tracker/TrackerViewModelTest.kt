@@ -5,6 +5,8 @@ import app.cash.turbine.test
 import com.rifttally.core.game.GameEvent
 import com.rifttally.core.game.GameEventFactory
 import com.rifttally.core.game.IdGenerator
+import com.rifttally.core.model.Counter
+import com.rifttally.core.model.CounterId
 import com.rifttally.core.model.GameConfig
 import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.GameId
@@ -173,6 +175,116 @@ class TrackerViewModelTest {
         }
     }
 
+    private fun TrackerViewModel.counters(player: Int) = success().panels[player].players.single().counters
+
+    @Test
+    fun counterAdd_showsUnderThatPlayer_withTrimmedLabel() = withViewModel { viewModel ->
+        viewModel.onCounterAdd(P1, "  XP  ")
+        viewModel.onCounterAdd(P1, "   ")
+
+        assertEquals(listOf("XP" to 0), viewModel.counters(0).map { it.label to it.value })
+        assertEquals(emptyList(), viewModel.counters(1))
+    }
+
+    @Test
+    fun counterAdd_capsLabelLength() = withViewModel { viewModel ->
+        viewModel.onCounterAdd(P2, "A very long counter label")
+
+        assertEquals(MAX_COUNTER_LABEL_LENGTH, viewModel.counters(1).single().label.length)
+    }
+
+    @Test
+    fun counterChange_adjusts_andFloorsAtZeroWithoutNoOpEvents() = withViewModel { viewModel ->
+        viewModel.onCounterAdd(P1, "XP")
+        val xp = viewModel.counters(0).single().id
+
+        viewModel.onCounterChange(P1, xp, 1)
+        viewModel.onCounterChange(P1, xp, 1)
+        repeat(4) { viewModel.onCounterChange(P1, xp, -1) }
+
+        assertEquals(0, viewModel.counters(0).single().value)
+        // add + 2 up + 2 down; the extra −1s at 0 were never appended.
+        assertEquals(5, events().size)
+    }
+
+    @Test
+    fun counterRemove_removesIt_andUndoRestoresIt() = withViewModel { viewModel ->
+        viewModel.onCounterAdd(P1, "XP")
+        val xp = viewModel.counters(0).single().id
+        viewModel.onCounterChange(P1, xp, 3)
+
+        viewModel.onCounterRemove(P1, xp)
+        assertEquals(emptyList(), viewModel.counters(0))
+
+        viewModel.onUndo()
+        assertEquals(listOf("XP" to 3), viewModel.counters(0).map { it.label to it.value })
+    }
+
+    @Test
+    fun counterAdd_isCappedPerPlayer() = withViewModel { viewModel ->
+        repeat(MAX_COUNTERS_PER_PLAYER + 2) { viewModel.onCounterAdd(P1, "C$it") }
+
+        assertEquals(MAX_COUNTERS_PER_PLAYER, viewModel.counters(0).size)
+    }
+
+    @Test
+    fun counterActions_afterGameEnded_appendNothing() = withViewModel { viewModel ->
+        viewModel.onCounterAdd(P1, "XP")
+        val xp = viewModel.counters(0).single().id
+        viewModel.onEndGame()
+        val before = events()
+
+        viewModel.onCounterAdd(P1, "Energy")
+        viewModel.onCounterChange(P1, xp, 1)
+        viewModel.onCounterRemove(P1, xp)
+
+        assertEquals(before, events())
+    }
+
+    @Test
+    fun counterEvents_forUnknownCounter_areIgnored() = withViewModel { viewModel ->
+        viewModel.onCounterChange(P1, CounterId("nope"), 1)
+        viewModel.onCounterRemove(P1, CounterId("nope"))
+
+        assertEquals(emptyList(), events())
+    }
+
+    @Test
+    fun initialCounters_fromConfig_areShown() = runTest {
+        val withXp = config.copy(
+            initialCounters = mapOf(P2 to listOf(Counter(XP_ID, "XP", 0))),
+        )
+        check(games.createGame(withXp) == gameId)
+        val viewModel = TrackerViewModel(
+            savedStateHandle = SavedStateHandle(mapOf(TrackerRoute::gameId.name to gameId.value)),
+            gameRepository = games,
+            legendRepository = legends,
+            userSettingsRepository = settings,
+            eventFactory = factory,
+        )
+        viewModel.uiState.test {
+            val panel = assertIs<TrackerUiState.Success>(expectMostRecentItem()).panels[1]
+            assertEquals(listOf(CounterUiState(XP_ID, "XP", 0)), panel.players.single().counters)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun counterHistory_isListed() = withViewModel { viewModel ->
+        viewModel.onCounterAdd(P1, "XP")
+        val xp = viewModel.counters(0).single().id
+        viewModel.onCounterChange(P1, xp, 2)
+
+        assertEquals(
+            listOf<HistoryItemUiState>(
+                HistoryItemUiState.CounterChanged("e3", "Ana", "XP", 2, 2),
+                // The counter id is generated first (e1), then the event id (e2).
+                HistoryItemUiState.CounterAdded("e2", "Ana", "XP"),
+            ),
+            viewModel.success().history,
+        )
+    }
+
     @Test
     fun undo_removesLastChange() = withViewModel { viewModel ->
         viewModel.onPointsChange(S1, 1)
@@ -328,5 +440,6 @@ class TrackerViewModelTest {
         val P2 = PlayerId("p2")
         val S1 = SideId("s1")
         val S2 = SideId("s2")
+        val XP_ID = CounterId("xp")
     }
 }

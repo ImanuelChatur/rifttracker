@@ -23,6 +23,7 @@ class SetupScreenTest {
     private var starts = 0
     private var legendClicks = mutableListOf<Int>()
     private var targetIncreases = 0
+    private val xpToggles = mutableListOf<Boolean>()
 
     private fun setContent(uiState: SetupUiState = previewSetupState) {
         composeTestRule.setContent {
@@ -35,6 +36,7 @@ class SetupScreenTest {
                     onLegendClick = { legendClicks += it },
                     onTargetIncrease = { targetIncreases++ },
                     onTargetDecrease = {},
+                    onAddXpCounterToggle = { xpToggles += it },
                     onStartClick = { starts++ },
                 )
             }
@@ -72,5 +74,14 @@ class SetupScreenTest {
             .performClick()
 
         assertEquals(1, targetIncreases)
+    }
+
+    @Test
+    fun xpToggle_invokesCallbackWithNewValue() {
+        setContent()
+
+        composeTestRule.onNodeWithText(context.getString(R.string.feature_setup_xp_toggle)).performClick()
+
+        assertEquals(listOf(true), xpToggles)
     }
 }

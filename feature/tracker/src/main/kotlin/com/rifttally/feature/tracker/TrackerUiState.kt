@@ -1,5 +1,7 @@
 package com.rifttally.feature.tracker
 
+import com.rifttally.core.model.CounterId
+import com.rifttally.core.model.PlayerId
 import com.rifttally.core.model.SideId
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -38,11 +40,16 @@ internal data class SidePanelUiState(
 }
 
 internal data class PanelPlayerUiState(
+    val playerId: PlayerId,
     val name: String,
     val colorId: String,
     val legendName: String?,
     val legendImageUri: String?,
+    /** Extra counters (e.g. XP) shown under the points, in the order they were added. */
+    val counters: ImmutableList<CounterUiState> = persistentListOf(),
 )
+
+internal data class CounterUiState(val id: CounterId, val label: String, val value: Int)
 
 /** Shown while at least one side is at the target and the banner hasn't been dismissed. */
 internal data class WinnerBannerUiState(val names: ImmutableList<String> = persistentListOf())

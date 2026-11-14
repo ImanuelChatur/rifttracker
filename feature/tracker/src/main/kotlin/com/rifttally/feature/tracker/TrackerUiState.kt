@@ -45,6 +45,8 @@ internal data class PanelPlayerUiState(
     val colorId: String,
     val legendName: String?,
     val legendImageUri: String?,
+    /** Wide Legend art for the panel background (falls back to [legendImageUri]). */
+    val legendWideImageUri: String? = null,
     /** Extra counters (e.g. XP) shown under the points, in the order they were added. */
     val counters: ImmutableList<CounterUiState> = persistentListOf(),
 )

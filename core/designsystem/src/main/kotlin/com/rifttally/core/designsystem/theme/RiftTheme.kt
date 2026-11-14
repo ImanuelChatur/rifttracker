@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 
 internal val DarkColorScheme: ColorScheme = darkColorScheme(
@@ -133,9 +134,29 @@ public object RiftTheme {
         @Composable @ReadOnlyComposable
         get() = LocalRiftScoreTypography.current
 
+    /** Material type roles; emphasized variants via e.g. `typography.titleLargeEmphasized`. */
     public val typography: Typography
         @Composable @ReadOnlyComposable
         get() = MaterialTheme.typography
+
+    /** Table-screen colors (panel scrim, control bar, target glow). Theme-aware. */
+    public val tableColors: RiftTableColors
+        // Follows the active color scheme (also with dynamic color), so no extra CompositionLocal is needed.
+        @Composable @ReadOnlyComposable
+        get() = if (MaterialTheme.colorScheme.background.luminance() < HALF_LUMINANCE) {
+            DarkTableColors
+        } else {
+            LightTableColors
+        }
+
+    /** Springs: `RiftTheme.motion.expressive.fastSpatial()` etc. (DESIGN.md §7). */
+    public val motion: RiftMotion = RiftMotion()
+
+    /** Corner-radius scale (DESIGN.md §4). */
+    public val shapes: RiftShapes = RiftShapes()
+
+    /** Elevation levels 0–5 (DESIGN.md §6). */
+    public val elevation: RiftElevation = RiftElevation()
 
     public val colorScheme: ColorScheme
         @Composable @ReadOnlyComposable
@@ -147,3 +168,5 @@ public object RiftTheme {
     /** Scrim and text colors for scores drawn over a Legend portrait (same in light and dark). */
     public val portraitColors: RiftPortraitColors = RiftPortraitColors()
 }
+
+private const val HALF_LUMINANCE = 0.5f

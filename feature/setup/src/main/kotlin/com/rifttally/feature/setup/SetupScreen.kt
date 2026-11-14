@@ -50,6 +50,7 @@ import com.rifttally.core.designsystem.component.RiftButton
 import com.rifttally.core.designsystem.component.RiftIconButton
 import com.rifttally.core.designsystem.component.RiftTopAppBar
 import com.rifttally.core.designsystem.icon.RiftIcons
+import com.rifttally.core.designsystem.theme.PlayerColor
 import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.model.GameFormat
@@ -94,9 +95,11 @@ internal fun SetupRoute(
         modifier = modifier,
     )
     uiState.legendPicker?.let { picker ->
+        val player = uiState.players.getOrNull(picker.playerIndex)
         LegendPickerSheet(
             picker = picker,
-            playerName = uiState.players.getOrNull(picker.playerIndex)?.displayName().orEmpty(),
+            playerName = player?.displayName().orEmpty(),
+            playerColor = player.pickerColor(),
             onQueryChange = viewModel::onLegendQueryChange,
             onLegendSelect = viewModel::onLegendSelect,
             onDismiss = viewModel::onLegendPickerDismiss,
@@ -191,6 +194,10 @@ internal fun SetupScreen(
         }
     }
 }
+
+/** The color the Legend picker uses for its selection ring. */
+internal fun SetupPlayerUiState?.pickerColor(): PlayerColor =
+    this?.let { PlayerColors.fromId(it.colorId) ?: PlayerColors.forSeat(it.index) } ?: PlayerColors.Grey
 
 @Composable
 private fun SetupPlayerUiState.displayName(): String =

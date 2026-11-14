@@ -1,16 +1,22 @@
 package com.rifttally.feature.setup
 
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -19,25 +25,35 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
+import com.rifttally.core.designsystem.theme.PlayerColor
 import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.designsystem.theme.RiftTheme
+import com.rifttally.core.designsystem.theme.reduceMotionEnabled
 import com.rifttally.core.model.Legend
-import com.rifttally.core.ui.LegendAvatar
+import com.rifttally.core.ui.LegendBackdrop
 import kotlinx.collections.immutable.persistentListOf
 
-/** Searchable grid of Legends plus "None". */
+/**
+ * Searchable 3-column grid of Legend portrait cards plus "None". The selected card gets a ring in the
+ * player's [playerColor].
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun LegendPickerSheet(
     picker: LegendPickerUiState,
     playerName: String,
+    playerColor: PlayerColor,
     onQueryChange: (String) -> Unit,
     onLegendSelect: (legendId: String?) -> Unit,
     onDismiss: () -> Unit,
@@ -47,6 +63,7 @@ internal fun LegendPickerSheet(
         LegendPickerContent(
             picker = picker,
             playerName = playerName,
+            playerColor = playerColor,
             onQueryChange = onQueryChange,
             onLegendSelect = onLegendSelect,
         )
@@ -54,9 +71,10 @@ internal fun LegendPickerSheet(
 }
 
 @Composable
-private fun LegendPickerContent(
+internal fun LegendPickerContent(
     picker: LegendPickerUiState,
     playerName: String,
+    playerColor: PlayerColor,
     onQueryChange: (String) -> Unit,
     onLegendSelect: (legendId: String?) -> Unit,
     modifier: Modifier = Modifier,
@@ -78,26 +96,28 @@ private fun LegendPickerContent(
             modifier = Modifier.fillMaxWidth(),
         )
         LazyVerticalGrid(
-            columns = GridCells.Adaptive(RiftTheme.sizes.avatarMedium + RiftTheme.spacing.xl),
-            horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.sm),
+            columns = GridCells.Fixed(GRID_COLUMNS),
+            horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.md),
+            verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.md),
         ) {
             item(key = NONE_KEY) {
-                LegendCell(
+                LegendCard(
                     legend = null,
                     selected = picker.selectedLegendId == null,
+                    playerColor = playerColor,
                     onClick = { onLegendSelect(null) },
                 )
             }
             items(picker.legends, key = { "legend:${it.id}" }) { legend ->
-                LegendCell(
+                LegendCard(
                     legend = legend,
                     selected = legend.id == picker.selectedLegendId,
+                    playerColor = playerColor,
                     onClick = { onLegendSelect(legend.id) },
                 )
             }
             if (picker.legends.isEmpty() && picker.query.isNotBlank()) {
-                item(key = EMPTY_KEY) {
+                item(key = EMPTY_KEY, span = { GridItemSpan(maxLineSpan) }) {
                     Text(
                         text = stringResource(R.string.feature_setup_legend_empty),
                         style = RiftTheme.typography.bodyMedium,
@@ -110,38 +130,83 @@ private fun LegendPickerContent(
     }
 }
 
+/** A portrait card (art or color fallback) with the name underneath; ring in the player's color when selected. */
 @Composable
-private fun LegendCell(legend: Legend?, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun LegendCard(
+    legend: Legend?,
+    selected: Boolean,
+    playerColor: PlayerColor,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val name = legend?.name ?: stringResource(R.string.feature_setup_legend_none)
-    Surface(
-        modifier = modifier
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
-        shape = RoundedCornerShape(RiftTheme.spacing.md),
-        color = if (selected) RiftTheme.colorScheme.secondaryContainer else RiftTheme.colorScheme.surfaceContainer,
-        contentColor = if (selected) RiftTheme.colorScheme.onSecondaryContainer else RiftTheme.colorScheme.onSurface,
+    val shape = RiftTheme.shapes.largeIncreased
+    val ring = RiftTheme.sizes.borderThick
+    val ringColor by animateColorAsState(
+        targetValue = if (selected) playerColor.color else Color.Transparent,
+        animationSpec = if (reduceMotionEnabled()) {
+            RiftTheme.motion.none()
+        } else {
+            RiftTheme.motion.expressive.fastEffects()
+        },
+        label = "selectionRing",
+    )
+    Column(
+        modifier = modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xs),
     ) {
-        Column(
-            modifier = Modifier.padding(RiftTheme.spacing.sm),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xs),
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(PORTRAIT_ASPECT)
+                .border(ring, ringColor, shape)
+                .padding(ring + RiftTheme.spacing.xxs)
+                .clip(shape),
         ) {
-            LegendAvatar(
-                legendName = legend?.name,
-                imageUri = legend?.imageUri,
-                playerName = name,
-                playerColor = PlayerColors.Grey,
-                contentDescription = null,
-            )
-            Text(
-                text = name,
-                style = RiftTheme.typography.labelLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-            )
+            if (legend != null) {
+                LegendBackdrop(
+                    legendName = legend.name,
+                    imageUri = legend.imageUri,
+                    fallbackName = legend.name,
+                    playerColor = if (selected) playerColor else PlayerColors.Grey,
+                    scrim = false,
+                    modifier = Modifier.matchParentSize(),
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(RiftTheme.colorScheme.surfaceContainerHighest),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = null,
+                        tint = RiftTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(RiftTheme.sizes.minTouchTarget),
+                    )
+                }
+            }
         }
+        Text(
+            text = name,
+            style = RiftTheme.typography.labelLarge.copy(
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            ),
+            color = RiftTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
+
+private const val GRID_COLUMNS = 3
+
+/** Portrait cards are a little taller than wide (the square art is cropped to fit). */
+private const val PORTRAIT_ASPECT = 0.8f
 
 // Prefixed so a Legend id can never collide with these fixed keys.
 private const val NONE_KEY = "__none__"
@@ -164,6 +229,7 @@ private fun LegendPickerContentPreview() {
                     selectedLegendId = "jinx",
                 ),
                 playerName = "Ana",
+                playerColor = PlayerColors.Orange,
                 onQueryChange = {},
                 onLegendSelect = {},
             )

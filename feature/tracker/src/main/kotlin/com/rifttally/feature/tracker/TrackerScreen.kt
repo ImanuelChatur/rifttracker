@@ -23,7 +23,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.keepScreenOn
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -135,6 +137,11 @@ private fun TrackerTable(
     modifier: Modifier = Modifier,
 ) {
     var overlay by rememberSaveable { mutableStateOf(TrackerOverlay.None) }
+    val haptics = LocalHapticFeedback.current
+    val undo = {
+        if (state.hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.Reject)
+        onUndo()
+    }
     val dismiss = { overlay = TrackerOverlay.None }
     // Player whose "+ Counter" dialog is open (id value, saveable), or null.
     var addCounterFor by rememberSaveable { mutableStateOf<String?>(null) }
@@ -151,7 +158,7 @@ private fun TrackerTable(
                     targetScore = state.targetScore,
                     canUndo = state.canUndo,
                     isMenuOpen = overlay == TrackerOverlay.Menu,
-                    onUndo = onUndo,
+                    onUndo = undo,
                     onMenuOpen = { overlay = TrackerOverlay.Menu },
                     onMenuDismiss = dismiss,
                     onChangeTargetClick = { overlay = TrackerOverlay.Target },
@@ -160,7 +167,7 @@ private fun TrackerTable(
                     onEndGameClick = { overlay = TrackerOverlay.EndGame },
                 )
             },
-            panel = { index, panelModifier ->
+            panel = { index, panelModifier, stripInset ->
                 val panel = state.panels[index]
                 SidePanel(
                     panel = panel,
@@ -170,6 +177,7 @@ private fun TrackerTable(
                     onCounterRemove = onCounterRemove,
                     onAddCounterClick = { playerId -> addCounterFor = playerId.value },
                     modifier = panelModifier,
+                    topInset = stripInset,
                 )
             },
         )

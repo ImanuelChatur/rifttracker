@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -81,18 +82,19 @@ public fun LegendAvatar(
     } else {
         Modifier.clearAndSetSemantics {}
     }
+    // The painter is always drawn (Coil resolves its size from drawing) but stays empty until loaded.
+    // Until it succeeds, and on error, the fallback shows instead.
+    val painter = imageUri?.let { rememberAsyncImagePainter(model = it, contentScale = ContentScale.Crop) }
+    val painterState = painter?.state?.collectAsState()
+    val showImage = painterState?.value is AsyncImagePainter.State.Success
     Box(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
+            .then(if (showImage) Modifier.testTag(LEGEND_ART_TEST_TAG) else Modifier)
             .then(semanticsModifier),
         contentAlignment = Alignment.Center,
     ) {
-        // The painter is always drawn (Coil resolves its size from drawing) but stays empty until loaded.
-        // Until it succeeds, and on error, the fallback shows instead.
-        val painter = imageUri?.let { rememberAsyncImagePainter(model = it, contentScale = ContentScale.Crop) }
-        val painterState = painter?.state?.collectAsState()
-        val showImage = painterState?.value is AsyncImagePainter.State.Success
         if (painter != null) {
             Image(
                 painter = painter,

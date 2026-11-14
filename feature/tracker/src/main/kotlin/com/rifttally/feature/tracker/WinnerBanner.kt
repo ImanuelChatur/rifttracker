@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,10 +29,10 @@ internal fun WinnerBanner(
 ) {
     Surface(
         modifier = modifier.semantics { liveRegion = LiveRegionMode.Polite },
-        shape = RoundedCornerShape(RiftTheme.spacing.lg),
+        shape = RiftTheme.shapes.extraLarge,
         color = RiftTheme.colorScheme.primaryContainer,
         contentColor = RiftTheme.colorScheme.onPrimaryContainer,
-        shadowElevation = RiftTheme.spacing.sm,
+        shadowElevation = RiftTheme.elevation.level3,
     ) {
         Column(
             modifier = Modifier.padding(RiftTheme.spacing.lg),

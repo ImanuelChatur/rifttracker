@@ -2,8 +2,6 @@ package com.rifttally.feature.tracker
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -11,16 +9,19 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
+import com.rifttally.core.designsystem.component.RiftFloatingToolbar
 import com.rifttally.core.designsystem.component.RiftIconButton
 import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.RiftTheme
 
-/** Center strip between the panels: Undo · target · Menu. */
+/**
+ * Floating control bar between the panels: a [RiftFloatingToolbar] with Undo · target · Menu.
+ * (The target is a small read-only label; it is changed from the menu.)
+ */
 @Composable
 internal fun ControlStrip(
     targetScore: Int,
@@ -35,12 +36,7 @@ internal fun ControlStrip(
     onEndGameClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = RiftTheme.spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    RiftFloatingToolbar(modifier = modifier) {
         RiftIconButton(
             imageVector = RiftIcons.Undo,
             contentDescription = stringResource(R.string.feature_tracker_undo),
@@ -49,10 +45,9 @@ internal fun ControlStrip(
         )
         Text(
             text = stringResource(R.string.feature_tracker_target_label, targetScore),
-            style = RiftTheme.typography.titleMedium,
-            color = RiftTheme.colorScheme.onBackground,
+            style = RiftTheme.typography.titleLarge,
             textAlign = TextAlign.Center,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.padding(horizontal = RiftTheme.spacing.sm),
         )
         Box {
             RiftIconButton(

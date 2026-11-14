@@ -1,14 +1,30 @@
-package com.rifttally.feature.history
+package com.rifttally.core.data.game
 
-import com.rifttally.core.data.game.GameRecord
 import com.rifttally.core.game.GameEvent
 import com.rifttally.core.model.CounterId
+import com.rifttally.core.model.GameConfig
+import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.GameId
+import com.rifttally.core.model.Player
+import com.rifttally.core.model.PlayerId
+import com.rifttally.core.model.Side
 import com.rifttally.core.model.SideId
 import com.rifttally.core.stats.PointChange
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import org.junit.Test
+
+private val S1 = SideId("s1")
+private val S2 = SideId("s2")
+
+private val twoPlayers = GameConfig(
+    format = GameFormat.TWO_PLAYERS,
+    sides = listOf(Side(S1, listOf(PlayerId("p1"))), Side(S2, listOf(PlayerId("p2")))),
+    players = listOf(
+        Player(PlayerId("p1"), "Ana", "orange", legendId = "jinx"),
+        Player(PlayerId("p2"), "Ben", "sky"),
+    ),
+)
 
 class StatsGameMapperTest {
     @Test

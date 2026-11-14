@@ -5,6 +5,10 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.navOptions
+import com.rifttally.feature.history.navigation.gameDetailScreen
+import com.rifttally.feature.history.navigation.historyScreen
+import com.rifttally.feature.history.navigation.navigateToGameDetail
+import com.rifttally.feature.history.navigation.navigateToHistory
 import com.rifttally.feature.home.navigation.HomeRoute
 import com.rifttally.feature.home.navigation.homeScreen
 import com.rifttally.feature.home.navigation.navigateToHome
@@ -13,6 +17,10 @@ import com.rifttally.feature.settings.navigation.settingsScreen
 import com.rifttally.feature.setup.navigation.SetupRoute
 import com.rifttally.feature.setup.navigation.navigateToSetup
 import com.rifttally.feature.setup.navigation.setupScreen
+import com.rifttally.feature.stats.navigation.navigateToPlayerStats
+import com.rifttally.feature.stats.navigation.navigateToStats
+import com.rifttally.feature.stats.navigation.playerStatsScreen
+import com.rifttally.feature.stats.navigation.statsScreen
 import com.rifttally.feature.tracker.navigation.TrackerRoute
 import com.rifttally.feature.tracker.navigation.navigateToTracker
 import com.rifttally.feature.tracker.navigation.trackerScreen
@@ -58,5 +66,18 @@ fun RiftNavHost(navController: NavHostController, modifier: Modifier = Modifier)
             },
         )
         settingsScreen(onBackClick = { navController.navigateUp() })
+        historyScreen(
+            onBackClick = { navController.navigateUp() },
+            onGameClick = { gameId -> navController.navigateToGameDetail(gameId) },
+        )
+        gameDetailScreen(onBackClick = { navController.navigateUp() })
+        statsScreen(
+            onBackClick = { navController.navigateUp() },
+            onPlayerClick = { playerKey -> navController.navigateToPlayerStats(playerKey) },
+        )
+        playerStatsScreen(
+            onBackClick = { navController.navigateUp() },
+            onPlayerClick = { playerKey -> navController.navigateToPlayerStats(playerKey) },
+        )
     }
 }

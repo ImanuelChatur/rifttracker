@@ -27,9 +27,11 @@ dependencies {
     implementation(projects.core.data)
     implementation(projects.core.designsystem)
     implementation(projects.core.model)
+    implementation(projects.feature.history)
     implementation(projects.feature.home)
     implementation(projects.feature.settings)
     implementation(projects.feature.setup)
+    implementation(projects.feature.stats)
     implementation(projects.feature.tracker)
 
     implementation(libs.androidx.activity.compose)

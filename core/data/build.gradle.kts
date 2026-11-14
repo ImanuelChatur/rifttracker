@@ -12,6 +12,8 @@ dependencies {
     api(projects.core.model)
     // Repositories expose GameEvent and GameEventFactory to features.
     api(projects.core.game)
+    // GameRecord.toStatsGame() feeds the history and stats features.
+    api(projects.core.stats)
     implementation(projects.core.common)
     implementation(projects.core.database)
     implementation(projects.core.datastore)

@@ -1,6 +1,5 @@
-package com.rifttally.feature.stats
+package com.rifttally.core.data.game
 
-import com.rifttally.core.data.game.GameRecord
 import com.rifttally.core.game.GameEvent
 import com.rifttally.core.game.reduce
 import com.rifttally.core.stats.PointChange
@@ -9,11 +8,10 @@ import com.rifttally.core.stats.StatsGame
 /**
  * Turns a stored game into the stats input. Only events before the (valid) end count, like in
  * [reduce]; the winner and final target come from replaying the log.
- *
- * Same as `StatsGameMapper` in `:feature:history` (features can't share code); move it to `:core:data`
- * once that module may depend on `:core:stats`.
+
+ * Shared by `:feature:history` and `:feature:stats`.
  */
-internal fun GameRecord.toStatsGame(): StatsGame {
+public fun GameRecord.toStatsGame(): StatsGame {
     val state = reduce(config, events)
     val sideIds = config.sides.map { it.id }.toSet()
     val endIndex = events.indexOfFirst { it is GameEvent.GameEnded && (it.winner == null || it.winner in sideIds) }

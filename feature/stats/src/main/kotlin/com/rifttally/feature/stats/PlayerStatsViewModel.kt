@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rifttally.core.data.game.GameRepository
+import com.rifttally.core.data.game.toStatsGame
 import com.rifttally.core.data.legend.LegendRepository
 import com.rifttally.core.stats.PlayerKey
 import com.rifttally.core.stats.headToHeads

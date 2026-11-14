@@ -48,6 +48,8 @@ Add an "Adding Legend art" section: add the Legend to `legends.json`, run `pytho
 
 ## 2. Track A: Design pass (subagent A)
 
+> **Superseded in part by [`DESIGN.md`](DESIGN.md):** for theme, motion, shape, elevation and components, `DESIGN.md` wins. Durations below (≤150ms, ≤300ms) become caps on the spring specs it defines.
+
 **Goal:** the table screen should feel like a premium game accessory, not a generic Material app, while staying fast and readable in a dim store.
 
 ### Tracker panels (`SidePanel`, `LegendAvatar`, `TrackerTableLayout`)

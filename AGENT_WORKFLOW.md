@@ -11,7 +11,7 @@
 2. **Gate for every phase:** `./gradlew spotlessApply spotlessCheck lint testDebugUnitTest assembleDebug` passes, the review subagent's blocking issues are fixed, and the work is committed.
 3. **Parallel subagents only in their own git worktree.** Never have two agents editing the same checkout. Add `.claude/worktrees/` to `.gitignore`.
 4. **File ownership:** each parallel subagent may only edit the paths listed for it. If it needs a change outside its paths (e.g. a new entry in `libs.versions.toml`), it **lists the change in its final report** instead of making it, and the main agent applies it during the merge.
-5. **Subagents start without this conversation.** Every subagent prompt must tell it to read `HANDOFF.md` and `CLAUDE.md` and must state its exact scope, owned paths and expected report.
+5. **Subagents start without this conversation.** Every subagent prompt must tell it to read `HANDOFF.md`, `CLAUDE.md` and (for any UI work) `DESIGN.md` and must state its exact scope, owned paths and expected report.
 6. **Stop and report** at the end of each phase with: what was built, decisions made, anything skipped, and test results. Then wait for the developer to say "continue".
 
 ---
@@ -69,8 +69,8 @@ Exception: in **Phase 5**, writing the **README** and **accessibility audit** ma
 
 After the gate passes, spawn **one fresh subagent** (it must not be the one that wrote the code) with this prompt:
 
-> You are reviewing Phase N of an Android app. Read `HANDOFF.md`, `CLAUDE.md` and `AGENT_WORKFLOW.md`, then review the changes in this phase (`git diff <phase-start-commit>..HEAD`). **Do not edit any files.** Report:
-> 1. **Blocking:** bugs, crashes, spec mismatches with HANDOFF.md, violations of CLAUDE.md rules (module boundaries, pure-Kotlin core, event log, Route/Screen split, hardcoded strings/colors/dimens).
+> You are reviewing Phase N of an Android app. Read `HANDOFF.md`, `CLAUDE.md`, `DESIGN.md` and `AGENT_WORKFLOW.md`, then review the changes in this phase (`git diff <phase-start-commit>..HEAD`). **Do not edit any files.** Report:
+> 1. **Blocking:** bugs, crashes, spec mismatches with HANDOFF.md, violations of CLAUDE.md rules or `DESIGN.md` rules (motion/shape/elevation tokens, contrast, touch targets, §10 checklist), module boundaries, pure-Kotlin core, event log, Route/Screen split, hardcoded strings/colors/dimens).
 > 2. **Should fix:** missing tests for listed cases, missing previews, accessibility gaps, unclear naming.
 > 3. **Nice to have:** anything else, briefly.
 > For each item give the file, the line, and a one-line fix. Keep it under 40 items. Don't flag style issues Spotless already handles.

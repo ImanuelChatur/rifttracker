@@ -1,21 +1,22 @@
 package com.rifttally.feature.stats
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,6 +37,7 @@ import com.rifttally.core.designsystem.component.PreviewRiftThemes
 import com.rifttally.core.designsystem.component.RiftIconButton
 import com.rifttally.core.designsystem.component.RiftTopAppBar
 import com.rifttally.core.designsystem.theme.RiftTheme
+import com.rifttally.core.designsystem.theme.displayLargeEmphasized
 import kotlinx.collections.immutable.persistentListOf
 
 @Composable
@@ -54,6 +56,10 @@ internal fun PlayerStatsRoute(
     )
 }
 
+/**
+ * One player's stats. The hero (DESIGN.md §2.2) is their win rate; games, wins and streak sit on quiet
+ * tiles below, then the favorite Legend and head-to-head records as segmented lists (DESIGN.md §8).
+ */
 @Composable
 internal fun PlayerStatsScreen(
     uiState: PlayerStatsUiState,
@@ -78,98 +84,127 @@ internal fun PlayerStatsScreen(
         },
         containerColor = RiftTheme.colorScheme.background,
     ) { padding ->
-        val contentModifier = Modifier
-            .fillMaxSize()
-            .padding(padding)
         when (uiState) {
-            PlayerStatsUiState.Loading -> Box(contentModifier, contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            PlayerStatsUiState.Loading -> CenteredList(scaffoldPadding = padding) { skeletonTiles() }
 
-            PlayerStatsUiState.NotFound -> StatsMessage(
-                stringResource(R.string.feature_stats_not_found),
-                contentModifier,
+            PlayerStatsUiState.NotFound -> EmptyState(
+                icon = Icons.Filled.Search,
+                text = stringResource(R.string.feature_stats_not_found),
+                actionLabel = stringResource(R.string.feature_stats_empty_action),
+                onAction = onBackClick,
+                modifier = Modifier.padding(padding),
             )
 
-            is PlayerStatsUiState.Success -> PlayerStatsContent(uiState, onPlayerClick, contentModifier)
-        }
-    }
-}
+            is PlayerStatsUiState.Success -> CenteredList(scaffoldPadding = padding) {
+                item(key = "hero") {
+                    WinRateHero(
+                        winRatePercent = uiState.winRatePercent,
+                        modifier = Modifier.padding(bottom = RiftTheme.spacing.sm),
+                    )
+                }
+                item(key = "tiles") { StatTiles(state = uiState) }
 
-@Composable
-private fun PlayerStatsContent(
-    state: PlayerStatsUiState.Success,
-    onPlayerClick: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    LazyColumn(modifier = modifier) {
-        item {
-            Column(
-                modifier = Modifier.padding(RiftTheme.spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.md),
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.md)) {
-                    StatTile(R.string.feature_stats_games_label, state.games.toString(), Modifier.weight(1f))
-                    StatTile(R.string.feature_stats_wins_label, state.wins.toString(), Modifier.weight(1f))
+                item(key = "legend_header") {
+                    ListSectionHeader(stringResource(R.string.feature_stats_favorite_legend))
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.md)) {
-                    StatTile(
-                        label = R.string.feature_stats_win_rate_label,
-                        value = stringResource(R.string.feature_stats_percent, state.winRatePercent),
-                        modifier = Modifier.weight(1f),
-                    )
-                    StatTile(
-                        label = R.string.feature_stats_streak_label,
-                        value = state.currentWinStreak.toString(),
-                        modifier = Modifier.weight(1f),
-                    )
+                item(key = "legend") {
+                    SegmentedTile(index = 0, count = 1) {
+                        val favorite = uiState.favoriteLegend
+                        if (favorite == null) {
+                            TileMessage(stringResource(R.string.feature_stats_no_legend))
+                        } else {
+                            LegendStatRow(legend = favorite)
+                        }
+                    }
                 }
-            }
-        }
-        item { SectionHeading(R.string.feature_stats_favorite_legend) }
-        item {
-            val favorite = state.favoriteLegend
-            if (favorite == null) {
-                BodyText(stringResource(R.string.feature_stats_no_legend))
-            } else {
-                LegendStatRow(legend = favorite)
-            }
-        }
-        item { SectionHeading(R.string.feature_stats_head_to_head) }
-        if (state.headToHead.isEmpty()) {
-            item { BodyText(stringResource(R.string.feature_stats_head_to_head_empty)) }
-        } else {
-            items(state.headToHead, key = { it.opponentKey }) { record ->
-                HeadToHeadRow(
-                    playerName = state.name,
-                    record = record,
-                    onClick = { onPlayerClick(record.opponentKey) },
-                )
+
+                item(key = "h2h_header") { ListSectionHeader(stringResource(R.string.feature_stats_head_to_head)) }
+                if (uiState.headToHead.isEmpty()) {
+                    item(key = "h2h_empty") {
+                        SegmentedTile(index = 0, count = 1) {
+                            TileMessage(stringResource(R.string.feature_stats_head_to_head_empty))
+                        }
+                    }
+                } else {
+                    itemsIndexed(uiState.headToHead, key = { _, record -> record.opponentKey }) { index, record ->
+                        SegmentedTile(index = index, count = uiState.headToHead.size) {
+                            HeadToHeadRow(
+                                playerName = uiState.name,
+                                record = record,
+                                onClick = { onPlayerClick(record.opponentKey) },
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
 
+/** The hero: the player's win rate in emphasized display type on an emphasized container. */
 @Composable
-private fun StatTile(label: Int, value: String, modifier: Modifier = Modifier) {
-    Card(modifier = modifier) {
+private fun WinRateHero(winRatePercent: Int, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RiftTheme.shapes.extraLarge,
+        color = RiftTheme.colorScheme.primaryContainer,
+        contentColor = RiftTheme.colorScheme.onPrimaryContainer,
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .semantics(mergeDescendants = true) {}
+                .padding(RiftTheme.spacing.xl),
+        ) {
+            Text(text = stringResource(R.string.feature_stats_win_rate_label), style = RiftTheme.typography.labelLarge)
+            Text(
+                text = stringResource(R.string.feature_stats_percent, winRatePercent),
+                style = RiftTheme.typography.displayLargeEmphasized.copy(fontFeatureSettings = "tnum"),
+            )
+        }
+    }
+}
+
+/** Games, wins and current streak on three equal tonal tiles. */
+@Composable
+private fun StatTiles(state: PlayerStatsUiState.Success, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xxs),
+    ) {
+        StatTile(R.string.feature_stats_games_label, state.games.toString(), Modifier.weight(1f))
+        StatTile(R.string.feature_stats_wins_label, state.wins.toString(), Modifier.weight(1f))
+        StatTile(R.string.feature_stats_streak_label, state.currentWinStreak.toString(), Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun StatTile(@StringRes label: Int, value: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.fillMaxHeight(),
+        shape = RiftTheme.shapes.large,
+        color = RiftTheme.colorScheme.surfaceContainer,
+    ) {
+        Column(
+            modifier = Modifier
                 .semantics(mergeDescendants = true) {}
                 .padding(RiftTheme.spacing.lg),
         ) {
             Text(
                 text = stringResource(label),
-                style = RiftTheme.typography.labelMedium,
+                style = RiftTheme.typography.labelLarge,
                 color = RiftTheme.colorScheme.onSurfaceVariant,
             )
-            Text(text = value, style = RiftTheme.typography.headlineMedium)
+            Text(
+                text = value,
+                style = RiftTheme.typography.headlineMedium.copy(fontFeatureSettings = "tnum"),
+            )
         }
     }
 }
 
-/** "Ben · 4 games · 3 – 1". Tapping opens the opponent's stats. */
+/** "Ben · 4 games · 3 – 1" inside a list tile. Tapping opens the opponent's stats. */
 @Composable
 private fun HeadToHeadRow(
     playerName: String,
@@ -190,7 +225,7 @@ private fun HeadToHeadRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = RiftTheme.sizes.minTouchTarget)
+            .heightIn(min = RiftTheme.sizes.heroButtonHeight)
             .clickable(onClick = onClick)
             .clearAndSetSemantics {
                 contentDescription = description
@@ -211,11 +246,11 @@ private fun HeadToHeadRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(text = games, style = RiftTheme.typography.bodySmall, color = RiftTheme.colorScheme.onSurfaceVariant)
+            Text(text = games, style = RiftTheme.typography.bodyMedium, color = RiftTheme.colorScheme.onSurfaceVariant)
         }
         Text(
             text = stringResource(R.string.feature_stats_head_to_head_score, record.wins, record.opponentWins),
-            style = RiftTheme.typography.titleLarge,
+            style = RiftTheme.typography.titleLarge.copy(fontFeatureSettings = "tnum"),
         )
     }
 }

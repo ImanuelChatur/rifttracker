@@ -3,6 +3,7 @@
     <string name="feature_stats_title">Stats</string>
     <string name="feature_stats_back">Back</string>
     <string name="feature_stats_empty">No stats yet. Finish a game and your stats show up here.</string>
+    <string name="feature_stats_empty_action">Go back</string>
 
     <string name="feature_stats_tab_overview">Overview</string>
     <string name="feature_stats_tab_legends">Legends</string>

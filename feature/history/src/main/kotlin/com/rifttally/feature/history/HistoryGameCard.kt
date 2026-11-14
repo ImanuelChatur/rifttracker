@@ -4,12 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -29,22 +27,25 @@ import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.GameId
 
 /**
- * One ended game: date and format, each side's Legends, names and final score, and who won. Tapping
- * opens the detail; the overflow menu deletes it.
+ * One ended game as a tile of the segmented history list ([index] of [count]): date and format, each
+ * side's Legend, names and final score (winner emphasized), and the result. Tapping opens the detail;
+ * the overflow menu deletes it.
  */
 @Composable
 internal fun HistoryGameCard(
     game: HistoryGameUiState,
+    index: Int,
+    count: Int,
     onClick: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(onClick = onClick, modifier = modifier.fillMaxWidth()) {
+    SegmentedTile(index = index, count = count, onClick = onClick, modifier = modifier) {
         Column(
             modifier = Modifier.padding(
                 start = RiftTheme.spacing.lg,
                 end = RiftTheme.spacing.xs,
-                bottom = RiftTheme.spacing.md,
+                bottom = RiftTheme.spacing.lg,
             ),
             verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.sm),
         ) {
@@ -57,7 +58,9 @@ internal fun HistoryGameCard(
                     ),
                     style = RiftTheme.typography.labelLarge,
                     color = RiftTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(top = RiftTheme.spacing.xs),
                 )
                 GameMenu(
                     names = game.sides.joinToString(stringResource(R.string.feature_history_names_separator)) {
@@ -91,7 +94,12 @@ private fun GameMenu(names: String, onDelete: () -> Unit, modifier: Modifier = M
             contentDescription = stringResource(R.string.feature_history_row_menu, names),
             onClick = { expanded = true },
         )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            shape = RiftTheme.shapes.medium,
+            containerColor = RiftTheme.colorScheme.surfaceContainerHigh,
+        ) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.feature_history_delete)) },
                 leadingIcon = { Icon(imageVector = Icons.Filled.Delete, contentDescription = null) },
@@ -117,7 +125,7 @@ internal val previewGame = HistoryGameUiState(
 private fun HistoryGameCardPreview() {
     RiftTheme {
         Box(modifier = Modifier.padding(RiftTheme.spacing.lg)) {
-            HistoryGameCard(game = previewGame, onClick = {}, onDelete = {})
+            HistoryGameCard(game = previewGame, index = 0, count = 1, onClick = {}, onDelete = {})
         }
     }
 }

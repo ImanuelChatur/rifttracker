@@ -1,5 +1,6 @@
 package com.rifttally.feature.setup
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -14,7 +15,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
@@ -25,6 +25,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +39,7 @@ import com.rifttally.core.designsystem.component.PreviewRiftThemes
 import com.rifttally.core.designsystem.theme.PlayerColor
 import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.designsystem.theme.RiftTheme
+import com.rifttally.core.designsystem.theme.reduceMotionEnabled
 import com.rifttally.core.model.Legend
 import com.rifttally.core.ui.LegendBackdrop
 import kotlinx.collections.immutable.persistentListOf
@@ -138,8 +140,17 @@ private fun LegendCard(
     modifier: Modifier = Modifier,
 ) {
     val name = legend?.name ?: stringResource(R.string.feature_setup_legend_none)
-    val shape = RoundedCornerShape(RiftTheme.sizes.cardCorner)
+    val shape = RiftTheme.shapes.largeIncreased
     val ring = RiftTheme.sizes.borderThick
+    val ringColor by animateColorAsState(
+        targetValue = if (selected) playerColor.color else Color.Transparent,
+        animationSpec = if (reduceMotionEnabled()) {
+            RiftTheme.motion.none()
+        } else {
+            RiftTheme.motion.expressive.fastEffects()
+        },
+        label = "selectionRing",
+    )
     Column(
         modifier = modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -149,7 +160,7 @@ private fun LegendCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(PORTRAIT_ASPECT)
-                .border(ring, if (selected) playerColor.color else Color.Transparent, shape)
+                .border(ring, ringColor, shape)
                 .padding(ring + RiftTheme.spacing.xxs)
                 .clip(shape),
         ) {

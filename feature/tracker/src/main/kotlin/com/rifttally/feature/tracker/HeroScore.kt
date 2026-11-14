@@ -32,13 +32,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
-import com.rifttally.core.designsystem.theme.RiftMotion
+import com.rifttally.core.designsystem.theme.RiftMotionScheme
 import com.rifttally.core.designsystem.theme.RiftTheme
 
 /**
  * The panel's score, as large as fits its slot: the font size follows the available height and width
  * (not a fixed sp), so a 2-digit score fills a big panel and still fits a small rotated one. Changes
- * roll vertically (up for +, down for −) on a fast spring, or switch instantly when [reducedMotion].
+ * roll vertically (up for +, down for −) on the expressive fast springs, or switch instantly when [reducedMotion].
  *
  * @param horizontalInset space kept clear at each side (for the −/+ glyphs).
  * @param shadow whether to draw a soft drop shadow (over art).
@@ -53,7 +53,7 @@ internal fun HeroScore(
     modifier: Modifier = Modifier,
     horizontalInset: Dp = 0.dp,
 ) {
-    val motion = RiftTheme.motion
+    val motion = RiftTheme.motion.expressive
     val density = LocalDensity.current
     val textShadow = if (shadow) {
         with(density) {
@@ -111,7 +111,7 @@ internal fun HeroScore(
     }
 }
 
-private fun roll(up: Boolean, motion: RiftMotion): ContentTransform {
+private fun roll(up: Boolean, motion: RiftMotionScheme): ContentTransform {
     val sign = if (up) 1 else -1
     val spatial = motion.fastSpatial<IntOffset>()
     return (slideInVertically(spatial) { height -> sign * height } + fadeIn(motion.fastEffects()))

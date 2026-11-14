@@ -23,14 +23,21 @@ import org.robolectric.annotation.Config
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @Config(qualifiers = "w411dp-h891dp-xhdpi")
-class TrackerScreenScreenshotTest(private val case: Case) {
+open class TrackerScreenScreenshotTest(private val case: Case) {
 
-    data class Case(val format: Format, val withArt: Boolean, val darkTheme: Boolean, val atTarget: Boolean = false) {
+    data class Case(
+        val format: Format,
+        val withArt: Boolean,
+        val darkTheme: Boolean,
+        val atTarget: Boolean = false,
+        val landscape: Boolean = false,
+    ) {
         val fileName: String
             get() = buildString {
                 append("tracker_").append(format.name.lowercase())
                 append(if (withArt) "_art" else "_noart")
                 if (atTarget) append("_target")
+                if (landscape) append("_land")
                 append(if (darkTheme) "_dark" else "_light")
                 append(".png")
             }
@@ -86,7 +93,8 @@ class TrackerScreenScreenshotTest(private val case: Case) {
             Case(Format.TwoPlayers, withArt = false, darkTheme = false, atTarget = true),
         )
 
-        private val arts = listOf(TestArt.Warm, TestArt.Cool, TestArt.Bright, TestArt.Warm)
+        // Ana gets the brightest art: the worst case for score contrast (DESIGN.md §3).
+        private val arts = listOf(TestArt.Bright, TestArt.Cool, TestArt.Warm, TestArt.Warm)
 
         private val roster = listOf(
             Triple("Ana", "orange", "Jinx"),

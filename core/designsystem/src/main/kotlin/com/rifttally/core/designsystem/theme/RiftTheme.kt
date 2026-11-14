@@ -134,6 +134,7 @@ public object RiftTheme {
         @Composable @ReadOnlyComposable
         get() = LocalRiftScoreTypography.current
 
+    /** Material type roles; emphasized variants via e.g. `typography.titleLargeEmphasized`. */
     public val typography: Typography
         @Composable @ReadOnlyComposable
         get() = MaterialTheme.typography
@@ -148,8 +149,14 @@ public object RiftTheme {
             LightTableColors
         }
 
-    /** Motion durations (same in every theme). */
+    /** Springs: `RiftTheme.motion.expressive.fastSpatial()` etc. (DESIGN.md §7). */
     public val motion: RiftMotion = RiftMotion()
+
+    /** Corner-radius scale (DESIGN.md §4). */
+    public val shapes: RiftShapes = RiftShapes()
+
+    /** Elevation levels 0–5 (DESIGN.md §6). */
+    public val elevation: RiftElevation = RiftElevation()
 
     public val colorScheme: ColorScheme
         @Composable @ReadOnlyComposable
@@ -161,4 +168,5 @@ public object RiftTheme {
     /** Scrim and text colors for scores drawn over a Legend portrait (same in light and dark). */
     public val portraitColors: RiftPortraitColors = RiftPortraitColors()
 }
+
 private const val HALF_LUMINANCE = 0.5f

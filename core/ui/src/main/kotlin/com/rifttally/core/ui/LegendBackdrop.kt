@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -156,7 +155,7 @@ private fun LegendBackdropPreview() {
                     playerColor = color,
                     modifier = Modifier
                         .size(RiftTheme.sizes.avatarLarge)
-                        .clip(RoundedCornerShape(RiftTheme.sizes.panelCorner)),
+                        .clip(RiftTheme.shapes.extraLarge),
                 )
             }
         }

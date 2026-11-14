@@ -1,10 +1,7 @@
 package com.rifttally.feature.tracker
 
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Star
@@ -59,6 +55,7 @@ import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.PlayerColor
 import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.designsystem.theme.RiftTheme
+import com.rifttally.core.designsystem.theme.reduceMotionEnabled
 import com.rifttally.core.model.CounterId
 import com.rifttally.core.model.PlayerId
 import com.rifttally.core.model.SideId
@@ -67,7 +64,6 @@ import com.rifttally.core.ui.LegendBackdrop
 import com.rifttally.core.ui.PlayerNameChip
 import com.rifttally.core.ui.RepeatingClickBox
 import com.rifttally.core.ui.edgeGlow
-import com.rifttally.core.ui.rememberReducedMotion
 import kotlinx.collections.immutable.persistentListOf
 
 /**
@@ -96,14 +92,22 @@ internal fun SidePanel(
     topInset: Dp = 0.dp,
 ) {
     val haptics = LocalHapticFeedback.current
-    val reducedMotion = rememberReducedMotion()
+    val reducedMotion = reduceMotionEnabled()
     val change: (Int) -> Unit = { delta ->
         if (hapticsEnabled && (delta > 0 || panel.points > 0)) {
             haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
         }
         onPointsChange(delta)
     }
-    val shape = RoundedCornerShape(RiftTheme.sizes.panelCorner)
+    // A stronger haptic when this side reaches the target (not when the table first shows it).
+    var wasAtTarget by remember { mutableStateOf(panel.isAtTarget) }
+    LaunchedEffect(panel.isAtTarget) {
+        if (panel.isAtTarget && !wasAtTarget && hapticsEnabled) {
+            haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+        }
+        wasAtTarget = panel.isAtTarget
+    }
+    val shape = RiftTheme.shapes.extraLarge
     val colors = panel.players.map { it.playerColor() }
     val edgeBrush = if (colors.size > 1) {
         Brush.horizontalGradient(colors.map { it.color })
@@ -293,10 +297,7 @@ private fun pulseAlpha(reducedMotion: Boolean): Float = if (reducedMotion) {
     val pulse by transition.animateFloat(
         initialValue = 1f,
         targetValue = PULSE_MIN_ALPHA,
-        animationSpec = infiniteRepeatable(
-            animation = tween(RiftTheme.motion.pulseHalfPeriodMillis),
-            repeatMode = RepeatMode.Reverse,
-        ),
+        animationSpec = RiftTheme.motion.pulse(),
         label = "targetPulseAlpha",
     )
     pulse

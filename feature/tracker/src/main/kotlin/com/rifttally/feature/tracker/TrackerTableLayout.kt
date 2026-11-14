@@ -3,6 +3,7 @@ package com.rifttally.feature.tracker
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,10 +16,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.rifttally.core.designsystem.theme.RiftTheme
-import com.rifttally.core.ui.rememberReducedMotion
+import com.rifttally.core.designsystem.theme.reduceMotionEnabled
 import com.rifttally.core.ui.rotateLayout
 import kotlinx.coroutines.delay
 
@@ -29,39 +31,115 @@ import kotlinx.coroutines.delay
  * - 3: left (90°), right (270°), bottom (0°).
  * - 4: top (180°), right (270°), bottom (0°), left (90°).
  *
+ * In landscape (compact height, DESIGN.md §8) the seats on the short edges get the full height instead,
+ * so no score is squeezed into a short strip:
+ * - 2: left (90°) | right (270°), strip over the vertical seam.
+ * - 3: left (90°) | bottom (0°) | right (270°), strip at the top of the middle panel.
+ * - 4: left (90°) | top (180°) over bottom (0°) | right (270°), strip on the middle seam.
+ *
  * [panel] draws side `index`; the [Modifier] it receives already sizes, rotates and fades in the slot.
- * `facesStrip` is true for panels whose (own) top edge meets the strip, so they keep it clear.
+ * `stripInset` is how much of the panel's own top edge the strip covers (0 when it doesn't meet it).
  * Panels fade in one after another when the table first appears.
  */
-// panelCount is fixed for a game, so only one branch ever composes the [panel] slots.
-@Suppress("ktlint:compose:content-slot-reused")
 @Composable
 internal fun TrackerTableLayout(
     panelCount: Int,
     strip: @Composable () -> Unit,
-    panel: @Composable (index: Int, modifier: Modifier, facesStrip: Boolean) -> Unit,
+    panel: @Composable (index: Int, modifier: Modifier, stripInset: Dp) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        if (maxWidth > maxHeight) {
+            LandscapeTable(panelCount = panelCount, strip = strip, panel = panel)
+        } else {
+            PortraitTable(panelCount = panelCount, strip = strip, panel = panel)
+        }
+    }
+}
+
+// panelCount is fixed for a game, so only one branch ever composes the [panel] slots.
+@Suppress("ktlint:compose:content-slot-reused")
+@Composable
+private fun LandscapeTable(
+    panelCount: Int,
+    strip: @Composable () -> Unit,
+    panel: @Composable (index: Int, modifier: Modifier, stripInset: Dp) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val gap = RiftTheme.spacing.xs
+    val halfBar = RiftTheme.sizes.controlBarHeight / 2
+    Box(modifier = modifier.fillMaxSize()) {
+        Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(gap)) {
+            when (panelCount) {
+                3 -> {
+                    panel(0, Modifier.weight(1f).seat(LEFT).then(rememberEnterFade(0)), 0.dp)
+                    panel(2, Modifier.weight(1f).seat(BOTTOM).then(rememberEnterFade(2)), halfBar * 2)
+                    panel(1, Modifier.weight(1f).seat(RIGHT).then(rememberEnterFade(1)), 0.dp)
+                }
+
+                4 -> {
+                    panel(3, Modifier.weight(1f).seat(LEFT).then(rememberEnterFade(3)), 0.dp)
+                    Column(
+                        modifier = Modifier.weight(LANDSCAPE_MIDDLE_WEIGHT),
+                        verticalArrangement = Arrangement.spacedBy(gap),
+                    ) {
+                        panel(0, Modifier.weight(1f).seat(TOP).then(rememberEnterFade(0)), halfBar)
+                        FloatingStrip(strip)
+                        panel(2, Modifier.weight(1f).seat(BOTTOM).then(rememberEnterFade(2)), halfBar)
+                    }
+                    panel(1, Modifier.weight(1f).seat(RIGHT).then(rememberEnterFade(1)), 0.dp)
+                }
+
+                else -> for (index in 0 until panelCount) {
+                    // The horizontal bar crosses the vertical seam: it covers about half its width of each
+                    // panel's own top edge.
+                    val turns = if (index == 0) LEFT else RIGHT
+                    val inset = if (panelCount == 2) RiftTheme.sizes.minTouchTarget * 2 else 0.dp
+                    panel(index, Modifier.weight(1f).seat(turns).then(rememberEnterFade(index)), inset)
+                }
+            }
+        }
+        when (panelCount) {
+            4 -> Unit
+
+            // Over the middle panel's far edge.
+            3 -> Box(modifier = Modifier.align(Alignment.TopCenter).zIndex(1f)) { strip() }
+
+            else -> Box(modifier = Modifier.align(Alignment.Center).zIndex(1f)) { strip() }
+        }
+    }
+}
+
+// panelCount is fixed for a game, so only one branch ever composes the [panel] slots.
+@Suppress("ktlint:compose:content-slot-reused")
+@Composable
+private fun PortraitTable(
+    panelCount: Int,
+    strip: @Composable () -> Unit,
+    panel: @Composable (index: Int, modifier: Modifier, stripInset: Dp) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val gap = RiftTheme.spacing.xs
+    val halfBar = RiftTheme.sizes.controlBarHeight / 2
     Column(modifier = modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(gap)) {
         when (panelCount) {
             3 -> {
                 Row(modifier = Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
-                    panel(0, Modifier.weight(1f).seat(LEFT).then(rememberEnterFade(0)), false)
-                    panel(1, Modifier.weight(1f).seat(RIGHT).then(rememberEnterFade(1)), false)
+                    panel(0, Modifier.weight(1f).seat(LEFT).then(rememberEnterFade(0)), 0.dp)
+                    panel(1, Modifier.weight(1f).seat(RIGHT).then(rememberEnterFade(1)), 0.dp)
                 }
                 FloatingStrip(strip)
-                panel(2, Modifier.weight(1f).seat(BOTTOM).then(rememberEnterFade(2)), true)
+                panel(2, Modifier.weight(1f).seat(BOTTOM).then(rememberEnterFade(2)), halfBar)
             }
 
             4 -> {
-                panel(0, Modifier.weight(1f).seat(TOP).then(rememberEnterFade(0)), false)
+                panel(0, Modifier.weight(1f).seat(TOP).then(rememberEnterFade(0)), 0.dp)
                 Row(modifier = Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
-                    panel(3, Modifier.weight(1f).seat(LEFT).then(rememberEnterFade(3)), false)
-                    panel(1, Modifier.weight(1f).seat(RIGHT).then(rememberEnterFade(1)), false)
+                    panel(3, Modifier.weight(1f).seat(LEFT).then(rememberEnterFade(3)), 0.dp)
+                    panel(1, Modifier.weight(1f).seat(RIGHT).then(rememberEnterFade(1)), 0.dp)
                 }
                 FloatingStrip(strip)
-                panel(2, Modifier.weight(1f).seat(BOTTOM).then(rememberEnterFade(2)), true)
+                panel(2, Modifier.weight(1f).seat(BOTTOM).then(rememberEnterFade(2)), halfBar)
             }
 
             else -> {
@@ -69,8 +147,8 @@ internal fun TrackerTableLayout(
                 for (index in 0 until panelCount) {
                     if (index == panelCount / 2) FloatingStrip(strip)
                     val turns = if (panelCount == 2 && index == 0) TOP else BOTTOM
-                    val facesStrip = panelCount == 2
-                    panel(index, Modifier.weight(1f).seat(turns).then(rememberEnterFade(index)), facesStrip)
+                    val inset = if (panelCount == 2) halfBar else 0.dp
+                    panel(index, Modifier.weight(1f).seat(turns).then(rememberEnterFade(index)), inset)
                 }
                 if (panelCount < 2) FloatingStrip(strip)
             }
@@ -81,12 +159,12 @@ internal fun TrackerTableLayout(
 /** Fades a panel in, delayed by its seat [index] so panels appear one after another (clockwise). */
 @Composable
 private fun rememberEnterFade(index: Int): Modifier {
-    val reducedMotion = rememberReducedMotion()
+    val reducedMotion = reduceMotionEnabled()
     val motion = RiftTheme.motion
     val alpha = remember { Animatable(if (reducedMotion) 1f else 0f) }
     LaunchedEffect(alpha) {
         delay(index * motion.enterStaggerMillis)
-        alpha.animateTo(1f, motion.defaultEffects())
+        alpha.animateTo(1f, motion.expressive.defaultEffects())
     }
     return Modifier.graphicsLayer { this.alpha = alpha.value }
 }
@@ -112,6 +190,9 @@ private const val BOTTOM = 0
 private const val LEFT = 1
 private const val TOP = 2
 private const val RIGHT = 3
+
+/** The middle column (top and bottom seats) is a bit wider than the side seats in landscape. */
+private const val LANDSCAPE_MIDDLE_WEIGHT = 1.4f
 
 /** Fills the slot and turns the panel toward its seat. */
 private fun Modifier.seat(quarterTurns: Int): Modifier = fillMaxSize().rotateLayout(quarterTurns)

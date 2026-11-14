@@ -1,38 +1,84 @@
 package com.rifttally.core.designsystem.theme
 
 import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.InfiniteRepeatableSpec
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.Immutable
 
 /**
- * Motion tokens. Transitions are springs that mirror the Material 3 motion scheme (fast/default ×
- * spatial/effects; `MaterialTheme.motionScheme` is not public in the Material 3 version we use), so
- * they can be swapped in one place. All of them settle in well under 300ms.
+ * Motion tokens (DESIGN.md §7): springs, not durations. Mirrors the Material 3 motion schemes, which
+ * are internal in material3 1.4.0. When 1.5.0 is stable, back these with `MaterialTheme.motionScheme`.
  *
- * The target-reached edge pulse is an ambient loop (springs can't loop), so it keeps a duration; it is
- * static when the system "remove animations" setting is on.
+ * - [expressive]: hero interactions on hero screens (score change, target reached, Home hero, picker).
+ * - [standard]: utilitarian UI and recurring interactions (Settings, History, Stats, dialogs, lists).
  */
+@Immutable
 public class RiftMotion internal constructor() {
-    /** Small moves, e.g. the score's vertical roll. */
-    public fun <T> fastSpatial(): FiniteAnimationSpec<T> = spring(SPATIAL_DAMPING, FAST_SPATIAL_STIFFNESS)
+    public val expressive: RiftMotionScheme = RiftMotionScheme(
+        fastSpatial = SpringValues(dampingRatio = 0.6f, stiffness = 800f),
+        defaultSpatial = SpringValues(dampingRatio = 0.8f, stiffness = 380f),
+        slowSpatial = SpringValues(dampingRatio = 0.8f, stiffness = 200f),
+    )
 
-    /** Small fades / color changes. */
-    public fun <T> fastEffects(): FiniteAnimationSpec<T> = spring(EFFECTS_DAMPING, FAST_EFFECTS_STIFFNESS)
+    public val standard: RiftMotionScheme = RiftMotionScheme(
+        fastSpatial = SpringValues(dampingRatio = 0.9f, stiffness = 1400f),
+        defaultSpatial = SpringValues(dampingRatio = 0.9f, stiffness = 700f),
+        slowSpatial = SpringValues(dampingRatio = 0.9f, stiffness = 300f),
+    )
 
-    /** Fades of larger elements, e.g. panels entering. */
-    public fun <T> defaultEffects(): FiniteAnimationSpec<T> = spring(EFFECTS_DAMPING, DEFAULT_EFFECTS_STIFFNESS)
+    /** Delay between consecutive tracker panels' entry fade (≤ 40ms, DESIGN.md §7). */
+    public val enterStaggerMillis: Long = 40L
 
-    /** Delay between consecutive panels' fade-in. */
-    public val enterStaggerMillis: Long = 50L
+    /**
+     * The target-reached edge pulse: the one allowed infinite tween (DESIGN.md §7). Use a static value
+     * instead when [reduceMotionEnabled] is true.
+     */
+    public fun <T> pulse(): InfiniteRepeatableSpec<T> =
+        infiniteRepeatable(animation = tween(PULSE_HALF_PERIOD_MILLIS), repeatMode = RepeatMode.Reverse)
 
-    /** One half of the gold edge pulse (bright → dim). */
-    public val pulseHalfPeriodMillis: Int = 900
+    /** No animation (reduce-motion path). */
+    public fun <T> none(): FiniteAnimationSpec<T> = snap()
 
     private companion object {
-        // Material 3 standard motion scheme spring tokens.
-        const val SPATIAL_DAMPING = 0.9f
-        const val FAST_SPATIAL_STIFFNESS = 1400f
-        const val EFFECTS_DAMPING = 1f
-        const val FAST_EFFECTS_STIFFNESS = 3800f
-        const val DEFAULT_EFFECTS_STIFFNESS = 1600f
+        const val PULSE_HALF_PERIOD_MILLIS = 900
+    }
+}
+
+/** Damping ratio and stiffness of one spring token. */
+@Immutable
+public data class SpringValues(public val dampingRatio: Float, public val stiffness: Float)
+
+/**
+ * Six springs: spatial (position, size, scale, shape; may overshoot) and effects (color, alpha; never
+ * bounce), each fast / default / slow. Effects springs are the same in both schemes.
+ */
+@Immutable
+public class RiftMotionScheme internal constructor(
+    private val fastSpatial: SpringValues,
+    private val defaultSpatial: SpringValues,
+    private val slowSpatial: SpringValues,
+) {
+    public fun <T> fastSpatial(): FiniteAnimationSpec<T> = fastSpatial.spec()
+
+    public fun <T> defaultSpatial(): FiniteAnimationSpec<T> = defaultSpatial.spec()
+
+    public fun <T> slowSpatial(): FiniteAnimationSpec<T> = slowSpatial.spec()
+
+    public fun <T> fastEffects(): FiniteAnimationSpec<T> = FAST_EFFECTS.spec()
+
+    public fun <T> defaultEffects(): FiniteAnimationSpec<T> = DEFAULT_EFFECTS.spec()
+
+    public fun <T> slowEffects(): FiniteAnimationSpec<T> = SLOW_EFFECTS.spec()
+
+    private fun <T> SpringValues.spec(): FiniteAnimationSpec<T> = spring(dampingRatio, stiffness)
+
+    private companion object {
+        val FAST_EFFECTS = SpringValues(dampingRatio = 1f, stiffness = 3800f)
+        val DEFAULT_EFFECTS = SpringValues(dampingRatio = 1f, stiffness = 1600f)
+        val SLOW_EFFECTS = SpringValues(dampingRatio = 1f, stiffness = 800f)
     }
 }

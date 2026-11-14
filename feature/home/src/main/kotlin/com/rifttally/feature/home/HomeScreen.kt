@@ -10,17 +10,16 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,8 +42,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
 import com.rifttally.core.designsystem.component.RiftButton
 import com.rifttally.core.designsystem.component.RiftIconButton
+import com.rifttally.core.designsystem.component.RiftTonalButton
 import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.designsystem.theme.RiftTheme
+import com.rifttally.core.designsystem.theme.titleLargeEmphasized
 import com.rifttally.core.model.GameId
 import com.rifttally.core.ui.LegendAvatar
 import com.rifttally.core.ui.LegendBackdrop
@@ -109,12 +110,23 @@ internal fun HomeScreen(
             success?.activeGame?.let { activeGame ->
                 ResumeCard(game = activeGame, onResumeClick = { onResumeClick(activeGame.gameId) })
             }
-            RiftButton(
-                text = stringResource(R.string.feature_home_new_game),
-                onClick = onNewGameClick,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = success != null,
-            )
+            // One filled button per region (DESIGN.md §9): with a game in progress, Resume is the hero and
+            // New game steps back to tonal.
+            val newGame = stringResource(R.string.feature_home_new_game)
+            val newGameModifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = RiftTheme.sizes.heroButtonHeight)
+            if (success?.activeGame != null) {
+                RiftTonalButton(text = newGame, onClick = onNewGameClick, modifier = newGameModifier)
+            } else {
+                RiftButton(
+                    text = newGame,
+                    onClick = onNewGameClick,
+                    modifier = newGameModifier,
+                    enabled =
+                        success != null,
+                )
+            }
             val recentGames = success?.recentGames.orEmpty()
             if (recentGames.isNotEmpty()) {
                 Text(
@@ -125,13 +137,13 @@ internal fun HomeScreen(
                         .padding(top = RiftTheme.spacing.sm)
                         .semantics { heading() },
                 )
-                Surface(
-                    shape = RoundedCornerShape(RiftTheme.sizes.cardCorner),
-                    color = RiftTheme.colorScheme.surfaceContainerLow,
-                ) {
-                    Column {
-                        recentGames.forEachIndexed { index, game ->
-                            if (index > 0) HorizontalDivider(color = RiftTheme.colorScheme.outlineVariant)
+                // Segmented list (DESIGN.md §8): each game on its own tonal tile, small gaps, no dividers.
+                Column(verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xxs)) {
+                    recentGames.forEachIndexed { index, game ->
+                        Surface(
+                            shape = RiftTheme.shapes.segment(index, recentGames.size),
+                            color = RiftTheme.colorScheme.surfaceContainer,
+                        ) {
                             RecentGameRow(game = game, now = success?.now ?: 0)
                         }
                     }
@@ -146,7 +158,7 @@ internal fun HomeScreen(
 private fun ResumeCard(game: ActiveGameUiState, onResumeClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(RiftTheme.sizes.panelCorner),
+        shape = RiftTheme.shapes.extraLargeIncreased,
         colors = CardDefaults.cardColors(containerColor = RiftTheme.colorScheme.surfaceContainer),
     ) {
         Row(
@@ -172,7 +184,7 @@ private fun ResumeCard(game: ActiveGameUiState, onResumeClick: () -> Unit, modif
             Column(modifier = Modifier.semantics(mergeDescendants = true) {}) {
                 Text(
                     text = stringResource(R.string.feature_home_game_in_progress),
-                    style = RiftTheme.typography.titleLarge,
+                    style = RiftTheme.typography.titleLargeEmphasized,
                 )
                 Text(
                     text = stringResource(R.string.feature_home_target, game.targetScore),
@@ -183,7 +195,9 @@ private fun ResumeCard(game: ActiveGameUiState, onResumeClick: () -> Unit, modif
             RiftButton(
                 text = stringResource(R.string.feature_home_resume),
                 onClick = onResumeClick,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = RiftTheme.sizes.heroButtonHeight),
             )
         }
     }

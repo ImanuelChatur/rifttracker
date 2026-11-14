@@ -22,10 +22,8 @@ public data class RiftSizes(
     public val edgeGlow: Dp = 4.dp,
     /** Height of the floating control bar between the panels. */
     public val controlBarHeight: Dp = 56.dp,
+    /** Min height of the primary action on hero screens (DESIGN.md §9). */
+    public val heroButtonHeight: Dp = 56.dp,
     /** Height of the art strip on Home's "Resume" card. */
     public val heroArtHeight: Dp = 168.dp,
-    /** Corner radius of tracker panels and large cards. */
-    public val panelCorner: Dp = 24.dp,
-    /** Corner radius of portrait cards (Legend picker). */
-    public val cardCorner: Dp = 12.dp,
 )

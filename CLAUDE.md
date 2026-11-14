@@ -2,9 +2,12 @@
 
 Riftbound points tracker for Android (future Riftbound companion app). The full spec and phase plan is in `HANDOFF.md` (v1) and `HANDOFF_V2.md` (v2: Legend art, design pass, history & stats). How to run the work (single agent vs parallel subagents, reviews) is in `AGENT_WORKFLOW.md`. **Work one phase at a time.**
 
+> **UI rules live in [`DESIGN.md`](DESIGN.md) (Material 3 Expressive, 2026). Read it before touching any composable, theme, animation, shape, elevation or screen layout.** It is binding: on theme, motion, shape, elevation and components it overrides `HANDOFF.md`/`HANDOFF_V2.md`. Change a layout only when the existing one breaks a `DESIGN.md` rule, and name the rule (e.g. "DESIGN.md §8") in your report.
+
 ## Workflow
-- Before coding a phase, restate its scope in 3–5 bullets and list the files/modules you'll touch.
+- Before coding a phase, restate its scope in 3–5 bullets and list the files/modules you'll touch. For UI work, also list which `DESIGN.md` sections apply.
 - After each phase run: `./gradlew spotlessApply spotlessCheck lint testDebugUnitTest assembleDebug`. Fix everything before reporting done.
+- For UI changes: record Roborazzi screenshots (`./gradlew :<module>:recordRoborazziDebug`), look at the PNGs, and tick the `DESIGN.md` §10 per-screen checklist in your report.
 - Commit at the end of each phase: `feat(phase-N): <summary>`.
 - Use the latest **stable** library versions; check them rather than relying on memory. All versions go in `gradle/libs.versions.toml`, never inline.
 - Don't add a dependency without a clear reason; mention any new one in your summary.
@@ -24,6 +27,13 @@ Riftbound points tracker for Android (future Riftbound companion app). The full 
 - Use KSP for Hilt and Room (no kapt).
 
 ## Compose / UI conventions
+- **`DESIGN.md` first.** Its key rules, in short (the file has the details and evidence):
+  - Material 3 Expressive values on **stable** `material3` 1.4.0: use `RiftTheme.motion` / `.shapes` / `.elevation` / `.typography` tokens. Feature code never calls `spring()`, `tween()`, `RoundedCornerShape(n.dp)`, `Modifier.shadow()` or `Color(...)` directly (DESIGN.md §10).
+  - Springs, not durations; *expressive* scheme on hero screens (tracker, Home hero, picker), *standard* on utilitarian ones (Settings, History, Stats, dialogs) (§7).
+  - Tonal elevation first; real shadows only on floating elements and the score text; no perspective/3D transforms (§6).
+  - One hero element per screen; keep text labels; contrast ≥ 4.5:1 (§2, §3).
+  - Edge-to-edge, any window size (API 37 ignores orientation locks), reduce-motion path, predictive-back friendly (§7, §8).
+  - Don't opt into 1.5.0 RC / experimental Expressive APIs; follow the upgrade path in §10 once 1.5.0 is stable.
 - Screen = `XxxRoute` (stateful, `hiltViewModel()`, `collectAsStateWithLifecycle()`) wrapping `XxxScreen` (stateless, `uiState` + lambdas).
 - `UiState` is an immutable `data class` (or `sealed interface` for Loading/Success/Error). Use `ImmutableList` from kotlinx-collections-immutable for lists in state.
 - ViewModels expose `StateFlow` via `stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initial)`.

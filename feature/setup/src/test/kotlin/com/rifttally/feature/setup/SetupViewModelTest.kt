@@ -1,6 +1,7 @@
 package com.rifttally.feature.setup
 
 import app.cash.turbine.test
+import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.GameId
 import com.rifttally.core.model.Legend
@@ -161,5 +162,130 @@ class SetupViewModelTest {
         viewModel.onStartGame(defaultNames, "XP")
 
         assertTrue(games.allGames.single().config.initialCounters.isEmpty())
+    }
+
+    @Test
+    fun defaultFormat_comesFromSettings() = runTest {
+        settings.setDefaultGameFormat(GameFormat.FOUR_PLAYERS)
+
+        viewModel.uiState.test {
+            val state = expectMostRecentItem()
+            assertEquals(GameFormat.FOUR_PLAYERS, state.format)
+            assertEquals(4, state.players.size)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun formatSelect_resizesPlayers_keepsEnteredOnes_andResetsTarget() = runTest {
+        viewModel.uiState.test {
+            awaitItem()
+            viewModel.onNameChange(0, "Ana")
+            viewModel.onTargetScoreIncrease()
+
+            viewModel.onFormatSelect(GameFormat.THREE_PLAYERS)
+            val three = expectMostRecentItem()
+            assertEquals(3, three.players.size)
+            assertEquals("Ana", three.players[0].name)
+            assertEquals(GameFormat.THREE_PLAYERS.defaultTargetScore, three.targetScore)
+            assertEquals(3, three.players.map { it.colorId }.distinct().size)
+            assertTrue(three.players.all { it.team == null })
+
+            viewModel.onFormatSelect(GameFormat.TEAMS_2V2)
+            val teams = expectMostRecentItem()
+            assertEquals(11, teams.targetScore)
+            assertEquals(listOf(Team.A, Team.A, Team.B, Team.B), teams.players.map { it.team })
+            assertTrue(teams.canStart)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun teams_unbalanced_cannotStart() = runTest {
+        viewModel.onFormatSelect(GameFormat.TEAMS_2V2)
+        viewModel.onTeamSelect(2, Team.A)
+
+        viewModel.uiState.test {
+            val state = expectMostRecentItem()
+            assertTrue(state.teamsInvalid)
+            assertTrue(!state.canStart)
+            cancelAndIgnoreRemainingEvents()
+        }
+        viewModel.onStartGame(listOf("P1", "P2", "P3", "P4"), "XP")
+        assertTrue(games.allGames.isEmpty())
+    }
+
+    @Test
+    fun startGame_teams_buildsTwoSharedSides() = runTest {
+        viewModel.onFormatSelect(GameFormat.TEAMS_2V2)
+        // Swap seats 2 and 3 between teams: A = players 1 & 3, B = players 2 & 4.
+        viewModel.onTeamSelect(1, Team.B)
+        viewModel.onTeamSelect(2, Team.A)
+
+        viewModel.onStartGame(listOf("P1", "P2", "P3", "P4"), "XP")
+
+        val config = games.allGames.single().config
+        assertEquals(GameFormat.TEAMS_2V2, config.format)
+        assertEquals(listOf(SideId("team_a"), SideId("team_b")), config.sides.map { it.id })
+        assertEquals(
+            listOf("P1", "P3"),
+            config.sides[0].playerIds.map { id ->
+                config.players.first { it.id == id }.name
+            },
+        )
+        assertEquals(
+            listOf("P2", "P4"),
+            config.sides[1].playerIds.map { id ->
+                config.players.first { it.id == id }.name
+            },
+        )
+        assertEquals(11, config.targetScore)
+    }
+
+    @Test
+    fun startGame_fourPlayers_buildsOneSidePerPlayerInSeatOrder() = runTest {
+        viewModel.onFormatSelect(GameFormat.FOUR_PLAYERS)
+
+        viewModel.onStartGame(listOf("P1", "P2", "P3", "P4"), "XP")
+
+        val config = games.allGames.single().config
+        assertEquals(4, config.sides.size)
+        assertEquals(listOf("P1", "P2", "P3", "P4"), config.players.map { it.name })
+        config.sides.zip(config.players).forEach { (side, player) -> assertEquals(listOf(player.id), side.playerIds) }
+    }
+
+    @Test
+    fun shrinkingFormat_keepsFirstPlayers_andTeamsResetWhenReturningTo2v2() = runTest {
+        viewModel.onFormatSelect(GameFormat.FOUR_PLAYERS)
+        viewModel.onNameChange(0, "Ana")
+        viewModel.onNameChange(3, "Dan")
+        viewModel.onFormatSelect(GameFormat.TEAMS_2V2)
+        viewModel.onTeamSelect(0, Team.B)
+        viewModel.onFormatSelect(GameFormat.FOUR_PLAYERS)
+        viewModel.onFormatSelect(GameFormat.TEAMS_2V2)
+        viewModel.onFormatSelect(GameFormat.TWO_PLAYERS)
+
+        viewModel.uiState.test {
+            val state = expectMostRecentItem()
+            assertEquals(listOf("Ana", ""), state.players.map { it.name })
+            cancelAndIgnoreRemainingEvents()
+        }
+        viewModel.onFormatSelect(GameFormat.TEAMS_2V2)
+        viewModel.uiState.test {
+            assertEquals(listOf(Team.A, Team.A, Team.B, Team.B), expectMostRecentItem().players.map { it.team })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun newSeats_getColorsNobodyUses() = runTest {
+        viewModel.onColorSelect(0, PlayerColors.forSeat(2).id)
+        viewModel.onFormatSelect(GameFormat.FOUR_PLAYERS)
+
+        viewModel.uiState.test {
+            val colors = expectMostRecentItem().players.map { it.colorId }
+            assertEquals(4, colors.distinct().size)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

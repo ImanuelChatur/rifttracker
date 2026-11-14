@@ -1,5 +1,6 @@
 package com.rifttally.feature.setup
 
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -7,6 +8,8 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.rifttally.core.designsystem.theme.RiftTheme
+import com.rifttally.core.model.GameFormat
+import kotlinx.collections.immutable.toImmutableList
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -24,6 +27,7 @@ class SetupScreenTest {
     private var legendClicks = mutableListOf<Int>()
     private var targetIncreases = 0
     private val xpToggles = mutableListOf<Boolean>()
+    private val formats = mutableListOf<GameFormat>()
 
     private fun setContent(uiState: SetupUiState = previewSetupState) {
         composeTestRule.setContent {
@@ -33,6 +37,8 @@ class SetupScreenTest {
                     onBackClick = {},
                     onNameChange = { _, _ -> },
                     onColorSelect = { _, _ -> },
+                    onFormatSelect = { formats += it },
+                    onTeamSelect = { _, _ -> },
                     onLegendClick = { legendClicks += it },
                     onTargetIncrease = { targetIncreases++ },
                     onTargetDecrease = {},
@@ -83,5 +89,22 @@ class SetupScreenTest {
         composeTestRule.onNodeWithText(context.getString(R.string.feature_setup_xp_toggle)).performClick()
 
         assertEquals(listOf(true), xpToggles)
+    }
+
+    @Test
+    fun formatSelector_selectsTeams_andTeamsShowTeamChoice() {
+        setContent(
+            previewSetupState.copy(
+                format = GameFormat.TEAMS_2V2,
+                players = previewSetupState.players.map { it.copy(team = Team.A) }.toImmutableList(),
+                teamsInvalid = true,
+                canStart = false,
+            ),
+        )
+
+        composeTestRule.onNodeWithText(context.getString(R.string.feature_setup_format_four)).performClick()
+        assertEquals(listOf(GameFormat.FOUR_PLAYERS), formats)
+        composeTestRule.onNodeWithText(context.getString(R.string.feature_setup_teams_invalid)).assertExists()
+        composeTestRule.onNodeWithText(context.getString(R.string.feature_setup_start)).assertIsNotEnabled()
     }
 }

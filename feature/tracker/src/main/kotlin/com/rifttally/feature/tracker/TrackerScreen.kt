@@ -36,7 +36,9 @@ import com.rifttally.core.model.GameId
 import com.rifttally.core.model.PlayerId
 import com.rifttally.core.model.SideId
 import com.rifttally.core.ui.ImmersiveModeEffect
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 
 @Composable
 internal fun TrackerRoute(
@@ -141,28 +143,25 @@ private fun TrackerTable(
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(RiftTheme.spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xs),
-        ) {
-            // Phase 2: two players face each other; the far player's panel is upside down.
-            state.panels.forEachIndexed { index, panel ->
-                if (index == 1) {
-                    ControlStrip(
-                        targetScore = state.targetScore,
-                        canUndo = state.canUndo,
-                        isMenuOpen = overlay == TrackerOverlay.Menu,
-                        onUndo = onUndo,
-                        onMenuOpen = { overlay = TrackerOverlay.Menu },
-                        onMenuDismiss = dismiss,
-                        onChangeTargetClick = { overlay = TrackerOverlay.Target },
-                        onHistoryClick = { overlay = TrackerOverlay.History },
-                        onRestartClick = { overlay = TrackerOverlay.Restart },
-                        onEndGameClick = { overlay = TrackerOverlay.EndGame },
-                    )
-                }
+        TrackerTableLayout(
+            panelCount = state.panels.size,
+            modifier = Modifier.padding(RiftTheme.spacing.sm),
+            strip = {
+                ControlStrip(
+                    targetScore = state.targetScore,
+                    canUndo = state.canUndo,
+                    isMenuOpen = overlay == TrackerOverlay.Menu,
+                    onUndo = onUndo,
+                    onMenuOpen = { overlay = TrackerOverlay.Menu },
+                    onMenuDismiss = dismiss,
+                    onChangeTargetClick = { overlay = TrackerOverlay.Target },
+                    onHistoryClick = { overlay = TrackerOverlay.History },
+                    onRestartClick = { overlay = TrackerOverlay.Restart },
+                    onEndGameClick = { overlay = TrackerOverlay.EndGame },
+                )
+            },
+            panel = { index, panelModifier ->
+                val panel = state.panels[index]
                 SidePanel(
                     panel = panel,
                     hapticsEnabled = state.hapticsEnabled,
@@ -170,13 +169,10 @@ private fun TrackerTable(
                     onCounterChange = onCounterChange,
                     onCounterRemove = onCounterRemove,
                     onAddCounterClick = { playerId -> addCounterFor = playerId.value },
-                    rotationDegrees = if (index == 0 && state.panels.size == 2) FACING_AWAY_DEGREES else 0f,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
+                    modifier = panelModifier,
                 )
-            }
-        }
+            },
+        )
         state.winnerBanner?.let { banner ->
             WinnerBanner(
                 banner = banner,
@@ -259,8 +255,6 @@ private fun NotFound(onBackClick: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-private const val FACING_AWAY_DEGREES = 180f
-
 internal val previewTrackerState = TrackerUiState.Success(
     panels = previewPanels,
     targetScore = 8,
@@ -311,3 +305,71 @@ private fun TrackerScreenBannerPreview() {
         )
     }
 }
+
+private fun previewPlayer(index: Int, name: String, colorId: String, legend: String? = null) = PanelPlayerUiState(
+    playerId = PlayerId("p$index"),
+    name = name,
+    colorId = colorId,
+    legendName = legend,
+    legendImageUri = null,
+)
+
+private fun previewSoloPanels(count: Int) = listOf(
+    previewPlayer(1, "Ana", "orange", "Jinx"),
+    previewPlayer(2, "Ben", "sky"),
+    previewPlayer(3, "Cleo", "green", "Viktor"),
+    previewPlayer(4, "Dan", "pink"),
+).take(count).mapIndexed { index, player ->
+    SidePanelUiState(
+        sideId = SideId("s${index + 1}"),
+        points = index * 2,
+        isAtTarget = false,
+        players = persistentListOf(player),
+    )
+}.toImmutableList()
+
+private val previewTeamPanels = persistentListOf(
+    SidePanelUiState(
+        sideId = SideId("team_a"),
+        points = 7,
+        isAtTarget = false,
+        players = persistentListOf(previewPlayer(1, "Ana", "orange", "Jinx"), previewPlayer(2, "Ben", "sky")),
+    ),
+    SidePanelUiState(
+        sideId = SideId("team_b"),
+        points = 11,
+        isAtTarget = true,
+        players = persistentListOf(previewPlayer(3, "Cleo", "green", "Viktor"), previewPlayer(4, "Dan", "pink")),
+    ),
+)
+
+@Composable
+private fun TrackerPreviewFor(panels: ImmutableList<SidePanelUiState>) {
+    RiftTheme {
+        TrackerScreen(
+            uiState = previewTrackerState.copy(panels = panels),
+            onBackClick = {},
+            onPointsChange = { _, _ -> },
+            onUndo = {},
+            onTargetScoreChange = {},
+            onEndGame = {},
+            onKeepPlaying = {},
+            onRestart = {},
+            onCounterAdd = { _, _ -> },
+            onCounterChange = { _, _, _ -> },
+            onCounterRemove = { _, _ -> },
+        )
+    }
+}
+
+@PreviewRiftThemes
+@Composable
+private fun TrackerScreenThreePlayersPreview() = TrackerPreviewFor(previewSoloPanels(3))
+
+@PreviewRiftThemes
+@Composable
+private fun TrackerScreenFourPlayersPreview() = TrackerPreviewFor(previewSoloPanels(4))
+
+@PreviewRiftThemes
+@Composable
+private fun TrackerScreenTeamsPreview() = TrackerPreviewFor(previewTeamPanels)

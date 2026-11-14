@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -51,6 +52,7 @@ import com.rifttally.core.designsystem.component.RiftTopAppBar
 import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.designsystem.theme.RiftTheme
+import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.GameId
 import com.rifttally.core.model.Legend
 import com.rifttally.core.ui.LegendAvatar
@@ -79,6 +81,8 @@ internal fun SetupRoute(
         onBackClick = onBackClick,
         onNameChange = viewModel::onNameChange,
         onColorSelect = viewModel::onColorSelect,
+        onFormatSelect = viewModel::onFormatSelect,
+        onTeamSelect = viewModel::onTeamSelect,
         onLegendClick = viewModel::onLegendPickerOpen,
         onTargetIncrease = viewModel::onTargetScoreIncrease,
         onTargetDecrease = viewModel::onTargetScoreDecrease,
@@ -103,6 +107,8 @@ internal fun SetupScreen(
     onBackClick: () -> Unit,
     onNameChange: (index: Int, name: String) -> Unit,
     onColorSelect: (index: Int, colorId: String) -> Unit,
+    onFormatSelect: (GameFormat) -> Unit,
+    onTeamSelect: (index: Int, team: Team) -> Unit,
     onLegendClick: (index: Int) -> Unit,
     onTargetIncrease: () -> Unit,
     onTargetDecrease: () -> Unit,
@@ -128,7 +134,7 @@ internal fun SetupScreen(
             RiftButton(
                 text = stringResource(R.string.feature_setup_start),
                 onClick = onStartClick,
-                enabled = !uiState.isStarting,
+                enabled = uiState.canStart,
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.navigationBars)
@@ -145,12 +151,26 @@ internal fun SetupScreen(
                 .padding(horizontal = RiftTheme.spacing.lg),
             verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.lg),
         ) {
+            Text(
+                text = stringResource(R.string.feature_setup_format_label),
+                style = RiftTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
+            FormatSelector(selected = uiState.format, onSelect = onFormatSelect)
+            if (uiState.teamsInvalid) {
+                Text(
+                    text = stringResource(R.string.feature_setup_teams_invalid),
+                    style = RiftTheme.typography.bodyMedium,
+                    color = RiftTheme.colorScheme.error,
+                )
+            }
             uiState.players.forEach { player ->
                 PlayerSetupCard(
                     player = player,
                     onNameChange = { onNameChange(player.index, it) },
                     onColorSelect = { onColorSelect(player.index, it) },
                     onLegendClick = { onLegendClick(player.index) },
+                    onTeamSelect = { onTeamSelect(player.index, it) },
                 )
             }
             TargetScoreRow(
@@ -174,6 +194,7 @@ private fun PlayerSetupCard(
     onNameChange: (String) -> Unit,
     onColorSelect: (String) -> Unit,
     onLegendClick: () -> Unit,
+    onTeamSelect: (Team) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val playerColor = PlayerColors.fromId(player.colorId) ?: PlayerColors.forSeat(player.index)
@@ -219,6 +240,7 @@ private fun PlayerSetupCard(
                 color = RiftTheme.colorScheme.onSurfaceVariant,
             )
             ColorSwatches(selectedColorId = playerColor.id, onColorSelect = onColorSelect)
+            player.team?.let { team -> TeamSelector(selected = team, onSelect = onTeamSelect) }
         }
     }
 }
@@ -310,6 +332,8 @@ private fun SetupScreenPreview() {
             onBackClick = {},
             onNameChange = { _, _ -> },
             onColorSelect = { _, _ -> },
+            onFormatSelect = {},
+            onTeamSelect = { _, _ -> },
             onLegendClick = {},
             onTargetIncrease = {},
             onTargetDecrease = {},

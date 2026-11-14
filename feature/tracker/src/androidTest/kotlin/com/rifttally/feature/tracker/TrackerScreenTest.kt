@@ -15,6 +15,7 @@ import com.rifttally.core.model.CounterId
 import com.rifttally.core.model.PlayerId
 import com.rifttally.core.model.SideId
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -125,5 +126,25 @@ class TrackerScreenTest {
         composeTestRule.onNodeWithContentDescription(context.getString(R.string.feature_tracker_back)).performClick()
 
         assertEquals(1, backs)
+    }
+
+    @Test
+    fun fourPlayers_everySeatHasTapZones() {
+        val names = listOf("Ana", "Ben", "Cleo", "Dan")
+        val panels = names.mapIndexed { index, name ->
+            SidePanelUiState(
+                sideId = SideId("s${index + 1}"),
+                points = 0,
+                isAtTarget = false,
+                players = persistentListOf(PanelPlayerUiState(PlayerId("p${index + 1}"), name, "orange", null, null)),
+            )
+        }.toImmutableList()
+        setContent(previewTrackerState.copy(panels = panels))
+
+        names.forEachIndexed { index, name ->
+            composeTestRule.onNodeWithContentDescription(context.getString(R.string.feature_tracker_increase, name))
+                .performClick()
+            assertEquals(SideId("s${index + 1}") to 1, changes.last())
+        }
     }
 }

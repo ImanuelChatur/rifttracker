@@ -285,6 +285,66 @@ class TrackerViewModelTest {
         )
     }
 
+    private suspend fun viewModelFor(gameConfig: GameConfig): TrackerViewModel {
+        check(games.createGame(gameConfig) == gameId)
+        return TrackerViewModel(
+            savedStateHandle = SavedStateHandle(mapOf(TrackerRoute::gameId.name to gameId.value)),
+            gameRepository = games,
+            legendRepository = legends,
+            userSettingsRepository = settings,
+            eventFactory = factory,
+        )
+    }
+
+    @Test
+    fun teams_twoPanels_withBothTeammates_andSharedPoints() = runTest {
+        val p3 = PlayerId("p3")
+        val p4 = PlayerId("p4")
+        val teamA = SideId("team_a")
+        val teams = GameConfig(
+            format = GameFormat.TEAMS_2V2,
+            sides = listOf(Side(teamA, listOf(P1, p3)), Side(SideId("team_b"), listOf(P2, p4))),
+            players = listOf(
+                Player(P1, "Ana", "orange", "jinx"),
+                Player(P2, "Ben", "sky"),
+                Player(p3, "Cleo", "green"),
+                Player(p4, "Dan", "pink"),
+            ),
+        )
+        val viewModel = viewModelFor(teams)
+        viewModel.uiState.test {
+            expectMostRecentItem()
+            viewModel.onPointsChange(teamA, 1)
+            viewModel.onCounterAdd(p3, "XP")
+            val state = assertIs<TrackerUiState.Success>(expectMostRecentItem())
+            assertEquals(2, state.panels.size)
+            assertEquals(listOf("Ana", "Cleo"), state.panels[0].players.map { it.name })
+            assertEquals("Ana & Cleo", state.panels[0].displayName)
+            assertEquals(1, state.panels[0].points)
+            assertEquals(11, state.targetScore)
+            // Counters stay per player inside the team.
+            assertEquals(emptyList(), state.panels[0].players[0].counters)
+            assertEquals(listOf("XP"), state.panels[0].players[1].counters.map { it.label })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun fourPlayers_fourPanelsInSeatOrder() = runTest {
+        val ids = (1..4).map { PlayerId("p$it") }
+        val four = GameConfig(
+            format = GameFormat.FOUR_PLAYERS,
+            sides = ids.mapIndexed { i, id -> Side(SideId("s${i + 1}"), listOf(id)) },
+            players = ids.mapIndexed { i, id -> Player(id, "P${i + 1}", "orange") },
+        )
+        val viewModel = viewModelFor(four)
+        viewModel.uiState.test {
+            val state = assertIs<TrackerUiState.Success>(expectMostRecentItem())
+            assertEquals(listOf("P1", "P2", "P3", "P4"), state.panels.map { it.displayName })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     @Test
     fun undo_removesLastChange() = withViewModel { viewModel ->
         viewModel.onPointsChange(S1, 1)

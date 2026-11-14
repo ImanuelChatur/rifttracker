@@ -19,4 +19,19 @@
     <string name="feature_setup_xp_toggle">Add XP counter to all players</string>
     <!-- Label of the XP counter created by the toggle above. -->
     <string name="feature_setup_xp_label">XP</string>
+
+    <!-- Format picker (short: four segments share one row on a 360dp phone). -->
+    <string name="feature_setup_format_two">2</string>
+    <string name="feature_setup_format_three">3</string>
+    <string name="feature_setup_format_four">4</string>
+    <string name="feature_setup_format_teams">2v2</string>
+    <string name="feature_setup_team_a">Team A</string>
+    <string name="feature_setup_team_b">Team B</string>
+    <string name="feature_setup_teams_invalid">Each team needs exactly two players.</string>
+    <string name="feature_setup_format_label">Players</string>
+    <string name="feature_setup_format_teams_description">2 versus 2, teams share points</string>
+    <plurals name="feature_setup_format_players_description">
+        <item quantity="one">%1$d player</item>
+        <item quantity="other">%1$d players</item>
+    </plurals>
 </resources>

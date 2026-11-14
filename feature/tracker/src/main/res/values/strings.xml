@@ -8,6 +8,11 @@
     <string name="feature_tracker_increase">%1$s, increase points</string>
     <string name="feature_tracker_decrease">%1$s, decrease points</string>
     <string name="feature_tracker_at_target">Reached the target</string>
+    <!-- 2v2 shared score. %1$s = team members (e.g. "Ana &amp; Ben"), %2$d = points. -->
+    <plurals name="feature_tracker_team_points">
+        <item quantity="one">%1$s, %2$d point</item>
+        <item quantity="other">%1$s, %2$d points</item>
+    </plurals>
 
     <!-- Extra counters. %1$s = player name. -->
     <string name="feature_tracker_add_counter">+ Counter</string>

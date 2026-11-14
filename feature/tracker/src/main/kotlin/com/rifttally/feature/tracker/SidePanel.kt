@@ -20,15 +20,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.unit.Dp
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
 import com.rifttally.core.designsystem.component.RiftTextButton
 import com.rifttally.core.designsystem.icon.RiftIcons
@@ -45,8 +46,8 @@ import kotlinx.collections.immutable.persistentListOf
 
 /**
  * One side's panel: the Legend portrait with the score on it, the name, and two large tap zones
- * (left half −, right half +, each with a visible icon). Holding a zone repeats. [rotationDegrees]
- * turns the whole panel toward its seat (180° for the player across the table).
+ * (left half −, right half +, each with a visible icon). Holding a zone repeats. The caller turns the
+ * panel toward its seat (see [TrackerTableLayout]).
  */
 @Composable
 internal fun SidePanel(
@@ -57,7 +58,6 @@ internal fun SidePanel(
     onCounterRemove: (PlayerId, CounterId) -> Unit,
     onAddCounterClick: (PlayerId) -> Unit,
     modifier: Modifier = Modifier,
-    rotationDegrees: Float = 0f,
 ) {
     val firstPlayer = panel.players.firstOrNull()
     val playerColor = firstPlayer?.colorId?.let(PlayerColors::fromId) ?: PlayerColors.Grey
@@ -71,7 +71,7 @@ internal fun SidePanel(
         onPointsChange(delta)
     }
     Surface(
-        modifier = modifier.rotate(rotationDegrees),
+        modifier = modifier,
         shape = RoundedCornerShape(RiftTheme.spacing.xl),
         color = RiftTheme.colorScheme.surfaceContainer,
         border = if (panel.isAtTarget) {
@@ -119,27 +119,50 @@ internal fun SidePanel(
             BoxWithConstraints(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 // Rows under the portrait: name chip, optional "reached" label, counters, "+ Counter" buttons.
                 // Each is at most one touch target tall; the portrait shrinks to whatever height is left.
-                val rows = 1 + (if (panel.isAtTarget) 1 else 0) +
-                    panel.players.sumOf { it.counters.size + if (it.counters.size < MAX_COUNTERS_PER_PLAYER) 1 else 0 }
+                val isTeam = panel.players.size > 1
+                val counterRows = panel.players.map {
+                    it.counters.size +
+                        if (it.counters.size < MAX_COUNTERS_PER_PLAYER) 1 else 0
+                }
+                // Solo: chip + every counter row stacked. Team: players' columns sit side by side, so
+                // only the tallest column counts, plus the shared score line (about two rows tall).
+                val rows = (if (panel.isAtTarget) 1 else 0) +
+                    if (isTeam) 1 + TEAM_SCORE_ROWS + (counterRows.maxOrNull() ?: 0) else 1 + counterRows.sum()
                 val spacing = RiftTheme.spacing.sm
                 val reserved = (RiftTheme.sizes.minTouchTarget + spacing) * rows + RiftTheme.spacing.lg * 2
-                val avatarSize = (maxHeight - reserved).coerceIn(
-                    RiftTheme.sizes.avatarMedium,
+                // Keep clear of the −/+ icons at both edges; a team fits its portraits side by side.
+                val iconZone = RiftTheme.sizes.minTouchTarget + RiftTheme.spacing.lg * 2
+                val widthForAvatars = maxWidth - iconZone * 2 - spacing * (panel.players.size - 1)
+                val avatarSize = minOf(maxHeight - reserved, widthForAvatars / panel.players.size).coerceIn(
+                    RiftTheme.sizes.avatarSmall,
                     RiftTheme.sizes.avatarLarge,
                 )
+                val counterContent: @Composable (PanelPlayerUiState) -> Unit = { player ->
+                    PlayerCounters(
+                        player = player,
+                        hapticsEnabled = hapticsEnabled,
+                        onCounterChange = onCounterChange,
+                        onCounterRemove = onCounterRemove,
+                        onAddCounterClick = onAddCounterClick,
+                    )
+                }
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(spacing),
                 ) {
-                    LegendAvatar(
-                        legendName = firstPlayer?.legendName,
-                        imageUri = firstPlayer?.legendImageUri,
-                        playerName = panel.displayName,
-                        playerColor = playerColor,
-                        size = avatarSize,
-                        score = panel.points,
-                    )
-                    PlayerNameChip(name = panel.displayName, playerColor = playerColor)
+                    if (isTeam) {
+                        TeamHeader(panel = panel, avatarSize = avatarSize)
+                    } else {
+                        LegendAvatar(
+                            legendName = firstPlayer?.legendName,
+                            imageUri = firstPlayer?.legendImageUri,
+                            playerName = panel.displayName,
+                            playerColor = playerColor,
+                            size = avatarSize,
+                            score = panel.points,
+                        )
+                        PlayerNameChip(name = panel.displayName, playerColor = playerColor)
+                    }
                     if (panel.isAtTarget) {
                         Text(
                             text = stringResource(R.string.feature_tracker_at_target),
@@ -148,32 +171,92 @@ internal fun SidePanel(
                         )
                     }
                     // Counters are per player, even when a team shares the points.
-                    panel.players.forEach { player ->
-                        player.counters.forEach { counter ->
-                            key(player.playerId, counter.id) {
-                                CounterRow(
-                                    label = counter.label,
-                                    value = counter.value,
-                                    ownerName = player.name,
-                                    onValueChange = { delta ->
-                                        if (hapticsEnabled && (delta > 0 || counter.value > 0)) {
-                                            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                                        }
-                                        onCounterChange(player.playerId, counter.id, delta)
-                                    },
-                                    onRemove = { onCounterRemove(player.playerId, counter.id) },
-                                )
+                    if (isTeam) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.lg)) {
+                            panel.players.forEach { player ->
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    PlayerNameChip(
+                                        name = player.name,
+                                        playerColor = PlayerColors.fromId(player.colorId) ?: PlayerColors.Grey,
+                                    )
+                                    counterContent(player)
+                                }
                             }
                         }
-                        if (player.counters.size < MAX_COUNTERS_PER_PLAYER) {
-                            AddCounterButton(playerName = player.name, onClick = { onAddCounterClick(player.playerId) })
-                        }
+                    } else {
+                        panel.players.forEach { player -> counterContent(player) }
                     }
                 }
             }
         }
     }
 }
+
+/** 2v2: both teammates' Legends side by side, then the shared score. */
+@Composable
+private fun TeamHeader(panel: SidePanelUiState, avatarSize: Dp, modifier: Modifier = Modifier) {
+    val scoreDescription = pluralStringResource(
+        R.plurals.feature_tracker_team_points,
+        panel.points,
+        panel.displayName,
+        panel.points,
+    )
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.sm)) {
+            panel.players.forEach { player ->
+                LegendAvatar(
+                    legendName = player.legendName,
+                    imageUri = player.legendImageUri,
+                    playerName = player.name,
+                    playerColor = PlayerColors.fromId(player.colorId) ?: PlayerColors.Grey,
+                    size = avatarSize,
+                )
+            }
+        }
+        Text(
+            text = panel.points.toString(),
+            style = RiftTheme.scoreTypography.scoreLarge,
+            color = RiftTheme.colorScheme.onSurface,
+            modifier = Modifier.clearAndSetSemantics { contentDescription = scoreDescription },
+        )
+    }
+}
+
+/** One player's counters (keyed, so state follows the counter when one is removed) and "+ Counter". */
+@Composable
+private fun PlayerCounters(
+    player: PanelPlayerUiState,
+    hapticsEnabled: Boolean,
+    onCounterChange: (PlayerId, CounterId, delta: Int) -> Unit,
+    onCounterRemove: (PlayerId, CounterId) -> Unit,
+    onAddCounterClick: (PlayerId) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val haptics = LocalHapticFeedback.current
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        player.counters.forEach { counter ->
+            key(player.playerId, counter.id) {
+                CounterRow(
+                    label = counter.label,
+                    value = counter.value,
+                    ownerName = player.name,
+                    onValueChange = { delta ->
+                        if (hapticsEnabled && (delta > 0 || counter.value > 0)) {
+                            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                        }
+                        onCounterChange(player.playerId, counter.id, delta)
+                    },
+                    onRemove = { onCounterRemove(player.playerId, counter.id) },
+                )
+            }
+        }
+        if (player.counters.size < MAX_COUNTERS_PER_PLAYER) {
+            AddCounterButton(playerName = player.name, onClick = { onAddCounterClick(player.playerId) })
+        }
+    }
+}
+
+private const val TEAM_SCORE_ROWS = 2 // scoreLarge line height ≈ two touch targets
 
 /** "+ Counter", announced as "Add counter for Ana" (the visible text alone is ambiguous with 2+ players). */
 @Composable

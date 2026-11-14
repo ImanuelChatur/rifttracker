@@ -3,6 +3,7 @@ package com.rifttally.feature.tracker
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -15,7 +16,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Star
@@ -172,15 +174,16 @@ internal fun SidePanel(
             TapZones(panel = panel, onChange = change, modifier = Modifier.matchParentSize())
             // Not clickable itself, so taps on the score fall through to the zones underneath.
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                // Short panels (sideways seats in 3–4 player games): the name joins the counter row, so the
-                // score keeps most of the height.
-                val compact = maxHeight < COMPACT_PANEL_HEIGHT && panel.players.size == 1
+                // Short panels (seats in 3–4 player games, landscape): everything under the score shares ONE
+                // dense row (name, counters without their label, round "+★"), so the score stays the one
+                // hero element (DESIGN.md §2.2) and keeps most of the height (§5).
+                val compact = maxHeight - topInset < COMPACT_PANEL_HEIGHT && panel.players.size == 1
                 val footerArrangement = Arrangement.spacedBy(RiftTheme.spacing.lg, Alignment.CenterHorizontally)
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(top = topInset)
-                        .padding(RiftTheme.spacing.md),
+                        .padding(if (compact) RiftTheme.spacing.sm else RiftTheme.spacing.md),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.sm),
                 ) {
@@ -215,7 +218,7 @@ internal fun SidePanel(
                                 onCounterChange = onCounterChange,
                                 onCounterRemove = onCounterRemove,
                                 onAddCounterClick = onAddCounterClick,
-                                inlineChip = compact,
+                                compact = compact,
                                 modifier = if (panel.players.size > 1) Modifier.weight(1f) else Modifier,
                             )
                         }
@@ -307,7 +310,7 @@ private fun pulseAlpha(reducedMotion: Boolean): Float = if (reducedMotion) {
 private fun TargetReachedLabel(modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
-        shape = CircleShape,
+        shape = RiftTheme.shapes.full,
         color = RiftTheme.tableColors.targetGlow,
         contentColor = RiftTheme.tableColors.onTargetGlow,
     ) {
@@ -319,7 +322,13 @@ private fun TargetReachedLabel(modifier: Modifier = Modifier) {
     }
 }
 
-/** One player's counters (keyed, so state follows the counter when one is removed), "+ Counter" and name. */
+/**
+ * One player's counters (keyed, so state follows the counter when one is removed), "+ Counter" and name.
+ *
+ * Normal panels: counters wrap in rows under the score, the name chip below them. [compact] panels: one
+ * single dense row (name chip, label-less counter pills, round "+★") that scrolls sideways if it ever
+ * overflows, so it never grows into a second row and steals height from the score. −/+ stay 48dp.
+ */
 @Composable
 private fun PlayerFooter(
     player: PanelPlayerUiState,
@@ -330,48 +339,66 @@ private fun PlayerFooter(
     onCounterRemove: (PlayerId, CounterId) -> Unit,
     onAddCounterClick: (PlayerId) -> Unit,
     modifier: Modifier = Modifier,
-    inlineChip: Boolean = false,
+    compact: Boolean = false,
 ) {
     val haptics = LocalHapticFeedback.current
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.sm),
-    ) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xs, Alignment.CenterHorizontally),
-            verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xs),
-            itemVerticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (inlineChip) PlayerNameChip(name = player.name, playerColor = playerColor)
-            player.counters.forEach { counter ->
-                key(player.playerId, counter.id) {
-                    CounterRow(
-                        label = counter.label,
-                        value = counter.value,
-                        ownerName = player.name,
-                        onValueChange = { delta ->
-                            if (hapticsEnabled && (delta > 0 || counter.value > 0)) {
-                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                            }
-                            onCounterChange(player.playerId, counter.id, delta)
-                        },
-                        onRemove = { onCounterRemove(player.playerId, counter.id) },
-                        containerColor = pillColor,
-                        contentColor = LocalContentColor.current,
-                    )
-                }
-            }
-            if (player.counters.size < MAX_COUNTERS_PER_PLAYER) {
-                AddCounterButton(
-                    playerName = player.name,
-                    compact = player.counters.isNotEmpty(),
-                    pillColor = pillColor,
-                    onClick = { onAddCounterClick(player.playerId) },
+    val controls: @Composable () -> Unit = {
+        player.counters.forEach { counter ->
+            key(player.playerId, counter.id) {
+                CounterRow(
+                    label = counter.label,
+                    value = counter.value,
+                    ownerName = player.name,
+                    onValueChange = { delta ->
+                        if (hapticsEnabled && (delta > 0 || counter.value > 0)) {
+                            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                        }
+                        onCounterChange(player.playerId, counter.id, delta)
+                    },
+                    onRemove = { onCounterRemove(player.playerId, counter.id) },
+                    containerColor = pillColor,
+                    contentColor = LocalContentColor.current,
+                    dense = compact,
                 )
             }
         }
-        if (!inlineChip) PlayerNameChip(name = player.name, playerColor = playerColor)
+        if (player.counters.size < MAX_COUNTERS_PER_PLAYER) {
+            AddCounterButton(
+                playerName = player.name,
+                compact = compact || player.counters.isNotEmpty(),
+                pillColor = pillColor,
+                onClick = { onAddCounterClick(player.playerId) },
+            )
+        }
+    }
+    if (compact) {
+        Row(
+            modifier = modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PlayerNameChip(
+                name = player.name,
+                playerColor = playerColor,
+                modifier = Modifier.widthIn(max = COMPACT_CHIP_MAX_WIDTH),
+            )
+            controls()
+        }
+    } else {
+        Column(
+            modifier = modifier,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.sm),
+        ) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xs, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xs),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                controls()
+            }
+            PlayerNameChip(name = player.name, playerColor = playerColor)
+        }
     }
 }
 
@@ -391,7 +418,7 @@ private fun AddCounterButton(
     val description = stringResource(R.string.feature_tracker_add_counter_for, playerName)
     Surface(
         onClick = onClick,
-        shape = CircleShape,
+        shape = RiftTheme.shapes.full,
         color = pillColor,
         contentColor = LocalContentColor.current,
         modifier = modifier
@@ -444,7 +471,12 @@ private const val GLYPH_ALPHA = 0.4f
 private const val SCRIM_MIDDLE_STOP = 0.55f
 private const val PULSE_MIN_ALPHA = 0.35f
 private const val TARGET_GLOW_FACTOR = 1.5f
-private val COMPACT_PANEL_HEIGHT = 260.dp
+
+/** Below this much height (after the control-bar inset) a single-player panel uses the dense footer. */
+private val COMPACT_PANEL_HEIGHT = 300.dp
+
+/** Long names ellipsize in the dense footer, so the row keeps fitting next to the counters. */
+private val COMPACT_CHIP_MAX_WIDTH = 96.dp
 
 internal val previewPanels = persistentListOf(
     SidePanelUiState(

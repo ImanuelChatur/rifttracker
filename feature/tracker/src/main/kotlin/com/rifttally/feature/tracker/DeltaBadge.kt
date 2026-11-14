@@ -1,10 +1,11 @@
 package com.rifttally.feature.tracker
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
 import com.rifttally.core.designsystem.theme.RiftTheme
+import com.rifttally.core.designsystem.theme.reduceMotionEnabled
 import kotlinx.coroutines.delay
 
 /**
@@ -45,13 +47,14 @@ internal fun DeltaBadge(value: Int, modifier: Modifier = Modifier) {
             visible = false
         }
     }
+    val reducedMotion = reduceMotionEnabled()
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(),
-        exit = fadeOut(),
+        enter = if (reducedMotion) EnterTransition.None else fadeIn(RiftTheme.motion.expressive.fastEffects()),
+        exit = if (reducedMotion) ExitTransition.None else fadeOut(RiftTheme.motion.expressive.defaultEffects()),
         modifier = modifier.clearAndSetSemantics {},
     ) {
-        Surface(shape = CircleShape, color = RiftTheme.colorScheme.secondaryContainer) {
+        Surface(shape = RiftTheme.shapes.full, color = RiftTheme.colorScheme.secondaryContainer) {
             Text(
                 text = stringResource(R.string.feature_tracker_delta_badge, shown),
                 style = RiftTheme.typography.labelLarge,
@@ -68,7 +71,7 @@ private const val BADGE_VISIBLE_MILLIS = 900L
 @Composable
 private fun DeltaBadgePreview() {
     RiftTheme {
-        Surface(shape = CircleShape, color = RiftTheme.colorScheme.secondaryContainer) {
+        Surface(shape = RiftTheme.shapes.full, color = RiftTheme.colorScheme.secondaryContainer) {
             Text(
                 text = stringResource(R.string.feature_tracker_delta_badge, 2),
                 style = RiftTheme.typography.labelLarge,

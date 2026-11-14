@@ -3,7 +3,6 @@ package com.rifttally.core.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,7 +19,12 @@ import com.rifttally.core.designsystem.theme.RiftTheme
  */
 @Composable
 public fun PlayerNameChip(name: String, playerColor: PlayerColor, modifier: Modifier = Modifier) {
-    Surface(modifier = modifier, shape = CircleShape, color = playerColor.color, contentColor = playerColor.onColor) {
+    Surface(
+        modifier = modifier,
+        shape = RiftTheme.shapes.full,
+        color = playerColor.color,
+        contentColor = playerColor.onColor,
+    ) {
         Text(
             text = name,
             style = RiftTheme.typography.titleMedium,

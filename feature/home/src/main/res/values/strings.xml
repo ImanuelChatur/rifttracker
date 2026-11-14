@@ -5,6 +5,10 @@
     <string name="feature_home_settings">Settings</string>
     <string name="feature_home_game_in_progress">Game in progress</string>
     <string name="feature_home_resume">Resume</string>
+    <string name="feature_home_history">History</string>
+    <string name="feature_home_stats">Stats</string>
+    <!-- Shown on Home when there is no game in progress and no ended game yet. -->
+    <string name="feature_home_empty">No games yet. Start one and keep score at the table.</string>
     <!-- %1$d = target score. -->
     <string name="feature_home_target">Playing to %1$d</string>
     <string name="feature_home_recent_games">Recent games</string>

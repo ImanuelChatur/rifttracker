@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Star
@@ -45,6 +44,9 @@ import com.rifttally.core.designsystem.theme.RiftTheme
  * exposed as an accessibility action).
  *
  * @param ownerName the player's name, used in accessibility labels ("Ana, XP, increase").
+ * @param dense for small panels: drops the visible label (★ and value stay; the label is still in the
+ *   accessibility description) and tightens the padding, so the pill never outweighs the score.
+ *   The −/+ targets stay 48dp.
  * @param containerColor the pill's (usually translucent) background; [contentColor] is drawn on it.
  */
 @OptIn(ExperimentalFoundationApi::class)
@@ -58,19 +60,20 @@ public fun CounterRow(
     modifier: Modifier = Modifier,
     containerColor: Color = RiftTheme.colorScheme.surfaceContainerHigh,
     contentColor: Color = RiftTheme.colorScheme.onSurface,
+    dense: Boolean = false,
 ) {
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     val removeLabel = stringResource(R.string.core_ui_counter_remove)
     val description = stringResource(R.string.core_ui_counter_description, ownerName, label, value)
     val touch = RiftTheme.sizes.minTouchTarget
-    Surface(modifier = modifier, shape = CircleShape, color = containerColor, contentColor = contentColor) {
+    Surface(modifier = modifier, shape = RiftTheme.shapes.full, color = containerColor, contentColor = contentColor) {
         Row(modifier = Modifier.height(touch), verticalAlignment = Alignment.CenterVertically) {
             RepeatingClickBox(
                 contentDescription = stringResource(R.string.core_ui_counter_decrease, ownerName, label),
                 onClick = { onValueChange(-1) },
                 modifier = Modifier
                     .size(touch)
-                    .clip(CircleShape),
+                    .clip(RiftTheme.shapes.full),
             ) {
                 Icon(imageVector = RiftIcons.Remove, contentDescription = null)
             }
@@ -78,7 +81,7 @@ public fun CounterRow(
                 Row(
                     modifier = Modifier
                         .sizeIn(minHeight = touch)
-                        .clip(CircleShape)
+                        .clip(RiftTheme.shapes.full)
                         // Tap or long-press opens the "Remove" menu (a tap alone would otherwise do nothing).
                         .combinedClickable(
                             onClickLabel = removeLabel,
@@ -94,9 +97,11 @@ public fun CounterRow(
                                 },
                             )
                         }
-                        .padding(horizontal = RiftTheme.spacing.xs),
+                        .padding(horizontal = if (dense) RiftTheme.spacing.xxs else RiftTheme.spacing.xs),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xs),
+                    horizontalArrangement = Arrangement.spacedBy(
+                        if (dense) RiftTheme.spacing.xxs else RiftTheme.spacing.xs,
+                    ),
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Star,
@@ -104,13 +109,15 @@ public fun CounterRow(
                         modifier = Modifier.size(RiftTheme.sizes.iconSmall),
                     )
                     // The row's description already reads the label and value.
-                    Text(
-                        text = label,
-                        style = RiftTheme.typography.labelLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.clearAndSetSemantics {},
-                    )
+                    if (!dense) {
+                        Text(
+                            text = label,
+                            style = RiftTheme.typography.labelLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.clearAndSetSemantics {},
+                        )
+                    }
                     Text(
                         text = value.toString(),
                         style = RiftTheme.scoreTypography.counter,
@@ -132,7 +139,7 @@ public fun CounterRow(
                 onClick = { onValueChange(1) },
                 modifier = Modifier
                     .size(touch)
-                    .clip(CircleShape),
+                    .clip(RiftTheme.shapes.full),
             ) {
                 Icon(imageVector = Icons.Filled.Add, contentDescription = null)
             }
@@ -151,6 +158,7 @@ private fun CounterRowPreview() {
             ) {
                 CounterRow(label = "XP", value = 3, ownerName = "Ana", onValueChange = {}, onRemove = {})
                 CounterRow(label = "Energy", value = 12, ownerName = "Ana", onValueChange = {}, onRemove = {})
+                CounterRow(label = "XP", value = 3, ownerName = "Ana", onValueChange = {}, onRemove = {}, dense = true)
             }
         }
     }

@@ -3,6 +3,7 @@ package com.rifttally.feature.home
 import android.text.format.DateUtils
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -23,6 +25,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,29 +38,40 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
-import com.rifttally.core.designsystem.component.RiftButton
+import com.rifttally.core.designsystem.component.RiftHeroButton
 import com.rifttally.core.designsystem.component.RiftIconButton
+import com.rifttally.core.designsystem.component.RiftTextButton
 import com.rifttally.core.designsystem.component.RiftTonalButton
+import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.designsystem.theme.RiftTheme
-import com.rifttally.core.designsystem.theme.titleLargeEmphasized
 import com.rifttally.core.model.GameId
 import com.rifttally.core.ui.LegendAvatar
 import com.rifttally.core.ui.LegendBackdrop
 import com.rifttally.core.ui.PlayerNameChip
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
+/**
+ * @param onHistoryClick opens match history; `null` hides the History entry.
+ * @param onStatsClick opens stats; `null` hides the Stats entry.
+ * @param onRecentGameClick opens an ended game's detail; `null` keeps recent games read-only.
+ */
 @Composable
 internal fun HomeRoute(
     onNewGameClick: () -> Unit,
     onResumeClick: (GameId) -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onHistoryClick: (() -> Unit)? = null,
+    onStatsClick: (() -> Unit)? = null,
+    onRecentGameClick: ((GameId) -> Unit)? = null,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -66,13 +80,18 @@ internal fun HomeRoute(
         onNewGameClick = onNewGameClick,
         onResumeClick = onResumeClick,
         onSettingsClick = onSettingsClick,
+        onHistoryClick = onHistoryClick,
+        onStatsClick = onStatsClick,
+        onRecentGameClick = onRecentGameClick,
         modifier = modifier,
     )
 }
 
 /**
- * Home: a hero "Resume" card with the Legends' art side by side (when a game is in progress), the
- * "New game" button, and recent games as a compact list with tiny Legend avatars, winner highlighted.
+ * Home. The hero (DESIGN.md §2.2) is "Resume" when a game is in progress (a card with the Legends' art
+ * side by side), otherwise "New game". Below it: History · Stats in one quiet container, then recent
+ * games as a segmented list with tiny Legend avatars, winner highlighted. On wide windows the content
+ * is a centered column of at most [MaxContentWidth] (§8).
  */
 @Composable
 internal fun HomeScreen(
@@ -81,73 +100,156 @@ internal fun HomeScreen(
     onResumeClick: (GameId) -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onHistoryClick: (() -> Unit)? = null,
+    onStatsClick: (() -> Unit)? = null,
+    onRecentGameClick: ((GameId) -> Unit)? = null,
 ) {
-    Surface(modifier = modifier.fillMaxSize(), color = RiftTheme.colorScheme.background) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.safeDrawing)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = RiftTheme.spacing.xl, vertical = RiftTheme.spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.lg),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(R.string.feature_home_title),
-                    style = RiftTheme.typography.headlineLarge,
-                    color = RiftTheme.colorScheme.onBackground,
-                    modifier = Modifier
-                        .weight(1f)
-                        .semantics { heading() },
-                )
-                RiftIconButton(
-                    imageVector = Icons.Filled.Settings,
-                    contentDescription = stringResource(R.string.feature_home_settings),
-                    onClick = onSettingsClick,
-                )
-            }
-            val success = uiState as? HomeUiState.Success
+    val success = uiState as? HomeUiState.Success
+    val hero: @Composable () -> Unit = {
+        Column(verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.lg)) {
             success?.activeGame?.let { activeGame ->
                 ResumeCard(game = activeGame, onResumeClick = { onResumeClick(activeGame.gameId) })
             }
-            // One filled button per region (DESIGN.md §9): with a game in progress, Resume is the hero and
-            // New game steps back to tonal.
-            val newGame = stringResource(R.string.feature_home_new_game)
-            val newGameModifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = RiftTheme.sizes.heroButtonHeight)
-            if (success?.activeGame != null) {
-                RiftTonalButton(text = newGame, onClick = onNewGameClick, modifier = newGameModifier)
-            } else {
-                RiftButton(
-                    text = newGame,
-                    onClick = onNewGameClick,
-                    modifier = newGameModifier,
-                    enabled =
-                        success != null,
+            NewGameButton(
+                hasActiveGame = success?.activeGame != null,
+                enabled = success != null,
+                onClick = onNewGameClick,
+            )
+        }
+    }
+    val rest: @Composable () -> Unit = {
+        Column(verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.lg)) {
+            if (onHistoryClick != null || onStatsClick != null) {
+                BrowseRow(onHistoryClick = onHistoryClick, onStatsClick = onStatsClick)
+            }
+            val recentGames = success?.recentGames ?: persistentListOf()
+            if (recentGames.isNotEmpty()) {
+                RecentGames(games = recentGames, now = success?.now ?: 0, onGameClick = onRecentGameClick)
+            } else if (success != null && success.activeGame == null) {
+                // Empty state (DESIGN.md §9): one sentence; the action is the hero button above.
+                Text(
+                    text = stringResource(R.string.feature_home_empty),
+                    style = RiftTheme.typography.bodyLarge,
+                    color = RiftTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            val recentGames = success?.recentGames.orEmpty()
-            if (recentGames.isNotEmpty()) {
-                Text(
-                    text = stringResource(R.string.feature_home_recent_games),
-                    style = RiftTheme.typography.titleLarge,
-                    color = RiftTheme.colorScheme.onBackground,
-                    modifier = Modifier
-                        .padding(top = RiftTheme.spacing.sm)
-                        .semantics { heading() },
-                )
-                // Segmented list (DESIGN.md §8): each game on its own tonal tile, small gaps, no dividers.
-                Column(verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xxs)) {
-                    recentGames.forEachIndexed { index, game ->
-                        Surface(
-                            shape = RiftTheme.shapes.segment(index, recentGames.size),
-                            color = RiftTheme.colorScheme.surfaceContainer,
-                        ) {
-                            RecentGameRow(game = game, now = success?.now ?: 0)
-                        }
+        }
+    }
+    Surface(modifier = modifier.fillMaxSize(), color = RiftTheme.colorScheme.background) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.safeDrawing),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            val outer = Modifier.padding(horizontal = RiftTheme.spacing.xl, vertical = RiftTheme.spacing.lg)
+            if (maxWidth >= TwoPaneMinWidth && maxWidth > maxHeight) {
+                // Landscape / wide (DESIGN.md §8): hero on the left, everything else on the right, so the
+                // hero stays fully visible on a compact-height window. Each pane scrolls on its own.
+                Column(
+                    modifier = outer.widthIn(max = MaxTwoPaneWidth),
+                    verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.md),
+                ) {
+                    HomeHeader(onSettingsClick = onSettingsClick)
+                    Row(horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xl)) {
+                        Box(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) { hero() }
+                        Box(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) { rest() }
                     }
                 }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .then(outer),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Column(
+                        modifier = Modifier.widthIn(max = MaxContentWidth),
+                        verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.lg),
+                    ) {
+                        HomeHeader(onSettingsClick = onSettingsClick)
+                        hero()
+                        rest()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeHeader(onSettingsClick: () -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = stringResource(R.string.feature_home_title),
+            style = RiftTheme.typography.headlineLarge,
+            color = RiftTheme.colorScheme.onBackground,
+            modifier = Modifier
+                .weight(1f)
+                .semantics { heading() },
+        )
+        RiftIconButton(
+            imageVector = Icons.Filled.Settings,
+            contentDescription = stringResource(R.string.feature_home_settings),
+            onClick = onSettingsClick,
+        )
+    }
+}
+
+/**
+ * One filled button per region (DESIGN.md §9): without a game in progress "New game" is the hero; with
+ * one, Resume is the hero and New game steps back to tonal.
+ */
+@Composable
+private fun NewGameButton(
+    hasActiveGame: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val text = stringResource(R.string.feature_home_new_game)
+    val buttonModifier = modifier
+        .fillMaxWidth()
+        .heightIn(min = RiftTheme.sizes.heroButtonHeight)
+    if (hasActiveGame) {
+        RiftTonalButton(text = text, onClick = onClick, modifier = buttonModifier)
+    } else {
+        RiftHeroButton(text = text, onClick = onClick, modifier = buttonModifier, enabled = enabled)
+    }
+}
+
+/**
+ * History · Stats: two labeled text buttons contained in one quiet pill (DESIGN.md §8 containment, §2.4
+ * keep labels), so they're easy to find without competing with the hero.
+ */
+@Composable
+private fun BrowseRow(onHistoryClick: (() -> Unit)?, onStatsClick: (() -> Unit)?, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RiftTheme.shapes.full,
+        color = RiftTheme.colorScheme.surfaceContainer,
+    ) {
+        Row(
+            modifier = Modifier.padding(RiftTheme.spacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            onHistoryClick?.let { onClick ->
+                RiftTextButton(
+                    text = stringResource(R.string.feature_home_history),
+                    onClick = onClick,
+                    icon = RiftIcons.History,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            onStatsClick?.let { onClick ->
+                RiftTextButton(
+                    text = stringResource(R.string.feature_home_stats),
+                    onClick = onClick,
+                    icon = RiftIcons.Stats,
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }
@@ -184,7 +286,7 @@ private fun ResumeCard(game: ActiveGameUiState, onResumeClick: () -> Unit, modif
             Column(modifier = Modifier.semantics(mergeDescendants = true) {}) {
                 Text(
                     text = stringResource(R.string.feature_home_game_in_progress),
-                    style = RiftTheme.typography.titleLargeEmphasized,
+                    style = RiftTheme.typography.titleLarge,
                 )
                 Text(
                     text = stringResource(R.string.feature_home_target, game.targetScore),
@@ -192,12 +294,10 @@ private fun ResumeCard(game: ActiveGameUiState, onResumeClick: () -> Unit, modif
                     color = RiftTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            RiftButton(
+            RiftHeroButton(
                 text = stringResource(R.string.feature_home_resume),
                 onClick = onResumeClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = RiftTheme.sizes.heroButtonHeight),
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
@@ -214,8 +314,9 @@ private fun ResumeSide(side: ResumeSideUiState, seatIndex: Int, modifier: Modifi
         playerColor = playerColor,
         modifier = modifier,
     ) { hasArt ->
+        val density = LocalDensity.current
         val shadow = if (hasArt) {
-            with(LocalDensity.current) {
+            with(density) {
                 Shadow(tableColors.artTextShadow, Offset(0f, RiftTheme.spacing.xxs.toPx()), RiftTheme.spacing.md.toPx())
             }
         } else {
@@ -228,12 +329,51 @@ private fun ResumeSide(side: ResumeSideUiState, seatIndex: Int, modifier: Modifi
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xs),
         ) {
-            Text(
-                text = side.points.toString(),
-                style = RiftTheme.scoreTypography.scoreMedium.copy(shadow = shadow),
-                color = if (hasArt) tableColors.onArt else tableColors.onPanelBase,
-            )
+            // The score is sized from the art strip, not the font scale (DESIGN.md §5): it is already
+            // display-size, and scaling it 2× would push it out of the fixed-height strip.
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 1f)) {
+                Text(
+                    text = side.points.toString(),
+                    style = RiftTheme.scoreTypography.scoreMedium.copy(shadow = shadow),
+                    color = if (hasArt) tableColors.onArt else tableColors.onPanelBase,
+                )
+            }
             PlayerNameChip(name = side.name, playerColor = playerColor)
+        }
+    }
+}
+
+@Composable
+private fun RecentGames(
+    games: ImmutableList<RecentGameUiState>,
+    now: Long,
+    onGameClick: ((GameId) -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.md)) {
+        Text(
+            text = stringResource(R.string.feature_home_recent_games),
+            style = RiftTheme.typography.titleLarge,
+            color = RiftTheme.colorScheme.onBackground,
+            modifier = Modifier
+                .padding(top = RiftTheme.spacing.sm)
+                .semantics { heading() },
+        )
+        // Segmented list (DESIGN.md §8): each game on its own tonal tile, small gaps, no dividers.
+        Column(verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xxs)) {
+            games.forEachIndexed { index, game ->
+                val shape = RiftTheme.shapes.segment(index, games.size)
+                val color = RiftTheme.colorScheme.surfaceContainer
+                if (onGameClick != null) {
+                    Surface(onClick = { onGameClick(game.gameId) }, shape = shape, color = color) {
+                        RecentGameRow(game = game, now = now)
+                    }
+                } else {
+                    Surface(shape = shape, color = color) {
+                        RecentGameRow(game = game, now = now)
+                    }
+                }
+            }
         }
     }
 }
@@ -249,9 +389,7 @@ private fun RecentGameRow(game: RecentGameUiState, now: Long, modifier: Modifier
     val scores = buildAnnotatedString {
         game.sides.forEachIndexed { index, side ->
             if (index > 0) append(separator)
-            if (side.name ==
-                game.winnerName
-            ) {
+            if (side.name == game.winnerName) {
                 withStyle(winnerStyle) { append(scoreLabels[index]) }
             } else {
                 append(scoreLabels[index])
@@ -264,6 +402,7 @@ private fun RecentGameRow(game: RecentGameUiState, now: Long, modifier: Modifier
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = RiftTheme.sizes.minTouchTarget)
             .semantics(mergeDescendants = true) {}
             .padding(horizontal = RiftTheme.spacing.md, vertical = RiftTheme.spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -287,13 +426,20 @@ private fun RecentGameRow(game: RecentGameUiState, now: Long, modifier: Modifier
                 text = scores,
                 style = RiftTheme.typography.bodyLarge,
                 color = RiftTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
             Text(text = result, style = RiftTheme.typography.bodySmall, color = RiftTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
+
+/** Content width cap on wide windows (DESIGN.md §8: ≈ 640dp centered column). */
+private val MaxContentWidth = 640.dp
+
+/** From this width (medium, DESIGN.md §8) a landscape window shows Home as two panes. */
+private val TwoPaneMinWidth = 600.dp
+
+/** Width cap of the two panes together on very wide windows. */
+private val MaxTwoPaneWidth = 1040.dp
 
 internal val previewActiveGame = ActiveGameUiState(
     gameId = GameId("g1"),
@@ -330,6 +476,9 @@ private fun HomeScreenResumePreview() {
             onNewGameClick = {},
             onResumeClick = {},
             onSettingsClick = {},
+            onHistoryClick = {},
+            onStatsClick = {},
+            onRecentGameClick = {},
         )
     }
 }
@@ -343,6 +492,8 @@ private fun HomeScreenEmptyPreview() {
             onNewGameClick = {},
             onResumeClick = {},
             onSettingsClick = {},
+            onHistoryClick = {},
+            onStatsClick = {},
         )
     }
 }
@@ -356,6 +507,9 @@ private fun HomeScreenRecentGamesPreview() {
             onNewGameClick = {},
             onResumeClick = {},
             onSettingsClick = {},
+            onHistoryClick = {},
+            onStatsClick = {},
+            onRecentGameClick = {},
         )
     }
 }

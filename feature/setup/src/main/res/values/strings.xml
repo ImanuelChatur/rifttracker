@@ -29,6 +29,8 @@
     <string name="feature_setup_team_b">Team B</string>
     <string name="feature_setup_teams_invalid">Each team needs exactly two players.</string>
     <string name="feature_setup_format_label">Players</string>
+    <!-- Section header above the target score and XP options. -->
+    <string name="feature_setup_game_label">Game</string>
     <string name="feature_setup_format_teams_description">2 versus 2, teams share points</string>
     <plurals name="feature_setup_format_players_description">
         <item quantity="one">%1$d player</item>

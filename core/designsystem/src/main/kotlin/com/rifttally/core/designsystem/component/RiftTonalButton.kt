@@ -6,10 +6,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.rifttally.core.designsystem.theme.RiftTheme
 
 /**
@@ -17,7 +17,13 @@ import com.rifttally.core.designsystem.theme.RiftTheme
  * filled, secondary = tonal, tertiary = text).
  */
 @Composable
-public fun RiftTonalButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+public fun RiftTonalButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    icon: ImageVector? = null,
+) {
     val interactionSource = remember { MutableInteractionSource() }
     FilledTonalButton(
         onClick = onClick,
@@ -26,7 +32,7 @@ public fun RiftTonalButton(text: String, onClick: () -> Unit, modifier: Modifier
         modifier = modifier.heightIn(min = RiftTheme.sizes.minTouchTarget),
         enabled = enabled,
     ) {
-        Text(text = text, style = RiftTheme.typography.labelLarge)
+        ButtonLabel(text = text, icon = icon, style = RiftTheme.typography.labelLarge)
     }
 }
 

@@ -5,16 +5,22 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.rifttally.core.designsystem.theme.RiftTheme
 
 /** Low-emphasis text button (dialogs, banners) with a 48dp minimum touch height. */
 @Composable
-public fun RiftTextButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+public fun RiftTextButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    icon: ImageVector? = null,
+) {
     val interactionSource = remember { MutableInteractionSource() }
     TextButton(
         onClick = onClick,
@@ -23,7 +29,7 @@ public fun RiftTextButton(text: String, onClick: () -> Unit, modifier: Modifier 
         modifier = modifier.heightIn(min = RiftTheme.sizes.minTouchTarget),
         enabled = enabled,
     ) {
-        Text(text = text, style = RiftTheme.typography.labelLarge)
+        ButtonLabel(text = text, icon = icon, style = RiftTheme.typography.labelLarge)
     }
 }
 

@@ -1,5 +1,6 @@
 package com.rifttally.feature.home
 
+import android.text.format.DateUtils
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +19,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -102,6 +104,17 @@ internal fun HomeScreen(
                     enabled = uiState is HomeUiState.Success,
                 )
             }
+            val recentGames = (uiState as? HomeUiState.Success)?.recentGames.orEmpty()
+            if (recentGames.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.feature_home_recent_games),
+                    style = RiftTheme.typography.titleMedium,
+                    color = RiftTheme.colorScheme.onBackground,
+                    modifier = Modifier.semantics { heading() },
+                )
+                val now = (uiState as? HomeUiState.Success)?.now ?: 0
+                recentGames.forEach { game -> key(game.gameId.value) { RecentGameRow(game = game, now = now) } }
+            }
         }
     }
 }
@@ -182,6 +195,54 @@ private fun HomeScreenEmptyPreview() {
     RiftTheme {
         HomeScreen(
             uiState = HomeUiState.Success(activeGame = null),
+            onNewGameClick = {},
+            onResumeClick = {},
+            onSettingsClick = {},
+        )
+    }
+}
+
+/** One ended game: "Ana 8 · Ben 5", who won, and how long ago. Read-only. */
+@Composable
+private fun RecentGameRow(game: RecentGameUiState, now: Long, modifier: Modifier = Modifier) {
+    val scores = game.sides
+        .map { side -> stringResource(R.string.feature_home_recent_score, side.name, side.points) }
+        .joinToString(separator = stringResource(R.string.feature_home_recent_separator))
+    val endedAgo = DateUtils.getRelativeTimeSpanString(game.endedAt, now, DateUtils.MINUTE_IN_MILLIS).toString()
+    val result = game.winnerName?.let { stringResource(R.string.feature_home_recent_winner, it, endedAgo) }
+        ?: stringResource(R.string.feature_home_recent_no_winner, endedAgo)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {}
+            .padding(vertical = RiftTheme.spacing.xs),
+    ) {
+        Text(text = scores, style = RiftTheme.typography.bodyLarge, color = RiftTheme.colorScheme.onBackground)
+        Text(text = result, style = RiftTheme.typography.bodySmall, color = RiftTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@PreviewRiftThemes
+@Composable
+private fun HomeScreenRecentGamesPreview() {
+    RiftTheme {
+        HomeScreen(
+            uiState = HomeUiState.Success(
+                activeGame = null,
+                recentGames = persistentListOf(
+                    RecentGameUiState(GameId("g2"), 3_000_000, previewActiveGame.sides, winnerName = "Ana"),
+                    RecentGameUiState(
+                        GameId("g1"),
+                        1_000_000,
+                        persistentListOf(
+                            ResumeSideUiState("Ana & Cleo", 11, "orange", null, null),
+                            ResumeSideUiState("Ben & Dan", 7, "sky", null, null),
+                        ),
+                        winnerName = null,
+                    ),
+                ),
+                now = 3_600_000,
+            ),
             onNewGameClick = {},
             onResumeClick = {},
             onSettingsClick = {},

@@ -3,4 +3,39 @@
     <string name="feature_settings_title">Settings</string>
     <string name="feature_settings_back">Back</string>
     <string name="feature_settings_disclaimer">Unofficial fan app. Not affiliated with or endorsed by Riot Games. Riftbound and League of Legends are trademarks of Riot Games, Inc.</string>
+
+    <!-- Section headings. -->
+    <string name="feature_settings_section_appearance">Appearance</string>
+    <string name="feature_settings_section_table">At the table</string>
+    <string name="feature_settings_section_defaults">New game defaults</string>
+    <string name="feature_settings_section_presets">Saved players</string>
+    <string name="feature_settings_section_about">About</string>
+
+    <string name="feature_settings_theme_system">System</string>
+    <string name="feature_settings_theme_light">Light</string>
+    <string name="feature_settings_theme_dark">Dark</string>
+    <string name="feature_settings_dynamic_color">Use wallpaper colors</string>
+
+    <string name="feature_settings_haptics">Vibrate on each change</string>
+    <string name="feature_settings_keep_screen_on">Keep screen on during a game</string>
+    <string name="feature_settings_immersive">Hide system bars during a game</string>
+
+    <string name="feature_settings_default_format">Players</string>
+    <string name="feature_settings_format_teams">2v2</string>
+    <string name="feature_settings_format_teams_description">2 versus 2, teams share points</string>
+    <plurals name="feature_settings_format_players_description">
+        <item quantity="one">%1$d player</item>
+        <item quantity="other">%1$d players</item>
+    </plurals>
+    <string name="feature_settings_default_xp">Add XP counter to all players</string>
+
+    <string name="feature_settings_presets_empty">No saved players yet. Use “Save player” in a new game’s setup.</string>
+    <!-- %1$s = saved player's name. -->
+    <string name="feature_settings_preset_delete">Delete %1$s</string>
+    <string name="feature_settings_preset_no_legend">No Legend</string>
+
+    <!-- %1$s = version name, e.g. 0.1.0. -->
+    <string name="feature_settings_version">Version %1$s</string>
+    <string name="feature_settings_licenses_title">Open-source licenses</string>
+    <string name="feature_settings_licenses">Built with Kotlin, Jetpack Compose, AndroidX (Room, DataStore, Navigation, Lifecycle), Hilt, kotlinx.serialization, kotlinx.collections.immutable and Coil, all under the Apache License 2.0.</string>
 </resources>

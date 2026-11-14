@@ -23,6 +23,10 @@ internal class FakeGameDao : GameDao {
     override fun observeActiveGame(): Flow<GameEntity?> =
         games.map { all -> all.values.filter { it.endedAt == null }.maxByOrNull { it.updatedAt } }
 
+    override fun observeEndedGames(limit: Int): Flow<List<GameEntity>> = games.map { all ->
+        all.values.filter { it.endedAt != null }.sortedByDescending { it.endedAt }.take(limit)
+    }
+
     override suspend fun updateTimestamps(id: String, updatedAt: Long, endedAt: Long?) {
         games.update { all ->
             val game = all[id]

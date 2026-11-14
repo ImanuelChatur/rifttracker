@@ -117,6 +117,16 @@ class GameDaoTest {
     }
 
     @Test
+    fun endedGames_newestFirst_limited() = runTest {
+        gameDao.insert(game("a", updatedAt = 1, endedAt = 10))
+        gameDao.insert(game("b", updatedAt = 1, endedAt = 30))
+        gameDao.insert(game("c", updatedAt = 1))
+
+        assertEquals(listOf("b", "a"), gameDao.observeEndedGames(limit = 5).first().map { it.id })
+        assertEquals(listOf("b"), gameDao.observeEndedGames(limit = 1).first().map { it.id })
+    }
+
+    @Test
     fun lastSeq_isNullWithoutEvents() = runTest {
         gameDao.insert(game("g", updatedAt = 1))
         assertNull(eventDao.lastSeq("g"))

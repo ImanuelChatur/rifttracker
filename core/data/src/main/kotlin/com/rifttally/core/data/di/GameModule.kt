@@ -2,6 +2,8 @@ package com.rifttally.core.data.di
 
 import com.rifttally.core.data.game.GameRepository
 import com.rifttally.core.data.game.OfflineGameRepository
+import com.rifttally.core.data.preset.OfflinePlayerPresetRepository
+import com.rifttally.core.data.preset.PlayerPresetRepository
 import com.rifttally.core.game.GameEventFactory
 import com.rifttally.core.game.IdGenerator
 import dagger.Binds
@@ -17,6 +19,9 @@ import kotlin.time.ExperimentalTime
 internal interface GameModule {
     @Binds
     fun bindsGameRepository(impl: OfflineGameRepository): GameRepository
+
+    @Binds
+    fun bindsPlayerPresetRepository(impl: OfflinePlayerPresetRepository): PlayerPresetRepository
 
     companion object {
         @Provides

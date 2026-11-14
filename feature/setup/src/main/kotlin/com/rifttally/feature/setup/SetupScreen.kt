@@ -56,6 +56,7 @@ import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.GameId
 import com.rifttally.core.model.Legend
 import com.rifttally.core.ui.LegendAvatar
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
 @Composable
@@ -83,6 +84,8 @@ internal fun SetupRoute(
         onColorSelect = viewModel::onColorSelect,
         onFormatSelect = viewModel::onFormatSelect,
         onTeamSelect = viewModel::onTeamSelect,
+        onPlayerSave = viewModel::onPlayerSave,
+        onPresetApply = viewModel::onPresetApply,
         onLegendClick = viewModel::onLegendPickerOpen,
         onTargetIncrease = viewModel::onTargetScoreIncrease,
         onTargetDecrease = viewModel::onTargetScoreDecrease,
@@ -109,6 +112,8 @@ internal fun SetupScreen(
     onColorSelect: (index: Int, colorId: String) -> Unit,
     onFormatSelect: (GameFormat) -> Unit,
     onTeamSelect: (index: Int, team: Team) -> Unit,
+    onPlayerSave: (index: Int) -> Unit,
+    onPresetApply: (index: Int, presetId: String) -> Unit,
     onLegendClick: (index: Int) -> Unit,
     onTargetIncrease: () -> Unit,
     onTargetDecrease: () -> Unit,
@@ -171,6 +176,9 @@ internal fun SetupScreen(
                     onColorSelect = { onColorSelect(player.index, it) },
                     onLegendClick = { onLegendClick(player.index) },
                     onTeamSelect = { onTeamSelect(player.index, it) },
+                    presets = uiState.presets,
+                    onSave = { onPlayerSave(player.index) },
+                    onPresetApply = { onPresetApply(player.index, it) },
                 )
             }
             TargetScoreRow(
@@ -195,6 +203,9 @@ private fun PlayerSetupCard(
     onColorSelect: (String) -> Unit,
     onLegendClick: () -> Unit,
     onTeamSelect: (Team) -> Unit,
+    presets: ImmutableList<SavedPlayerUiState>,
+    onSave: () -> Unit,
+    onPresetApply: (presetId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val playerColor = PlayerColors.fromId(player.colorId) ?: PlayerColors.forSeat(player.index)
@@ -241,6 +252,13 @@ private fun PlayerSetupCard(
             )
             ColorSwatches(selectedColorId = playerColor.id, onColorSelect = onColorSelect)
             player.team?.let { team -> TeamSelector(selected = team, onSelect = onTeamSelect) }
+            PresetActions(
+                playerName = displayName,
+                presets = presets,
+                canSave = player.name.isNotBlank(),
+                onSave = onSave,
+                onPresetApply = onPresetApply,
+            )
         }
     }
 }
@@ -334,6 +352,8 @@ private fun SetupScreenPreview() {
             onColorSelect = { _, _ -> },
             onFormatSelect = {},
             onTeamSelect = { _, _ -> },
+            onPlayerSave = {},
+            onPresetApply = { _, _ -> },
             onLegendClick = {},
             onTargetIncrease = {},
             onTargetDecrease = {},

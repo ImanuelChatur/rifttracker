@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rifttally.core.data.game.GameRepository
 import com.rifttally.core.data.legend.LegendRepository
+import com.rifttally.core.data.preset.PlayerPresetRepository
 import com.rifttally.core.data.repository.UserSettingsRepository
 import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.model.Counter
@@ -15,6 +16,7 @@ import com.rifttally.core.model.Legend
 import com.rifttally.core.model.MIN_TARGET_SCORE
 import com.rifttally.core.model.Player
 import com.rifttally.core.model.PlayerId
+import com.rifttally.core.model.PlayerPreset
 import com.rifttally.core.model.Side
 import com.rifttally.core.model.SideId
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -41,9 +43,13 @@ internal class SetupViewModel @Inject constructor(
     private val gameRepository: GameRepository,
     legendRepository: LegendRepository,
     private val userSettingsRepository: UserSettingsRepository,
+    private val presetRepository: PlayerPresetRepository,
 ) : ViewModel() {
 
     private val form = MutableStateFlow(SetupForm(format = GameFormat.TWO_PLAYERS).resizedTo(GameFormat.TWO_PLAYERS))
+
+    /** Saved players as last emitted, for [onPresetApply]. */
+    private var latestPresets: List<PlayerPreset> = emptyList()
 
     /** Whether the user picked a format, so the saved default doesn't override their choice. */
     private var formatChosen = false
@@ -57,8 +63,26 @@ internal class SetupViewModel @Inject constructor(
         form,
         legendRepository.legends,
         userSettingsRepository.userSettings,
-    ) { form, legends, settings -> form.toUiState(legends, settings.addXpCounterByDefault) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), form.value.toUiState(emptyList(), false))
+        presetRepository.presets,
+    ) { form, legends, settings, presets -> form.toUiState(legends, settings.addXpCounterByDefault, presets) }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            form.value.toUiState(emptyList(), false, emptyList()),
+        )
+
+    /** Remembers player [index] (name, color, Legend) as a saved player. Blank names are ignored. */
+    fun onPlayerSave(index: Int) {
+        val player = form.value.players.getOrNull(index) ?: return
+        if (player.name.isBlank()) return
+        viewModelScope.launch { presetRepository.save(player.name, player.colorId, player.legendId) }
+    }
+
+    /** Fills player [index] from saved player [presetId]. */
+    fun onPresetApply(index: Int, presetId: String) {
+        val preset = latestPresets.firstOrNull { it.id == presetId } ?: return
+        updatePlayer(index) { it.copy(name = preset.name, colorId = preset.colorId, legendId = preset.legendId) }
+    }
 
     init {
         viewModelScope.launch {
@@ -126,7 +150,12 @@ internal class SetupViewModel @Inject constructor(
         state.copy(players = state.players.mapIndexed { i, player -> if (i == index) transform(player) else player })
     }
 
-    private fun SetupForm.toUiState(legends: List<Legend>, addXpCounter: Boolean): SetupUiState {
+    private fun SetupForm.toUiState(
+        legends: List<Legend>,
+        addXpCounter: Boolean,
+        presets: List<PlayerPreset>,
+    ): SetupUiState {
+        latestPresets = presets
         val byId = legends.associateBy { it.id }
         val pickerIndex = pickerFor
         return SetupUiState(
@@ -153,6 +182,7 @@ internal class SetupViewModel @Inject constructor(
                 )
             },
             addXpCounter = addXpCounter,
+            presets = presets.map { SavedPlayerUiState(id = it.id, name = it.name) }.toImmutableList(),
             teamsInvalid = format.isTeams && !canStart(),
             canStart = canStart() && !isStarting,
             isStarting = isStarting,

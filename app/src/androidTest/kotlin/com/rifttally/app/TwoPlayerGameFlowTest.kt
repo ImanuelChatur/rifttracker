@@ -31,18 +31,27 @@ class TwoPlayerGameFlowTest {
     @Test
     fun playResumeAndEndGame() {
         val player1 = string(com.rifttally.feature.setup.R.string.feature_setup_default_player_name, 1)
-        val increase = string(com.rifttally.feature.tracker.R.string.feature_tracker_increase, player1)
+
+        // The tap zone's label includes the current score ("Player 1, 0 points, increase").
+        fun increase(points: Int): String = activity.resources.getQuantityString(
+            com.rifttally.feature.tracker.R.plurals.feature_tracker_increase,
+            points,
+            player1,
+            points,
+        )
 
         // Home → Setup → Tracker.
         composeTestRule.onNodeWithText(string(com.rifttally.feature.home.R.string.feature_home_new_game))
             .performClick()
         composeTestRule.onNodeWithText(string(com.rifttally.feature.setup.R.string.feature_setup_start))
             .performClick()
-        composeTestRule.waitUntilExactlyOneExists(hasContentDescription(increase), TIMEOUT_MILLIS)
+        composeTestRule.waitUntilExactlyOneExists(hasContentDescription(increase(0)), TIMEOUT_MILLIS)
 
         // Score twice, undo once: 1 point stored.
-        composeTestRule.onNodeWithContentDescription(increase).performClick()
-        composeTestRule.onNodeWithContentDescription(increase).performClick()
+        composeTestRule.onNodeWithContentDescription(increase(0)).performClick()
+        composeTestRule.waitUntilExactlyOneExists(hasContentDescription(increase(1)), TIMEOUT_MILLIS)
+        composeTestRule.onNodeWithContentDescription(increase(1)).performClick()
+        composeTestRule.waitUntilExactlyOneExists(hasContentDescription(increase(2)), TIMEOUT_MILLIS)
         composeTestRule.onNodeWithContentDescription(
             string(com.rifttally.feature.tracker.R.string.feature_tracker_undo),
         )

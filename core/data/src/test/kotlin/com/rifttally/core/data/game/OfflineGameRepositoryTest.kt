@@ -154,6 +154,21 @@ class OfflineGameRepositoryTest {
         assertNull(repository.observeGame(id).first())
     }
 
+    @Test
+    fun recentGames_areEndedGames_newestFirst_withEvents() = runTest(dispatcher) {
+        val first = repository.createGame(config)
+        val second = repository.createGame(config)
+        repository.createGame(config) // still active: not listed
+        repository.appendEvent(first, points("e1"))
+        repository.appendEvent(first, GameEvent.GameEnded("e2", 100, SIDE_1))
+        repository.appendEvent(second, GameEvent.GameEnded("e3", 200, null))
+
+        val recent = repository.recentGames(limit = 10).first()
+
+        assertEquals(listOf(second, first), recent.map { it.id })
+        assertEquals(2, recent[1].events.size)
+        assertEquals(listOf(second), repository.recentGames(limit = 1).first().map { it.id })
+    }
     private companion object {
         val SIDE_1 = SideId("s1")
         val SIDE_2 = SideId("s2")

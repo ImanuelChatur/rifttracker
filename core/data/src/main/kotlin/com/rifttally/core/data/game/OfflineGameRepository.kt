@@ -47,6 +47,18 @@ internal class OfflineGameRepository @Inject constructor(
         .distinctUntilChanged()
         .flatMapLatest { id -> if (id == null) flowOf(null) else observeGame(GameId(id)) }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun recentGames(limit: Int): Flow<List<GameRecord>> = gameDao.observeEndedGames(limit)
+        .map { games -> games.map { it.id } }
+        .distinctUntilChanged()
+        .flatMapLatest { ids ->
+            if (ids.isEmpty()) {
+                flowOf(emptyList())
+            } else {
+                combine(ids.map { observeGame(GameId(it)) }) { records -> records.filterNotNull() }
+            }
+        }
+
     override fun observeGame(id: GameId): Flow<GameRecord?> =
         combine(gameDao.observeGame(id.value), eventDao.observeEvents(id.value)) { game, events ->
             game?.toRecord(events)

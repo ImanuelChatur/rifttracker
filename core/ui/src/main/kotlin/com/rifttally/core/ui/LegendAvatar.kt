@@ -1,5 +1,6 @@
 package com.rifttally.core.ui
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,8 +28,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.Dp
@@ -70,7 +73,11 @@ public fun LegendAvatar(
     contentDescription: String? = legendAvatarDescription(legendName, playerName, score),
 ) {
     val semanticsModifier = if (contentDescription != null) {
-        Modifier.clearAndSetSemantics { this.contentDescription = contentDescription }
+        Modifier.clearAndSetSemantics {
+            this.contentDescription = contentDescription
+            // Announce score changes politely (e.g. after a tap) without stealing focus.
+            if (score != null) liveRegion = LiveRegionMode.Polite
+        }
     } else {
         Modifier.clearAndSetSemantics {}
     }
@@ -148,11 +155,13 @@ private fun InitialFallback(initial: String, playerColor: PlayerColor, size: Dp,
                 style = numberStyle(size, WATERMARK_RATIO),
                 color = playerColor.onColor.copy(alpha = WATERMARK_ALPHA),
             )
-            Text(
-                text = score.toString(),
-                style = numberStyle(size, scoreRatio(score)),
-                color = playerColor.onColor,
-            )
+            Crossfade(targetState = score, label = "score") { value ->
+                Text(
+                    text = value.toString(),
+                    style = numberStyle(size, scoreRatio(value)),
+                    color = playerColor.onColor,
+                )
+            }
         }
     }
 }
@@ -181,11 +190,14 @@ private fun BoxScope.ScoreOnPortrait(score: Int, size: Dp) {
             blurRadius = RiftTheme.spacing.sm.toPx(),
         )
     }
-    Text(
-        text = score.toString(),
-        style = numberStyle(size, scoreRatio(score)).copy(shadow = shadow),
-        color = colors.onScrim,
-    )
+    // Brief crossfade when the score changes.
+    Crossfade(targetState = score, label = "score") { value ->
+        Text(
+            text = value.toString(),
+            style = numberStyle(size, scoreRatio(value)).copy(shadow = shadow),
+            color = colors.onScrim,
+        )
+    }
 }
 
 /** A score-style text sized relative to the avatar [size], with line padding trimmed so it centers. */

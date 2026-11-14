@@ -7,4 +7,13 @@
     <string name="feature_home_resume">Resume</string>
     <!-- %1$d = target score. -->
     <string name="feature_home_target">Playing to %1$d</string>
+    <string name="feature_home_recent_games">Recent games</string>
+    <!-- %1$s = player or team name, %2$d = final points. Example: "Ana 8". -->
+    <string name="feature_home_recent_score">%1$s %2$d</string>
+    <!-- %1$s = winner, %2$s = relative time such as "2 hours ago". -->
+    <string name="feature_home_recent_winner">%1$s won · %2$s</string>
+    <!-- %1$s = relative time such as "2 hours ago". -->
+    <string name="feature_home_recent_no_winner">Ended · %1$s</string>
+    <!-- Between sides in a recent game row: "Ana 8 · Ben 5". -->
+    <string name="feature_home_recent_separator">" · "</string>
 </resources>

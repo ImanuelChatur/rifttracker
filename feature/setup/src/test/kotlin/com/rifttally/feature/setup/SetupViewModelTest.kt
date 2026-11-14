@@ -9,6 +9,7 @@ import com.rifttally.core.model.SideId
 import com.rifttally.core.testing.MainDispatcherRule
 import com.rifttally.core.testing.repository.FakeGameRepository
 import com.rifttally.core.testing.repository.FakeLegendRepository
+import com.rifttally.core.testing.repository.FakePlayerPresetRepository
 import com.rifttally.core.testing.repository.FakeUserSettingsRepository
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -24,12 +25,13 @@ class SetupViewModelTest {
 
     private val games = FakeGameRepository()
     private val settings = FakeUserSettingsRepository()
+    private val presets = FakePlayerPresetRepository()
     private val legends = FakeLegendRepository(
         listOf(Legend("jinx", "Jinx", null), Legend("viktor", "Viktor", null), Legend("lee_sin", "Lee Sin", null)),
     )
 
     // Lazy: created inside each test, after MainDispatcherRule has installed the test Main dispatcher.
-    private val viewModel by lazy { SetupViewModel(games, legends, settings) }
+    private val viewModel by lazy { SetupViewModel(games, legends, settings, presets) }
 
     private val defaultNames = listOf("Player 1", "Player 2")
 
@@ -287,5 +289,29 @@ class SetupViewModelTest {
             assertEquals(4, colors.distinct().size)
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun savePlayer_storesPreset_andLoadFillsAnotherSeat() = runTest {
+        viewModel.uiState.test {
+            awaitItem()
+            viewModel.onNameChange(0, "Ana")
+            viewModel.onColorSelect(0, "green")
+            viewModel.onLegendPickerOpen(0)
+            viewModel.onLegendSelect("jinx")
+            viewModel.onPlayerSave(0)
+            viewModel.onPlayerSave(1) // blank name: ignored
+
+            val saved = expectMostRecentItem().presets.single()
+            assertEquals("Ana", saved.name)
+
+            viewModel.onPresetApply(1, saved.id)
+            val second = expectMostRecentItem().players[1]
+            assertEquals("Ana", second.name)
+            assertEquals("green", second.colorId)
+            assertEquals("jinx", second.legend?.id)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(1, presets.current.size)
     }
 }

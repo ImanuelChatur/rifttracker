@@ -34,4 +34,9 @@
         <item quantity="one">%1$d player</item>
         <item quantity="other">%1$d players</item>
     </plurals>
+    <!-- Saved players (presets). %1$s = player name. -->
+    <string name="feature_setup_preset_load">Load saved player</string>
+    <string name="feature_setup_preset_load_for">Load saved player for %1$s</string>
+    <string name="feature_setup_preset_save">Save player</string>
+    <string name="feature_setup_preset_save_for">Save %1$s as a saved player</string>
 </resources>

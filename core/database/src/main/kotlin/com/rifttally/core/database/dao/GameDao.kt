@@ -18,6 +18,10 @@ public interface GameDao {
     @Query("SELECT * FROM game WHERE ended_at IS NULL ORDER BY updated_at DESC LIMIT 1")
     public fun observeActiveGame(): Flow<GameEntity?>
 
+    /** Ended games, most recently ended first. */
+    @Query("SELECT * FROM game WHERE ended_at IS NOT NULL ORDER BY ended_at DESC LIMIT :limit")
+    public fun observeEndedGames(limit: Int): Flow<List<GameEntity>>
+
     @Query("UPDATE game SET updated_at = :updatedAt, ended_at = :endedAt WHERE id = :id")
     public suspend fun updateTimestamps(id: String, updatedAt: Long, endedAt: Long?)
 }

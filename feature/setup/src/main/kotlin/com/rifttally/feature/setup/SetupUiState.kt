@@ -16,6 +16,8 @@ internal data class SetupUiState(
     val legendPicker: LegendPickerUiState? = null,
     /** "Add XP counter to all players" (remembered across games). */
     val addXpCounter: Boolean = false,
+    /** Saved players that can fill a player row. */
+    val presets: ImmutableList<SavedPlayerUiState> = persistentListOf(),
     /** 2v2 only: teams aren't two players each, so the game can't start yet. */
     val teamsInvalid: Boolean = false,
     val canStart: Boolean = true,
@@ -47,3 +49,6 @@ internal data class LegendPickerUiState(
     val legends: ImmutableList<Legend>,
     val selectedLegendId: String?,
 )
+
+/** A saved player offered in "Load saved player". */
+internal data class SavedPlayerUiState(val id: String, val name: String)

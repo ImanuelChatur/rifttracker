@@ -10,6 +10,9 @@ public interface GameRepository {
     /** The most recently played game that hasn't ended, or `null`. */
     public val activeGame: Flow<GameRecord?>
 
+    /** Up to [limit] ended games, most recently ended first (read-only history). */
+    public fun recentGames(limit: Int): Flow<List<GameRecord>>
+
     /** The game with [id], or `null` if it doesn't exist (or its data can't be read). */
     public fun observeGame(id: GameId): Flow<GameRecord?>
 

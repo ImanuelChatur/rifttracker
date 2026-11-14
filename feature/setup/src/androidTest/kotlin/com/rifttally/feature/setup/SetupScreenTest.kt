@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.rifttally.core.designsystem.theme.RiftTheme
@@ -39,6 +40,8 @@ class SetupScreenTest {
                     onColorSelect = { _, _ -> },
                     onFormatSelect = { formats += it },
                     onTeamSelect = { _, _ -> },
+                    onPlayerSave = {},
+                    onPresetApply = { _, _ -> },
                     onLegendClick = { legendClicks += it },
                     onTargetIncrease = { targetIncreases++ },
                     onTargetDecrease = {},
@@ -77,6 +80,7 @@ class SetupScreenTest {
 
         composeTestRule.onNodeWithText("8").assertExists()
         composeTestRule.onNodeWithContentDescription(context.getString(R.string.feature_setup_target_increase))
+            .performScrollTo()
             .performClick()
 
         assertEquals(1, targetIncreases)
@@ -86,7 +90,9 @@ class SetupScreenTest {
     fun xpToggle_invokesCallbackWithNewValue() {
         setContent()
 
-        composeTestRule.onNodeWithText(context.getString(R.string.feature_setup_xp_toggle)).performClick()
+        composeTestRule.onNodeWithText(
+            context.getString(R.string.feature_setup_xp_toggle),
+        ).performScrollTo().performClick()
 
         assertEquals(listOf(true), xpToggles)
     }

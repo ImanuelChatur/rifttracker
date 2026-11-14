@@ -23,6 +23,10 @@ public class FakeGameRepository : GameRepository {
 
     override val activeGame: Flow<GameRecord?> = games.map { all -> all.lastOrNull { it.endedAt == null } }
 
+    override fun recentGames(limit: Int): Flow<List<GameRecord>> = games.map { all ->
+        all.filter { it.endedAt != null }.sortedByDescending { it.endedAt }.take(limit)
+    }
+
     override fun observeGame(id: GameId): Flow<GameRecord?> = games.map { all -> all.firstOrNull { it.id == id } }
 
     override suspend fun createGame(config: GameConfig): GameId {

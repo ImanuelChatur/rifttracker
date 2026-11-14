@@ -61,9 +61,13 @@ class TrackerScreenTest {
     fun tapZones_changePointsOfThatSide() {
         setContent(previewTrackerState)
 
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.feature_tracker_increase, "Ana"))
+        composeTestRule.onNodeWithContentDescription(
+            context.resources.getQuantityString(R.plurals.feature_tracker_increase, 6, "Ana", 6),
+        )
             .performClick()
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.feature_tracker_decrease, "Ben"))
+        composeTestRule.onNodeWithContentDescription(
+            context.resources.getQuantityString(R.plurals.feature_tracker_decrease, 8, "Ben", 8),
+        )
             .performClick()
 
         assertEquals(listOf(SideId("s1") to 1, SideId("s2") to -1), changes)
@@ -142,7 +146,9 @@ class TrackerScreenTest {
         setContent(previewTrackerState.copy(panels = panels))
 
         names.forEachIndexed { index, name ->
-            composeTestRule.onNodeWithContentDescription(context.getString(R.string.feature_tracker_increase, name))
+            composeTestRule.onNodeWithContentDescription(
+                context.resources.getQuantityString(R.plurals.feature_tracker_increase, 0, name, 0),
+            )
                 .performClick()
             assertEquals(SideId("s${index + 1}") to 1, changes.last())
         }

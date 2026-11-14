@@ -10,16 +10,20 @@ import com.rifttally.core.model.PlayerId
 import com.rifttally.core.model.Side
 import com.rifttally.core.model.SideId
 import com.rifttally.core.testing.MainDispatcherRule
+import com.rifttally.core.testing.TestClock
 import com.rifttally.core.testing.repository.FakeGameRepository
 import com.rifttally.core.testing.repository.FakeLegendRepository
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 
+@OptIn(ExperimentalTime::class)
 class HomeViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
@@ -28,7 +32,7 @@ class HomeViewModelTest {
     private val legends = FakeLegendRepository(listOf(Legend("jinx", "Jinx", null)))
 
     // Lazy: created inside each test, after MainDispatcherRule has installed the test Main dispatcher.
-    private val viewModel by lazy { HomeViewModel(games, legends) }
+    private val viewModel by lazy { HomeViewModel(games, legends, TestClock(Instant.fromEpochMilliseconds(5_000))) }
 
     private val config = GameConfig(
         format = GameFormat.TWO_PLAYERS,
@@ -67,6 +71,24 @@ class HomeViewModelTest {
 
         viewModel.uiState.test {
             assertNull(assertIs<HomeUiState.Success>(expectMostRecentItem()).activeGame)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun endedGames_areListedAsRecent_withWinner() = runTest {
+        val id = games.createGame(config)
+        games.appendEvent(id, GameEvent.PointsAdjusted("e1", 0, SideId("s1"), 8))
+        games.appendEvent(id, GameEvent.GameEnded("e2", 1_000, SideId("s1")))
+
+        viewModel.uiState.test {
+            val state = assertIs<HomeUiState.Success>(expectMostRecentItem())
+            val recent = state.recentGames.single()
+            assertEquals(id, recent.gameId)
+            assertEquals(1_000L, recent.endedAt)
+            assertEquals("Ana", recent.winnerName)
+            assertEquals(listOf(8, 0), recent.sides.map { it.points })
+            assertEquals(5_000L, state.now)
             cancelAndIgnoreRemainingEvents()
         }
     }

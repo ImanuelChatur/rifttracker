@@ -1,5 +1,6 @@
 package com.rifttally.feature.tracker
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,9 +25,11 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.unit.Dp
@@ -83,7 +86,12 @@ internal fun SidePanel(
         Box(modifier = Modifier.fillMaxSize()) {
             Row(modifier = Modifier.fillMaxSize()) {
                 RepeatingClickBox(
-                    contentDescription = stringResource(R.string.feature_tracker_decrease, panel.displayName),
+                    contentDescription = pluralStringResource(
+                        R.plurals.feature_tracker_decrease,
+                        panel.points,
+                        panel.displayName,
+                        panel.points,
+                    ),
                     onClick = { change(-1) },
                     modifier = Modifier
                         .weight(1f)
@@ -99,7 +107,12 @@ internal fun SidePanel(
                     )
                 }
                 RepeatingClickBox(
-                    contentDescription = stringResource(R.string.feature_tracker_increase, panel.displayName),
+                    contentDescription = pluralStringResource(
+                        R.plurals.feature_tracker_increase,
+                        panel.points,
+                        panel.displayName,
+                        panel.points,
+                    ),
                     onClick = { change(1) },
                     modifier = Modifier
                         .weight(1f)
@@ -188,6 +201,12 @@ internal fun SidePanel(
                     }
                 }
             }
+            DeltaBadge(
+                value = panel.points,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = RiftTheme.spacing.md),
+            )
         }
     }
 }
@@ -213,12 +232,20 @@ private fun TeamHeader(panel: SidePanelUiState, avatarSize: Dp, modifier: Modifi
                 )
             }
         }
-        Text(
-            text = panel.points.toString(),
-            style = RiftTheme.scoreTypography.scoreLarge,
-            color = RiftTheme.colorScheme.onSurface,
-            modifier = Modifier.clearAndSetSemantics { contentDescription = scoreDescription },
-        )
+        Crossfade(
+            targetState = panel.points,
+            label = "teamScore",
+            modifier = Modifier.clearAndSetSemantics {
+                contentDescription = scoreDescription
+                liveRegion = LiveRegionMode.Polite
+            },
+        ) { points ->
+            Text(
+                text = points.toString(),
+                style = RiftTheme.scoreTypography.scoreLarge,
+                color = RiftTheme.colorScheme.onSurface,
+            )
+        }
     }
 }
 

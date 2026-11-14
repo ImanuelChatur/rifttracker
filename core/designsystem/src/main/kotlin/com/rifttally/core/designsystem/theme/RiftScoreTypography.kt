@@ -7,9 +7,13 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-/** Large, high-contrast number styles for scores and counters. Tabular figures keep digits from jumping. */
+/**
+ * Large, high-contrast number styles for scores and counters. Tabular figures keep digits from jumping.
+ * [scoreHuge] is the table-side score on a full player panel.
+ */
 @Immutable
 public data class RiftScoreTypography(
+    public val scoreHuge: TextStyle = scoreStyle(fontSize = 136, lineHeight = 144, weight = FontWeight.Black),
     public val scoreLarge: TextStyle = scoreStyle(fontSize = 96, lineHeight = 104),
     public val scoreMedium: TextStyle = scoreStyle(fontSize = 64, lineHeight = 72),
     public val scoreSmall: TextStyle = scoreStyle(fontSize = 40, lineHeight = 48),

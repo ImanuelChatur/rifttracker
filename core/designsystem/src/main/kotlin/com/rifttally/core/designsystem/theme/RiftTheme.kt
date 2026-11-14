@@ -143,4 +143,7 @@ public object RiftTheme {
 
     public val playerColors: List<PlayerColor>
         get() = PlayerColors.all
+
+    /** Scrim and text colors for scores drawn over a Legend portrait (same in light and dark). */
+    public val portraitColors: RiftPortraitColors = RiftPortraitColors()
 }

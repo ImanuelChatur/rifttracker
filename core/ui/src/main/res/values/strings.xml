@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- LegendAvatar accessibility labels. %1$s = player name, %2$s = Legend name. -->
+    <string name="core_ui_legend_avatar_description">%1$s, Legend: %2$s</string>
+    <string name="core_ui_legend_avatar_description_no_legend">%1$s, no Legend</string>
+    <!-- %1$s = the avatar description above, %2$d = the player's points. -->
+    <plurals name="core_ui_legend_avatar_description_with_score">
+        <item quantity="one">%1$s, %2$d point</item>
+        <item quantity="other">%1$s, %2$d points</item>
+    </plurals>
+</resources>

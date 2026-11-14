@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_stats_title">Stats</string>
+    <string name="feature_stats_back">Back</string>
+    <string name="feature_stats_empty">No stats yet. Finish a game and your stats show up here.</string>
+
+    <string name="feature_stats_tab_overview">Overview</string>
+    <string name="feature_stats_tab_legends">Legends</string>
+
+    <!-- Overview. -->
+    <string name="feature_stats_total_games_label">Games played</string>
+    <string name="feature_stats_most_played_legend">Most played Legend</string>
+    <string name="feature_stats_no_legend">No Legends picked yet</string>
+    <string name="feature_stats_top_players">Top players</string>
+    <!-- %1$d = minimum number of games. -->
+    <plurals name="feature_stats_top_players_hint">
+        <item quantity="one">Ranked by win rate. Play %1$d game to be ranked.</item>
+        <item quantity="other">Ranked by win rate. Play at least %1$d games to be ranked.</item>
+    </plurals>
+    <string name="feature_stats_top_players_empty">Nobody has played enough games yet.</string>
+    <string name="feature_stats_all_players">All players</string>
+
+    <!-- Rows. -->
+    <plurals name="feature_stats_games">
+        <item quantity="one">%1$d game</item>
+        <item quantity="other">%1$d games</item>
+    </plurals>
+    <!-- %1$d = win rate in percent. -->
+    <string name="feature_stats_win_rate">%1$d%% wins</string>
+    <!-- %1$s = number of games (e.g. "5 games"), %2$s = win rate (e.g. "60% wins"). -->
+    <string name="feature_stats_games_and_rate">%1$s · %2$s</string>
+    <!-- %1$s = player name. -->
+    <string name="feature_stats_open_player">Open stats for %1$s</string>
+
+    <!-- Legend tab. -->
+    <string name="feature_stats_sort_label">Sort by</string>
+    <string name="feature_stats_sort_games">Games</string>
+    <string name="feature_stats_sort_win_rate">Win rate</string>
+    <string name="feature_stats_sort_name">Name</string>
+
+    <!-- Player detail. -->
+    <string name="feature_stats_player_title">Player stats</string>
+    <string name="feature_stats_not_found">No stats for this player.</string>
+    <string name="feature_stats_games_label">Games</string>
+    <string name="feature_stats_wins_label">Wins</string>
+    <string name="feature_stats_win_rate_label">Win rate</string>
+    <string name="feature_stats_streak_label">Win streak</string>
+    <!-- %1$d = win rate in percent. -->
+    <string name="feature_stats_percent">%1$d%%</string>
+    <string name="feature_stats_favorite_legend">Favorite Legend</string>
+    <string name="feature_stats_head_to_head">Head to head</string>
+    <string name="feature_stats_head_to_head_empty">No opponents yet.</string>
+    <!-- %1$d = player's wins, %2$d = opponent's wins. Example: "3 – 1". -->
+    <string name="feature_stats_head_to_head_score">%1$d – %2$d</string>
+    <!-- Accessibility. %1$s = player name, %2$d = their wins, %3$s = opponent, %4$d = opponent wins, %5$s = games. -->
+    <string name="feature_stats_head_to_head_description">%1$s %2$d, %3$s %4$d, %5$s</string>
+</resources>

@@ -78,10 +78,12 @@ internal class SetupViewModel @Inject constructor(
         viewModelScope.launch { presetRepository.save(player.name, player.colorId, player.legendId) }
     }
 
-    /** Fills player [index] from saved player [presetId]. */
+    /** Fills player [index] from saved player [presetId] and links the seat to it (for stats). */
     fun onPresetApply(index: Int, presetId: String) {
         val preset = latestPresets.firstOrNull { it.id == presetId } ?: return
-        updatePlayer(index) { it.copy(name = preset.name, colorId = preset.colorId, legendId = preset.legendId) }
+        updatePlayer(index) {
+            it.copy(name = preset.name, colorId = preset.colorId, legendId = preset.legendId, presetId = preset.id)
+        }
     }
 
     init {
@@ -97,7 +99,9 @@ internal class SetupViewModel @Inject constructor(
         applyFormat(format)
     }
 
-    fun onNameChange(index: Int, name: String) = updatePlayer(index) { it.copy(name = name.take(MAX_NAME_LENGTH)) }
+    /** Renaming a seat makes it someone else, so it's no longer linked to a loaded saved player. */
+    fun onNameChange(index: Int, name: String) =
+        updatePlayer(index) { it.copy(name = name.take(MAX_NAME_LENGTH), presetId = null) }
 
     fun onColorSelect(index: Int, colorId: String) = updatePlayer(index) { it.copy(colorId = colorId) }
 
@@ -199,6 +203,7 @@ internal class SetupViewModel @Inject constructor(
                 name = player.name.trim().ifEmpty { defaultNames.getOrElse(index) { "${index + 1}" } },
                 colorId = player.colorId,
                 legendId = player.legendId,
+                presetId = player.presetId,
             )
         }
         val sides = if (format.isTeams) {
@@ -224,7 +229,13 @@ internal class SetupViewModel @Inject constructor(
         )
     }
 
-    private data class PlayerForm(val name: String, val colorId: String, val legendId: String?, val team: Team)
+    private data class PlayerForm(
+        val name: String,
+        val colorId: String,
+        val legendId: String?,
+        val team: Team,
+        val presetId: String? = null,
+    )
 
     private data class SetupForm(
         val format: GameFormat,

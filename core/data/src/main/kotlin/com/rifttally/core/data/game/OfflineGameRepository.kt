@@ -18,6 +18,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
@@ -59,6 +60,16 @@ internal class OfflineGameRepository @Inject constructor(
             }
         }
 
+    override fun endedGames(): Flow<List<GameRecord>> =
+        combine(gameDao.observeAllEndedGames(), gameDao.observeEndedGameEvents()) { games, events -> games to events }
+            // Every append to the active game invalidates these tables; skip re-decoding when nothing changed.
+            .distinctUntilChanged()
+            .map { (games, events) ->
+                val eventsByGame = events.groupBy { it.gameId }
+                games.mapNotNull { it.toRecord(eventsByGame[it.id].orEmpty()) }
+            }
+            .flowOn(ioDispatcher)
+
     override fun observeGame(id: GameId): Flow<GameRecord?> =
         combine(gameDao.observeGame(id.value), eventDao.observeEvents(id.value)) { game, events ->
             game?.toRecord(events)
@@ -97,6 +108,34 @@ internal class OfflineGameRepository @Inject constructor(
                 gameId = gameId.value,
                 updatedAt = clock.now().toEpochMilliseconds(),
                 reopensGame = last.decodeOrNull() is GameEvent.GameEnded,
+            )
+        }
+    }
+
+    override suspend fun deleteGame(id: GameId) {
+        writeMutex.withLock { gameDao.delete(id.value) }
+    }
+
+    override suspend fun restoreGame(record: GameRecord) {
+        writeMutex.withLock {
+            if (gameDao.observeGame(record.id.value).first() != null) return
+            gameDao.insertWithEvents(
+                game = GameEntity(
+                    id = record.id.value,
+                    createdAt = record.createdAt,
+                    updatedAt = record.endedAt ?: record.createdAt,
+                    configJson = GameJson.encodeToString(GameConfig.serializer(), record.config),
+                    endedAt = record.endedAt,
+                ),
+                events = record.events.mapIndexed { index, event ->
+                    GameEventEntity(
+                        id = event.id,
+                        gameId = record.id.value,
+                        seq = index + 1,
+                        timestamp = event.timestamp,
+                        payload = GameJson.encodeToString(GameEvent.serializer(), event),
+                    )
+                },
             )
         }
     }

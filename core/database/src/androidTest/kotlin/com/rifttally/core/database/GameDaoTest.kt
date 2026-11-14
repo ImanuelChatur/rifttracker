@@ -127,6 +127,58 @@ class GameDaoTest {
     }
 
     @Test
+    fun allEndedGames_newestFirst_withoutLimit() = runTest {
+        gameDao.insert(game("a", updatedAt = 1, endedAt = 10))
+        gameDao.insert(game("b", updatedAt = 1, endedAt = 30))
+        gameDao.insert(game("c", updatedAt = 1))
+        gameDao.insert(game("d", updatedAt = 1, endedAt = 20))
+
+        assertEquals(listOf("b", "d", "a"), gameDao.observeAllEndedGames().first().map { it.id })
+    }
+
+    @Test
+    fun endedGameEvents_onlyForEndedGames_orderedByGameThenSeq() = runTest {
+        gameDao.insert(game("g", updatedAt = 1, endedAt = 5))
+        gameDao.insert(game("active", updatedAt = 1))
+        gameDao.insert(game("f", updatedAt = 1, endedAt = 9))
+        eventDao.insert(event("g2", seq = 2))
+        eventDao.insert(event("g1", seq = 1))
+        eventDao.insert(event("x1", seq = 1, gameId = "active"))
+        eventDao.insert(event("f1", seq = 1, gameId = "f"))
+
+        assertEquals(listOf("f1", "g1", "g2"), gameDao.observeEndedGameEvents().first().map { it.id })
+    }
+
+    @Test
+    fun delete_removesGameAndItsEvents_only() = runTest {
+        gameDao.insert(game("g", updatedAt = 1, endedAt = 1))
+        gameDao.insert(game("other", updatedAt = 1, endedAt = 2))
+        eventDao.insert(event("e1", seq = 1))
+        eventDao.insert(event("o1", seq = 1, gameId = "other"))
+
+        gameDao.delete("g")
+        gameDao.delete("missing")
+
+        assertNull(gameDao.observeGame("g").first())
+        assertEquals(emptyList<GameEventEntity>(), eventDao.observeEvents("g").first())
+        assertEquals(listOf("other"), gameDao.observeAllEndedGames().first().map { it.id })
+        assertEquals(listOf("o1"), eventDao.observeEvents("other").first().map { it.id })
+    }
+
+    @Test
+    fun insertWithEvents_restoresDeletedGame() = runTest {
+        val game = game("g", updatedAt = 3, endedAt = 3)
+        val events = listOf(event("e1", seq = 1), event("e2", seq = 2))
+        gameDao.insertWithEvents(game, events)
+        gameDao.delete("g")
+
+        gameDao.insertWithEvents(game, events)
+
+        assertEquals(game, gameDao.observeGame("g").first())
+        assertEquals(events, eventDao.observeEvents("g").first())
+    }
+
+    @Test
     fun lastSeq_isNullWithoutEvents() = runTest {
         gameDao.insert(game("g", updatedAt = 1))
         assertNull(eventDao.lastSeq("g"))
@@ -140,9 +192,9 @@ class GameDaoTest {
         endedAt = endedAt,
     )
 
-    private fun event(id: String, seq: Int) = GameEventEntity(
+    private fun event(id: String, seq: Int, gameId: String = "g") = GameEventEntity(
         id = id,
-        gameId = "g",
+        gameId = gameId,
         seq = seq,
         timestamp = seq.toLong(),
         payload = "{}",

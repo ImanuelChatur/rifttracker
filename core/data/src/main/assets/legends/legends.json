@@ -1,0 +1,17 @@
+[
+  { "id": "ahri", "name": "Ahri" },
+  { "id": "annie", "name": "Annie" },
+  { "id": "darius", "name": "Darius" },
+  { "id": "garen", "name": "Garen" },
+  { "id": "jinx", "name": "Jinx" },
+  { "id": "kai_sa", "name": "Kai'Sa" },
+  { "id": "lee_sin", "name": "Lee Sin" },
+  { "id": "lux", "name": "Lux" },
+  { "id": "master_yi", "name": "Master Yi" },
+  { "id": "miss_fortune", "name": "Miss Fortune" },
+  { "id": "sett", "name": "Sett" },
+  { "id": "teemo", "name": "Teemo" },
+  { "id": "viktor", "name": "Viktor" },
+  { "id": "volibear", "name": "Volibear" },
+  { "id": "yasuo", "name": "Yasuo" }
+]

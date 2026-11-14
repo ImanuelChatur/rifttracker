@@ -40,6 +40,9 @@ fun RiftNavHost(navController: NavHostController, modifier: Modifier = Modifier)
                 navController.navigateToTracker(gameId, navOptions { launchSingleTop = true })
             },
             onSettingsClick = { navController.navigateToSettings() },
+            onHistoryClick = { navController.navigateToHistory() },
+            onStatsClick = { navController.navigateToStats() },
+            onRecentGameClick = { gameId -> navController.navigateToGameDetail(gameId) },
         )
         setupScreen(
             onBackClick = { navController.navigateUp() },

@@ -172,7 +172,7 @@ internal fun SetupScreen(
                     onClick = onStartClick,
                     enabled = uiState.canStart,
                     modifier = Modifier
-                        .widthIn(max = MaxContentWidth - RiftTheme.spacing.lg * 2)
+                        .widthIn(max = RiftTheme.sizes.listMaxContentWidth - RiftTheme.spacing.lg * 2)
                         .fillMaxWidth(),
                 )
             }
@@ -188,7 +188,7 @@ internal fun SetupScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .widthIn(max = MaxContentWidth)
+                    .widthIn(max = RiftTheme.sizes.listMaxContentWidth)
                     .fillMaxWidth()
                     .padding(horizontal = RiftTheme.spacing.lg)
                     .padding(bottom = RiftTheme.spacing.lg),
@@ -541,9 +541,6 @@ private fun XpCounterToggleTile(
         }
     }
 }
-
-/** Content width cap on wide windows (DESIGN.md §8: ≈ 640dp centered column). */
-private val MaxContentWidth = 640.dp
 
 private const val GAME_OPTIONS = 2
 private const val UNSELECTED_SWATCH_SCALE = 0.86f

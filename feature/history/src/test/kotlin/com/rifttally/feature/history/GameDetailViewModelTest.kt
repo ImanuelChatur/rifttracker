@@ -2,6 +2,7 @@ package com.rifttally.feature.history
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import com.rifttally.core.game.GameLogLine
 import com.rifttally.core.model.Legend
 import com.rifttally.core.testing.MainDispatcherRule
 import com.rifttally.core.testing.repository.FakeGameRepository
@@ -49,11 +50,11 @@ class GameDetailViewModelTest {
             assertEquals(listOf(0, 0, 2, 2, 2), state.chart[1].points)
             assertEquals(
                 listOf(
-                    GameLogItem.Points("g-e0", "Ana", 3, 3),
-                    GameLogItem.Points("g-e1", "Ben", 2, 2),
-                    GameLogItem.Points("g-e2", "Ana", -1, 2),
-                    GameLogItem.Points("g-e3", "Ana", 6, 8),
-                    GameLogItem.GameEnded("g-end", "Ana"),
+                    GameLogLine.Points("g-e0", "Ana", 3, 3),
+                    GameLogLine.Points("g-e1", "Ben", 2, 2),
+                    GameLogLine.Points("g-e2", "Ana", -1, 2),
+                    GameLogLine.Points("g-e3", "Ana", 6, 8),
+                    GameLogLine.GameEnded("g-end", "Ana"),
                 ),
                 state.log,
             )
@@ -68,7 +69,7 @@ class GameDetailViewModelTest {
         viewModel("t").uiState.test {
             val state = assertIs<GameDetailUiState.Success>(expectMostRecentItem())
             assertEquals("Ben & Dan", state.winnerName)
-            assertEquals(GameLogItem.Points("t-e0", "Ben & Dan", 1, 1), state.log.first())
+            assertEquals(GameLogLine.Points("t-e0", "Ben & Dan", 1, 1), state.log.first())
             assertEquals(11, state.targetScore)
             cancelAndIgnoreRemainingEvents()
         }

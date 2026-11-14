@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.rifttally.core.data.game.GameRepository
 import com.rifttally.core.data.game.toStatsGame
 import com.rifttally.core.data.legend.LegendRepository
+import com.rifttally.core.game.gameLog
+import com.rifttally.core.game.history
 import com.rifttally.core.model.GameId
 import com.rifttally.core.stats.summarize
 import com.rifttally.feature.history.navigation.GameDetailRoute
@@ -49,9 +51,9 @@ internal class GameDetailViewModel @Inject constructor(
                     points = summary.timeline.map { it.scores[side.sideId] ?: 0 }.toImmutableList(),
                 )
             }.toImmutableList(),
-            log = gameLogItems(
+            log = gameLog(
                 config = record.config,
-                events = record.events,
+                entries = history(record.config, record.events),
                 sideNames = summary.sides.mapIndexed { index, side -> side.sideId to sides[index].name }.toMap(),
             ).toImmutableList(),
         )

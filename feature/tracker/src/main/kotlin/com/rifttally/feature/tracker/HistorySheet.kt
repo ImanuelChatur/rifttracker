@@ -15,24 +15,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
 import com.rifttally.core.designsystem.theme.RiftTheme
+import com.rifttally.core.game.GameLogLine
+import com.rifttally.core.ui.text
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
 /** Bottom sheet with the event log, newest first. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun HistorySheet(
-    items: ImmutableList<HistoryItemUiState>,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+internal fun HistorySheet(items: ImmutableList<GameLogLine>, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     ModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier) {
         HistoryContent(items = items)
     }
 }
 
 @Composable
-private fun HistoryContent(items: ImmutableList<HistoryItemUiState>, modifier: Modifier = Modifier) {
+private fun HistoryContent(items: ImmutableList<GameLogLine>, modifier: Modifier = Modifier) {
     Column(modifier = modifier.padding(horizontal = RiftTheme.spacing.lg)) {
         Text(
             text = stringResource(R.string.feature_tracker_history_title),
@@ -63,32 +61,11 @@ private fun HistoryContent(items: ImmutableList<HistoryItemUiState>, modifier: M
     }
 }
 
-@Composable
-private fun HistoryItemUiState.text(): String = when (this) {
-    is HistoryItemUiState.Points -> stringResource(R.string.feature_tracker_history_points, name, delta, total)
-
-    is HistoryItemUiState.CounterChanged ->
-        stringResource(R.string.feature_tracker_history_counter, name, label, delta, total)
-
-    is HistoryItemUiState.CounterAdded -> stringResource(R.string.feature_tracker_history_counter_added, name, label)
-
-    is HistoryItemUiState.CounterRemoved ->
-        stringResource(R.string.feature_tracker_history_counter_removed, name, label)
-
-    is HistoryItemUiState.TargetChanged -> stringResource(R.string.feature_tracker_history_target, targetScore)
-
-    is HistoryItemUiState.GameEnded -> if (winnerName != null) {
-        stringResource(R.string.feature_tracker_history_ended_winner, winnerName)
-    } else {
-        stringResource(R.string.feature_tracker_history_ended)
-    }
-}
-
 internal val previewHistory = persistentListOf(
-    HistoryItemUiState.Points("e4", "Ana", 1, 6),
-    HistoryItemUiState.TargetChanged("e3", 10),
-    HistoryItemUiState.Points("e2", "Ben", -1, 2),
-    HistoryItemUiState.CounterChanged("e1", "Ana", "XP", 2, 4),
+    GameLogLine.Points("e4", "Ana", 1, 6),
+    GameLogLine.TargetChanged("e3", 10),
+    GameLogLine.Points("e2", "Ben", -1, 2),
+    GameLogLine.CounterChanged("e1", "Ana", "XP", 2, 4),
 )
 
 @PreviewRiftThemes

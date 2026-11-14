@@ -27,6 +27,7 @@ import com.rifttally.core.designsystem.component.PreviewRiftThemes
 import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.ui.LegendAvatar
+import com.rifttally.core.ui.list.SegmentedTile
 
 /** "5 games · 60% wins". */
 @Composable

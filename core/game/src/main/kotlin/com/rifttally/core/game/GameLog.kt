@@ -1,41 +1,38 @@
-package com.rifttally.feature.tracker
+package com.rifttally.core.game
 
-import com.rifttally.core.game.GameEvent
-import com.rifttally.core.game.GameState
-import com.rifttally.core.game.HistoryEntry
 import com.rifttally.core.model.GameConfig
 import com.rifttally.core.model.SideId
 
 /**
- * Turns the replayed log into history lines, newest first. [sideNames] maps each side to its display
- * name. Events that changed nothing (unknown side, after the end, …) are dropped.
+ * Turns the replayed log ([entries], from [history]) into display lines, oldest first. [sideNames] maps
+ * each side to its display name; [initial] is the state before the first event. Events that changed
+ * nothing (unknown side, after the end, …) are dropped.
  */
-internal fun historyItems(
+public fun gameLog(
     config: GameConfig,
-    initial: GameState,
     entries: List<HistoryEntry>,
     sideNames: Map<SideId, String>,
-): List<HistoryItemUiState> {
+    initial: GameState = reduce(config, emptyList()),
+): List<GameLogLine> {
     val playerNames = config.players.associate { it.id to it.name }
     return entries.mapIndexedNotNull { index, entry ->
         val before = if (index == 0) initial else entries[index - 1].stateAfter
         val after = entry.stateAfter
-        // Events that changed nothing (e.g. after the game ended) aren't worth a line.
         if (after == before) return@mapIndexedNotNull null
         when (val event = entry.event) {
             is GameEvent.PointsAdjusted -> sideNames[event.sideId]?.let { name ->
-                HistoryItemUiState.Points(event.id, name, event.delta, after.pointsOf(event.sideId))
+                GameLogLine.Points(event.id, name, event.delta, after.pointsOf(event.sideId))
             }
 
             is GameEvent.CounterAdded -> playerNames[event.playerId]?.let { name ->
-                HistoryItemUiState.CounterAdded(event.id, name, event.label)
+                GameLogLine.CounterAdded(event.id, name, event.label)
             }
 
             is GameEvent.CounterAdjusted -> {
                 val name = playerNames[event.playerId]
                 val counter = after.countersOf(event.playerId).firstOrNull { it.id == event.counterId }
                 if (name != null && counter != null) {
-                    HistoryItemUiState.CounterChanged(event.id, name, counter.label, event.delta, counter.value)
+                    GameLogLine.CounterChanged(event.id, name, counter.label, event.delta, counter.value)
                 } else {
                     null
                 }
@@ -44,16 +41,12 @@ internal fun historyItems(
             is GameEvent.CounterRemoved -> {
                 val name = playerNames[event.playerId]
                 val counter = before.countersOf(event.playerId).firstOrNull { it.id == event.counterId }
-                if (name != null && counter != null) {
-                    HistoryItemUiState.CounterRemoved(event.id, name, counter.label)
-                } else {
-                    null
-                }
+                if (name != null && counter != null) GameLogLine.CounterRemoved(event.id, name, counter.label) else null
             }
 
-            is GameEvent.TargetScoreChanged -> HistoryItemUiState.TargetChanged(event.id, after.targetScore)
+            is GameEvent.TargetScoreChanged -> GameLogLine.TargetChanged(event.id, after.targetScore)
 
-            is GameEvent.GameEnded -> HistoryItemUiState.GameEnded(event.id, event.winner?.let(sideNames::get))
+            is GameEvent.GameEnded -> GameLogLine.GameEnded(event.id, event.winner?.let(sideNames::get))
         }
-    }.asReversed()
+    }
 }

@@ -1,5 +1,6 @@
 package com.rifttally.feature.tracker
 
+import com.rifttally.core.game.GameLogLine
 import com.rifttally.core.model.CounterId
 import com.rifttally.core.model.PlayerId
 import com.rifttally.core.model.SideId
@@ -21,7 +22,7 @@ internal sealed interface TrackerUiState {
         /** Sides at or above the target, for the "Winner?" banner. Empty hides the banner. */
         val winnerBanner: WinnerBannerUiState?,
         /** History log, newest first. */
-        val history: ImmutableList<HistoryItemUiState>,
+        val history: ImmutableList<GameLogLine>,
         val hapticsEnabled: Boolean,
         val keepScreenOn: Boolean,
         val immersiveMode: Boolean,
@@ -55,27 +56,3 @@ internal data class CounterUiState(val id: CounterId, val label: String, val val
 
 /** Shown while at least one side is at the target and the banner hasn't been dismissed. */
 internal data class WinnerBannerUiState(val names: ImmutableList<String> = persistentListOf())
-
-/** One history line. Formatted by the screen ("Ana +1 · 6"). */
-internal sealed interface HistoryItemUiState {
-    val id: String
-
-    data class Points(override val id: String, val name: String, val delta: Int, val total: Int) : HistoryItemUiState
-
-    data class CounterChanged(
-        override val id: String,
-        val name: String,
-        val label: String,
-        val delta: Int,
-        val total: Int,
-    ) : HistoryItemUiState
-
-    data class CounterAdded(override val id: String, val name: String, val label: String) : HistoryItemUiState
-
-    data class CounterRemoved(override val id: String, val name: String, val label: String) : HistoryItemUiState
-
-    data class TargetChanged(override val id: String, val targetScore: Int) : HistoryItemUiState
-
-    /** [winnerName] is `null` when the game ended without a winner. */
-    data class GameEnded(override val id: String, val winnerName: String?) : HistoryItemUiState
-}

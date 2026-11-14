@@ -14,4 +14,15 @@
     <string name="core_ui_counter_increase">%1$s, %2$s, increase</string>
     <string name="core_ui_counter_decrease">%1$s, %2$s, decrease</string>
     <string name="core_ui_counter_remove">Remove</string>
+
+    <!-- Game log lines (tracker history sheet, game detail). -->
+    <!-- %1$s = name, %2$+d = signed change, %3$d = new total. Example: "Ana +1 · 6". -->
+    <string name="core_ui_log_points">%1$s %2$+d · %3$d</string>
+    <!-- %1$s = name, %2$s = counter label, %3$+d = signed change, %4$d = new value. Example: "Ana XP +2 · 4". -->
+    <string name="core_ui_log_counter">%1$s %2$s %3$+d · %4$d</string>
+    <string name="core_ui_log_counter_added">%1$s added %2$s</string>
+    <string name="core_ui_log_counter_removed">%1$s removed %2$s</string>
+    <string name="core_ui_log_target">Target score → %1$d</string>
+    <string name="core_ui_log_ended_winner">Game ended · %1$s won</string>
+    <string name="core_ui_log_ended">Game ended</string>
 </resources>

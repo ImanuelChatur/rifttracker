@@ -26,4 +26,6 @@ public data class RiftSizes(
     public val heroButtonHeight: Dp = 56.dp,
     /** Height of the art strip on Home's "Resume" card. */
     public val heroArtHeight: Dp = 168.dp,
+    /** Max width of a screen's content column on wide windows (DESIGN.md §8: ≈ 640dp, centered). */
+    public val listMaxContentWidth: Dp = 640.dp,
 )

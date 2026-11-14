@@ -40,6 +40,11 @@ import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.designsystem.theme.displayLargeEmphasized
 import com.rifttally.core.ui.LegendAvatar
+import com.rifttally.core.ui.list.CenteredList
+import com.rifttally.core.ui.list.EmptyState
+import com.rifttally.core.ui.list.ListSectionHeader
+import com.rifttally.core.ui.list.SegmentedTile
+import com.rifttally.core.ui.list.skeletonTiles
 import kotlinx.collections.immutable.persistentListOf
 
 @Composable
@@ -132,7 +137,7 @@ private fun StatsTabs(selected: StatsTab, onSelect: (StatsTab) -> Unit, modifier
     Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         PrimaryTabRow(
             selectedTabIndex = selected.ordinal,
-            modifier = Modifier.widthIn(max = ListMaxContentWidth),
+            modifier = Modifier.widthIn(max = RiftTheme.sizes.listMaxContentWidth),
             containerColor = RiftTheme.colorScheme.background,
             divider = {},
         ) {

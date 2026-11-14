@@ -25,6 +25,7 @@ import com.rifttally.core.designsystem.component.RiftIconButton
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.GameId
+import com.rifttally.core.ui.list.SegmentedTile
 
 /**
  * One ended game as a tile of the segmented history list ([index] of [count]): date and format, each

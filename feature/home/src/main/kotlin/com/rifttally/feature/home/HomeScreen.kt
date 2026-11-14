@@ -91,7 +91,7 @@ internal fun HomeRoute(
  * Home. The hero (DESIGN.md §2.2) is "Resume" when a game is in progress (a card with the Legends' art
  * side by side), otherwise "New game". Below it: History · Stats in one quiet container, then recent
  * games as a segmented list with tiny Legend avatars, winner highlighted. On wide windows the content
- * is a centered column of at most [MaxContentWidth] (§8).
+ * is a centered column of at most `RiftTheme.sizes.listMaxContentWidth` (§8).
  */
 @Composable
 internal fun HomeScreen(
@@ -165,7 +165,7 @@ internal fun HomeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Column(
-                        modifier = Modifier.widthIn(max = MaxContentWidth),
+                        modifier = Modifier.widthIn(max = RiftTheme.sizes.listMaxContentWidth),
                         verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.lg),
                     ) {
                         HomeHeader(onSettingsClick = onSettingsClick)
@@ -431,9 +431,6 @@ private fun RecentGameRow(game: RecentGameUiState, now: Long, modifier: Modifier
         }
     }
 }
-
-/** Content width cap on wide windows (DESIGN.md §8: ≈ 640dp centered column). */
-private val MaxContentWidth = 640.dp
 
 /** From this width (medium, DESIGN.md §8) a landscape window shows Home as two panes. */
 private val TwoPaneMinWidth = 600.dp

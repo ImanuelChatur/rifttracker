@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollToNode
 import com.rifttally.core.designsystem.theme.RiftTheme
+import com.rifttally.core.ui.R as CoreUiR
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,10 +42,10 @@ class GameDetailScreenTest {
         list.performScrollToNode(hasContentDescription(chart))
         composeRule.onNodeWithContentDescription(chart).assertExists()
 
-        val ended = context.getString(R.string.feature_history_log_ended_winner, "Ana")
+        val ended = context.getString(CoreUiR.string.core_ui_log_ended_winner, "Ana")
         list.performScrollToNode(hasText(ended))
         composeRule.onNodeWithText(ended).assertExists()
-        composeRule.onNodeWithText(context.getString(R.string.feature_history_log_counter, "Ben", "XP", 2, 2))
+        composeRule.onNodeWithText(context.getString(CoreUiR.string.core_ui_log_counter, "Ben", "XP", 2, 2))
             .assertExists()
     }
 

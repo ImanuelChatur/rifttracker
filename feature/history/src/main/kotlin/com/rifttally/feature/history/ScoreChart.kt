@@ -20,12 +20,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -59,6 +61,11 @@ internal fun ScoreChart(series: ImmutableList<ChartSeriesUiState>, targetScore: 
     val dash = RiftTheme.spacing.xs
     val dotRadius = RiftTheme.spacing.xs
     val lines = series.map { (PlayerColors.fromId(it.colorId) ?: PlayerColors.Grey).color to it.points }
+    // Bright player colors fall below 3:1 on the light surface (WCAG 1.4.11, DESIGN.md §3): those lines
+    // get an onSurface casing so the hue still matches the legend chips.
+    val chartSurface = RiftTheme.colorScheme.surfaceContainer
+    val casingColor = RiftTheme.colorScheme.onSurface
+    val casingWidth = RiftTheme.sizes.borderThin
 
     val reduceMotion = reduceMotionEnabled()
     val reveal = remember(series) { Animatable(if (reduceMotion) 1f else 0f) }
@@ -119,6 +126,22 @@ internal fun ScoreChart(series: ImmutableList<ChartSeriesUiState>, targetScore: 
                                 end = Offset(size.width - inset, y(points[0]))
                                 path.lineTo(end.x, end.y)
                             }
+                            if (contrastRatio(color, chartSurface) < MIN_GRAPHIC_CONTRAST) {
+                                drawPath(
+                                    path = path,
+                                    color = casingColor,
+                                    style = Stroke(
+                                        width = strokeWidth.toPx() + 2 * casingWidth.toPx(),
+                                        cap = StrokeCap.Round,
+                                        join = StrokeJoin.Round,
+                                    ),
+                                )
+                                drawCircle(
+                                    color = casingColor,
+                                    radius = dotRadius.toPx() + casingWidth.toPx(),
+                                    center = end,
+                                )
+                            }
                             drawPath(
                                 path = path,
                                 color = color,
@@ -158,6 +181,18 @@ private fun AxisLabel(text: String, modifier: Modifier = Modifier) {
 }
 
 private const val ZERO = "0"
+
+/** WCAG 1.4.11 minimum contrast for graphical objects. */
+private const val MIN_GRAPHIC_CONTRAST = 3f
+
+/** WCAG contrast ratio between two opaque colors. */
+private fun contrastRatio(a: Color, b: Color): Float {
+    val lighter = maxOf(a.luminance(), b.luminance())
+    val darker = minOf(a.luminance(), b.luminance())
+    return (lighter + CONTRAST_OFFSET) / (darker + CONTRAST_OFFSET)
+}
+
+private const val CONTRAST_OFFSET = 0.05f
 private const val CHART_ASPECT_RATIO = 2f
 
 internal val previewChart = persistentListOf(

@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.rifttally.core.game.GameEvent
 import com.rifttally.core.game.GameEventFactory
+import com.rifttally.core.game.GameLogLine
 import com.rifttally.core.game.IdGenerator
 import com.rifttally.core.model.Counter
 import com.rifttally.core.model.CounterId
@@ -183,7 +184,7 @@ class TrackerViewModelTest {
         games.appendEvent(gameId, factory.pointsAdjusted(S1, 1))
         viewModel.uiState.test {
             val history = assertIs<TrackerUiState.Success>(expectMostRecentItem()).history
-            assertEquals<List<HistoryItemUiState>>(listOf(HistoryItemUiState.Points("e2", "Ana", 1, 1)), history)
+            assertEquals<List<GameLogLine>>(listOf(GameLogLine.Points("e2", "Ana", 1, 1)), history)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -289,10 +290,10 @@ class TrackerViewModelTest {
         viewModel.onCounterChange(P1, xp, 2)
 
         assertEquals(
-            listOf<HistoryItemUiState>(
-                HistoryItemUiState.CounterChanged("e3", "Ana", "XP", 2, 2),
+            listOf<GameLogLine>(
+                GameLogLine.CounterChanged("e3", "Ana", "XP", 2, 2),
                 // The counter id is generated first (e1), then the event id (e2).
-                HistoryItemUiState.CounterAdded("e2", "Ana", "XP"),
+                GameLogLine.CounterAdded("e2", "Ana", "XP"),
             ),
             viewModel.success().history,
         )
@@ -473,10 +474,10 @@ class TrackerViewModelTest {
 
         assertEquals(
             listOf(
-                HistoryItemUiState.TargetChanged("e4", 9),
-                HistoryItemUiState.Points("e3", "Ben", 1, 1),
-                HistoryItemUiState.Points("e2", "Ana", 1, 2),
-                HistoryItemUiState.Points("e1", "Ana", 1, 1),
+                GameLogLine.TargetChanged("e4", 9),
+                GameLogLine.Points("e3", "Ben", 1, 1),
+                GameLogLine.Points("e2", "Ana", 1, 2),
+                GameLogLine.Points("e1", "Ana", 1, 1),
             ),
             viewModel.success().history,
         )

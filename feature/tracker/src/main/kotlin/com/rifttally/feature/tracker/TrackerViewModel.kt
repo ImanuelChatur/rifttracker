@@ -11,6 +11,7 @@ import com.rifttally.core.game.GameEvent
 import com.rifttally.core.game.GameEventFactory
 import com.rifttally.core.game.GameState
 import com.rifttally.core.game.HistoryEntry
+import com.rifttally.core.game.gameLog
 import com.rifttally.core.game.history
 import com.rifttally.core.game.reduce
 import com.rifttally.core.game.sidesAtTarget
@@ -224,7 +225,7 @@ private fun buildUiState(
         } else {
             null
         },
-        history = historyItems(record.config, initial, entries, sideNames).toImmutableList(),
+        history = gameLog(record.config, entries, sideNames, initial).asReversed().toImmutableList(),
         hapticsEnabled = settings.hapticsEnabled,
         keepScreenOn = settings.keepScreenOn,
         immersiveMode = settings.immersiveMode,

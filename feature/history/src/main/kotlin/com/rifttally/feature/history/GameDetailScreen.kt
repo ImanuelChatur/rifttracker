@@ -30,7 +30,14 @@ import com.rifttally.core.designsystem.component.RiftIconButton
 import com.rifttally.core.designsystem.component.RiftTopAppBar
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.designsystem.theme.headlineMediumEmphasized
+import com.rifttally.core.game.GameLogLine
 import com.rifttally.core.model.GameFormat
+import com.rifttally.core.ui.list.CenteredList
+import com.rifttally.core.ui.list.EmptyState
+import com.rifttally.core.ui.list.ListSectionHeader
+import com.rifttally.core.ui.list.SegmentedTile
+import com.rifttally.core.ui.list.skeletonTiles
+import com.rifttally.core.ui.text
 import kotlinx.collections.immutable.persistentListOf
 
 @Composable
@@ -194,25 +201,6 @@ private fun LogText(text: String, modifier: Modifier = Modifier, muted: Boolean 
     )
 }
 
-@Composable
-private fun GameLogItem.text(): String = when (this) {
-    is GameLogItem.Points -> stringResource(R.string.feature_history_log_points, name, delta, total)
-
-    is GameLogItem.CounterChanged -> stringResource(R.string.feature_history_log_counter, name, label, delta, total)
-
-    is GameLogItem.CounterAdded -> stringResource(R.string.feature_history_log_counter_added, name, label)
-
-    is GameLogItem.CounterRemoved -> stringResource(R.string.feature_history_log_counter_removed, name, label)
-
-    is GameLogItem.TargetChanged -> stringResource(R.string.feature_history_log_target, targetScore)
-
-    is GameLogItem.GameEnded -> if (winnerName != null) {
-        stringResource(R.string.feature_history_log_ended_winner, winnerName)
-    } else {
-        stringResource(R.string.feature_history_log_ended)
-    }
-}
-
 internal val previewDetailState = GameDetailUiState.Success(
     format = GameFormat.TWO_PLAYERS,
     endedAt = 1_763_150_400_000,
@@ -222,11 +210,11 @@ internal val previewDetailState = GameDetailUiState.Success(
     winnerName = "Ana",
     chart = previewChart,
     log = persistentListOf(
-        GameLogItem.Points("e1", "Ana", 1, 1),
-        GameLogItem.CounterChanged("e2", "Ben", "XP", 2, 2),
-        GameLogItem.Points("e3", "Ben", 2, 2),
-        GameLogItem.TargetChanged("e4", 8),
-        GameLogItem.GameEnded("e5", "Ana"),
+        GameLogLine.Points("e1", "Ana", 1, 1),
+        GameLogLine.CounterChanged("e2", "Ben", "XP", 2, 2),
+        GameLogLine.Points("e3", "Ben", 2, 2),
+        GameLogLine.TargetChanged("e4", 8),
+        GameLogLine.GameEnded("e5", "Ana"),
     ),
 )
 

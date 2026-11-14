@@ -1,5 +1,6 @@
 package com.rifttally.feature.history
 
+import com.rifttally.core.game.GameLogLine
 import com.rifttally.core.model.GameFormat
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -24,7 +25,7 @@ internal sealed interface GameDetailUiState {
         val sides: ImmutableList<HistorySideUiState>,
         val winnerName: String?,
         val chart: ImmutableList<ChartSeriesUiState> = persistentListOf(),
-        val log: ImmutableList<GameLogItem> = persistentListOf(),
+        val log: ImmutableList<GameLogLine> = persistentListOf(),
     ) : GameDetailUiState
 }
 

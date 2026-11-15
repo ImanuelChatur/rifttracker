@@ -20,7 +20,7 @@ Modules compile to Java 17 bytecode.
 ```
 
 - `spotlessApply` / `spotlessCheck`: ktlint (+ Compose rules) formatting for all `.kt`, `.kts` and `.xml` files
-- `testDebugUnitTest`: JVM unit tests in every module (pure-Kotlin modules alias it to `test`)
+- `testDebugUnitTest`: JVM unit tests in every module (pure-Kotlin modules alias it to `test`). In `:core:game` and `:core:stats` it also runs Kover and fails below 95% line coverage (`./gradlew :core:game:koverHtmlReport` for the report)
 - Instrumented tests (Compose UI, Room migrations): `./gradlew connectedDebugAndroidTest`
 
 ## Modules

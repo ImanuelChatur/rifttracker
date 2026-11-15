@@ -71,6 +71,8 @@ import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.GameId
 import com.rifttally.core.model.Legend
 import com.rifttally.core.ui.LegendAvatar
+import com.rifttally.core.ui.LegendPickerSheet
+import com.rifttally.core.ui.PlayerColorPicker
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -112,7 +114,9 @@ internal fun SetupRoute(
     uiState.legendPicker?.let { picker ->
         val player = uiState.players.getOrNull(picker.playerIndex)
         LegendPickerSheet(
-            picker = picker,
+            query = picker.query,
+            legends = picker.legends,
+            selectedLegendId = picker.selectedLegendId,
             playerName = player?.displayName().orEmpty(),
             playerColor = player.pickerColor(),
             onQueryChange = viewModel::onLegendQueryChange,
@@ -307,7 +311,7 @@ private fun PlayerSetupTile(
                         ),
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    ColorSwatches(selectedColorId = playerColor.id, onColorSelect = onColorSelect)
+                    PlayerColorPicker(selectedColorId = playerColor.id, onColorSelect = onColorSelect)
                 }
             }
             player.team?.let { team -> TeamSelector(selected = team, onSelect = onTeamSelect) }
@@ -362,93 +366,6 @@ private fun LegendButton(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
-    }
-}
-
-/**
- * The palette as 48dp radio swatches, split into even rows (4 + 4 on a phone, one row when wide). The
- * selected swatch grows a little on the expressive spring and shows a check (not color alone).
- */
-@Composable
-private fun ColorSwatches(selectedColorId: String, onColorSelect: (String) -> Unit, modifier: Modifier = Modifier) {
-    val colors = RiftTheme.playerColors
-    val target = RiftTheme.sizes.minTouchTarget
-    val gap = RiftTheme.spacing.xs
-    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val fit = ((maxWidth + gap) / (target + gap)).toInt().coerceIn(1, colors.size)
-        val rows = (colors.size + fit - 1) / fit
-        val perRow = (colors.size + rows - 1) / rows
-        FlowRow(
-            modifier = Modifier.selectableGroup(),
-            maxItemsInEachRow = perRow,
-            horizontalArrangement = Arrangement.spacedBy(gap),
-            verticalArrangement = Arrangement.spacedBy(gap),
-        ) {
-            colors.forEachIndexed { index, color ->
-                ColorSwatch(
-                    color = color,
-                    selected = color.id == selectedColorId,
-                    description = stringResource(R.string.feature_setup_color_description, index + 1, colors.size),
-                    onClick = { onColorSelect(color.id) },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ColorSwatch(
-    color: PlayerColor,
-    selected: Boolean,
-    description: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val scale by animateFloatAsState(
-        targetValue = if (selected) 1f else UNSELECTED_SWATCH_SCALE,
-        animationSpec = if (reduceMotionEnabled()) {
-            RiftTheme.motion.none()
-        } else {
-            RiftTheme.motion.expressive.fastSpatial()
-        },
-        label = "swatchScale",
-    )
-    Box(
-        modifier = modifier
-            .size(RiftTheme.sizes.minTouchTarget)
-            .clip(RiftTheme.shapes.full)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-            .semantics { contentDescription = description },
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(RiftTheme.sizes.minTouchTarget - RiftTheme.spacing.xs)
-                .scale(scale)
-                .then(
-                    if (selected) {
-                        Modifier.border(
-                            RiftTheme.sizes.borderThick,
-                            RiftTheme.colorScheme.onSurface,
-                            RiftTheme.shapes.full,
-                        )
-                    } else {
-                        Modifier
-                    },
-                )
-                .padding(if (selected) RiftTheme.sizes.borderThick + RiftTheme.spacing.xxs else 0.dp)
-                .background(color.color, RiftTheme.shapes.full),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (selected) {
-                Icon(
-                    imageVector = Icons.Filled.Check,
-                    contentDescription = null,
-                    tint = color.onColor,
-                    modifier = Modifier.size(RiftTheme.sizes.iconSmall),
-                )
-            }
-        }
     }
 }
 
@@ -543,7 +460,6 @@ private fun XpCounterToggleTile(
 }
 
 private const val GAME_OPTIONS = 2
-private const val UNSELECTED_SWATCH_SCALE = 0.86f
 
 internal val previewSetupState = SetupUiState(
     players = persistentListOf(

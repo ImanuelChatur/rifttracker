@@ -13,6 +13,7 @@ import com.rifttally.core.model.GameConfig
 import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.GameId
 import com.rifttally.core.model.Legend
+import com.rifttally.core.model.MAX_PLAYER_NAME_LENGTH
 import com.rifttally.core.model.MIN_TARGET_SCORE
 import com.rifttally.core.model.Player
 import com.rifttally.core.model.PlayerId
@@ -100,7 +101,8 @@ internal class SetupViewModel @Inject constructor(
     }
 
     /** Renaming a seat to a different name unlinks it from a loaded saved player (checked in toConfig). */
-    fun onNameChange(index: Int, name: String) = updatePlayer(index) { it.copy(name = name.take(MAX_NAME_LENGTH)) }
+    fun onNameChange(index: Int, name: String) =
+        updatePlayer(index) { it.copy(name = name.take(MAX_PLAYER_NAME_LENGTH)) }
 
     fun onColorSelect(index: Int, colorId: String) = updatePlayer(index) { it.copy(colorId = colorId) }
 
@@ -277,7 +279,6 @@ internal class SetupViewModel @Inject constructor(
     }
 
     private companion object {
-        const val MAX_NAME_LENGTH = 24
         const val TEAM_SIZE = 2
         val XP_COUNTER_ID = CounterId("xp")
     }

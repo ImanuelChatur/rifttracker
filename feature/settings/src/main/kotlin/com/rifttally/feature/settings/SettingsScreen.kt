@@ -2,6 +2,7 @@ package com.rifttally.feature.settings
 
 import android.os.Build
 import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,6 +48,7 @@ import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.ThemeMode
 import com.rifttally.core.ui.LegendAvatar
+import com.rifttally.core.ui.LegendPickerSheet
 import com.rifttally.core.ui.list.CenteredList
 import com.rifttally.core.ui.list.ListSectionHeader
 import com.rifttally.core.ui.list.SegmentedTile
@@ -75,6 +77,15 @@ internal fun SettingsRoute(
             onDefaultFormatSelect = viewModel::onDefaultFormatSelect,
             onAddXpByDefaultToggle = viewModel::onAddXpByDefaultToggle,
             onPresetDelete = viewModel::onPresetDelete,
+            onPresetEdit = viewModel::onPresetEdit,
+            onPresetNameChange = viewModel::onPresetNameChange,
+            onPresetColorSelect = viewModel::onPresetColorSelect,
+            onPresetLegendPickerOpen = viewModel::onPresetLegendPickerOpen,
+            onPresetLegendQueryChange = viewModel::onPresetLegendQueryChange,
+            onPresetLegendSelect = viewModel::onPresetLegendSelect,
+            onPresetLegendPickerDismiss = viewModel::onPresetLegendPickerDismiss,
+            onPresetEditSave = viewModel::onPresetEditSave,
+            onPresetEditDismiss = viewModel::onPresetEditDismiss,
         ),
         onBackClick = onBackClick,
         modifier = modifier,
@@ -91,6 +102,15 @@ internal data class SettingsActions(
     val onDefaultFormatSelect: (GameFormat) -> Unit = {},
     val onAddXpByDefaultToggle: (Boolean) -> Unit = {},
     val onPresetDelete: (id: String) -> Unit = {},
+    val onPresetEdit: (id: String) -> Unit = {},
+    val onPresetNameChange: (String) -> Unit = {},
+    val onPresetColorSelect: (colorId: String) -> Unit = {},
+    val onPresetLegendPickerOpen: () -> Unit = {},
+    val onPresetLegendQueryChange: (String) -> Unit = {},
+    val onPresetLegendSelect: (legendId: String?) -> Unit = {},
+    val onPresetLegendPickerDismiss: () -> Unit = {},
+    val onPresetEditSave: () -> Unit = {},
+    val onPresetEditDismiss: () -> Unit = {},
 )
 
 /**
@@ -133,6 +153,32 @@ internal fun SettingsScreen(
                 )
             }
         }
+    }
+    (uiState as? SettingsUiState.Success)?.presetEditor?.let { editor -> PresetEditor(editor, actions) }
+}
+
+/** The saved-player edit dialog and, on top of it while open, the shared Legend sheet. */
+@Composable
+private fun PresetEditor(editor: PresetEditorUiState, actions: SettingsActions) {
+    PresetEditorDialog(
+        editor = editor,
+        onNameChange = actions.onPresetNameChange,
+        onColorSelect = actions.onPresetColorSelect,
+        onLegendClick = actions.onPresetLegendPickerOpen,
+        onSave = actions.onPresetEditSave,
+        onDismiss = actions.onPresetEditDismiss,
+    )
+    editor.legendPicker?.let { picker ->
+        LegendPickerSheet(
+            query = picker.query,
+            legends = picker.legends,
+            selectedLegendId = editor.legend?.id,
+            playerName = editor.name,
+            playerColor = PlayerColors.fromId(editor.colorId) ?: PlayerColors.Grey,
+            onQueryChange = actions.onPresetLegendQueryChange,
+            onLegendSelect = actions.onPresetLegendSelect,
+            onDismiss = actions.onPresetLegendPickerDismiss,
+        )
     }
 }
 
@@ -190,7 +236,11 @@ private fun LazyListScope.settingsItems(state: SettingsUiState.Success, versionN
     } else {
         itemsIndexed(state.presets, key = { _, preset -> preset.id }) { index, preset ->
             SegmentedTile(index = index, count = state.presets.size) {
-                PresetRow(preset = preset, onDelete = { actions.onPresetDelete(preset.id) })
+                PresetRow(
+                    preset = preset,
+                    onEdit = { actions.onPresetEdit(preset.id) },
+                    onDelete = { actions.onPresetDelete(preset.id) },
+                )
             }
         }
     }
@@ -328,10 +378,16 @@ private fun DefaultFormatSelector(selected: GameFormat, onSelect: (GameFormat) -
 }
 
 @Composable
-private fun PresetRow(preset: PresetUiState, onDelete: () -> Unit, modifier: Modifier = Modifier) {
+private fun PresetRow(preset: PresetUiState, onEdit: () -> Unit, onDelete: () -> Unit, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
+            // Tapping the row edits the player; the delete button stays its own target.
+            .clickable(
+                onClickLabel = stringResource(R.string.feature_settings_preset_edit, preset.name),
+                role = Role.Button,
+                onClick = onEdit,
+            )
             .padding(
                 start = RiftTheme.spacing.lg,
                 end = RiftTheme.spacing.xs,
@@ -343,7 +399,7 @@ private fun PresetRow(preset: PresetUiState, onDelete: () -> Unit, modifier: Mod
     ) {
         LegendAvatar(
             legendName = preset.legendName,
-            imageUri = null,
+            imageUri = preset.legendImageUri,
             playerName = preset.name,
             playerColor = PlayerColors.fromId(preset.colorId) ?: PlayerColors.Grey,
             size = RiftTheme.sizes.avatarSmall,
@@ -431,6 +487,19 @@ private fun SettingsScreenNoPresetsPreview() {
     RiftTheme {
         SettingsScreen(
             uiState = previewSettingsState.copy(presets = persistentListOf()),
+            versionName = "0.1.0",
+            actions = SettingsActions(),
+            onBackClick = {},
+        )
+    }
+}
+
+@PreviewRiftThemes
+@Composable
+private fun SettingsScreenEditingPreview() {
+    RiftTheme {
+        SettingsScreen(
+            uiState = previewSettingsState.copy(presetEditor = previewPresetEditor),
             versionName = "0.1.0",
             actions = SettingsActions(),
             onBackClick = {},

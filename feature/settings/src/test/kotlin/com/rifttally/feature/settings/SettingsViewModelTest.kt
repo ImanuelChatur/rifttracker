@@ -11,6 +11,7 @@ import com.rifttally.core.testing.repository.FakePlayerPresetRepository
 import com.rifttally.core.testing.repository.FakeUserSettingsRepository
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -23,7 +24,7 @@ class SettingsViewModelTest {
     private val presets = FakePlayerPresetRepository(
         listOf(PlayerPreset("1", "Ben", "sky", null), PlayerPreset("2", "Ana", "orange", "jinx")),
     )
-    private val legends = FakeLegendRepository(listOf(Legend("jinx", "Jinx", null)))
+    private val legends = FakeLegendRepository(listOf(Legend("jinx", "Jinx", null), Legend("viktor", "Viktor", null)))
 
     // Lazy: created inside each test, after MainDispatcherRule has installed the test Main dispatcher.
     private val viewModel by lazy { SettingsViewModel(settings, presets, legends) }
@@ -63,5 +64,76 @@ class SettingsViewModelTest {
         viewModel.onPresetDelete("1")
 
         assertEquals(listOf("Ana"), presets.current.map { it.name })
+    }
+
+    @Test
+    fun presetEdit_draftsChanges_andSaveKeepsTheId() = runTest {
+        viewModel.uiState.test {
+            viewModel.onPresetEdit("2")
+            viewModel.onPresetNameChange("Anna")
+            viewModel.onPresetColorSelect("green")
+            viewModel.onPresetLegendPickerOpen()
+            viewModel.onPresetLegendQueryChange("vik")
+
+            val editing = assertIs<SettingsUiState.Success>(expectMostRecentItem()).presetEditor
+            assertEquals("Anna", editing?.name)
+            assertEquals(listOf("Viktor"), editing?.legendPicker?.legends?.map { it.name })
+            // Nothing is written before "Save".
+            assertEquals(PlayerPreset("2", "Ana", "orange", "jinx"), presets.current.single { it.id == "2" })
+
+            viewModel.onPresetLegendSelect("viktor")
+            viewModel.onPresetEditSave()
+
+            val saved = assertIs<SettingsUiState.Success>(expectMostRecentItem())
+            assertNull(saved.presetEditor)
+            assertEquals(PlayerPreset("2", "Anna", "green", "viktor"), presets.current.single { it.id == "2" })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun presetEdit_legendNone_andDismissDiscards() = runTest {
+        viewModel.uiState.test {
+            viewModel.onPresetEdit("2")
+            viewModel.onPresetLegendPickerOpen()
+            viewModel.onPresetLegendSelect(null)
+
+            val editing = assertIs<SettingsUiState.Success>(expectMostRecentItem()).presetEditor
+            assertNull(editing?.legend)
+            assertNull(editing?.legendPicker)
+
+            viewModel.onPresetEditDismiss()
+
+            assertNull(assertIs<SettingsUiState.Success>(expectMostRecentItem()).presetEditor)
+            assertEquals("jinx", presets.current.single { it.id == "2" }.legendId)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun presetEdit_blankName_cannotSave_andLongNameIsCut() = runTest {
+        viewModel.uiState.test {
+            viewModel.onPresetEdit("1")
+            viewModel.onPresetNameChange("   ")
+            viewModel.onPresetEditSave()
+
+            val editing = assertIs<SettingsUiState.Success>(expectMostRecentItem()).presetEditor
+            assertEquals(false, editing?.canSave)
+            assertEquals("Ben", presets.current.single { it.id == "1" }.name)
+
+            viewModel.onPresetNameChange("x".repeat(40))
+            assertEquals(24, assertIs<SettingsUiState.Success>(expectMostRecentItem()).presetEditor?.name?.length)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun presetEdit_unknownId_doesNothing() = runTest {
+        viewModel.uiState.test {
+            viewModel.onPresetEdit("nope")
+
+            assertNull(assertIs<SettingsUiState.Success>(expectMostRecentItem()).presetEditor)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

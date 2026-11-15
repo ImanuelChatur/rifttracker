@@ -23,6 +23,12 @@ public class FakePlayerPresetRepository(initial: List<PlayerPreset> = emptyList(
         state.update { it + PlayerPreset("preset${++created}", trimmed, colorId, legendId) }
     }
 
+    override suspend fun update(preset: PlayerPreset) {
+        val trimmed = preset.name.trim()
+        if (trimmed.isEmpty()) return
+        state.update { all -> all.map { if (it.id == preset.id) preset.copy(name = trimmed) else it } }
+    }
+
     override suspend fun delete(id: String) {
         state.update { all -> all.filterNot { it.id == id } }
     }

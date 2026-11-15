@@ -56,4 +56,23 @@ class OfflinePlayerPresetRepositoryTest {
 
         assertEquals(2, repository.presets.first().size)
     }
+
+    @Test
+    fun update_keepsId_trimsName_andReplacesColorAndLegend() = runTest {
+        repository.save("Ana", "orange", "jinx")
+
+        repository.update(PlayerPreset("id1", "  Anna ", "sky", null))
+
+        assertEquals(listOf(PlayerPreset("id1", "Anna", "sky", null)), repository.presets.first())
+    }
+
+    @Test
+    fun update_blankName_orUnknownId_isIgnored() = runTest {
+        repository.save("Ana", "orange", "jinx")
+
+        repository.update(PlayerPreset("id1", "   ", "sky", null))
+        repository.update(PlayerPreset("nope", "Ben", "sky", null))
+
+        assertEquals(listOf(PlayerPreset("id1", "Ana", "orange", "jinx")), repository.presets.first())
+    }
 }

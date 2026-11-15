@@ -3,6 +3,7 @@ package com.rifttally.feature.settings
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.rifttally.core.designsystem.theme.RiftTheme
 import org.junit.Rule
 import org.junit.Test
@@ -10,7 +11,10 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** Settings in both themes, landscape and at 200% font. Records `src/test/screenshots/settings_*.png`. */
+/**
+ * Settings in both themes, landscape and at 200% font, plus the saved-player editor (a dialog window, so
+ * the whole screen is captured). Records `src/test/screenshots/settings_*.png`.
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = PHONE_TALL)
 class SettingsScreenScreenshotTest {
@@ -36,6 +40,34 @@ class SettingsScreenScreenshotTest {
     @Config(qualifiers = PHONE)
     fun settings_loading_dark() =
         capture(darkTheme = true, name = "settings_loading_dark.png", state = SettingsUiState.Loading)
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun presetEditor_dark() = captureEditor(darkTheme = true, name = "settings_preset_editor_dark.png")
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun presetEditor_light() = captureEditor(darkTheme = false, name = "settings_preset_editor_light.png")
+
+    @Test
+    @Config(qualifiers = PHONE, fontScale = 2f)
+    fun presetEditor_fontScale200_dark() =
+        captureEditor(darkTheme = true, name = "settings_preset_editor_font200_dark.png")
+
+    private fun captureEditor(darkTheme: Boolean, name: String) {
+        composeRule.setContent {
+            RiftTheme(darkTheme = darkTheme) {
+                SettingsScreen(
+                    uiState = previewSettingsState.copy(presetEditor = previewPresetEditor),
+                    versionName = "2.0.0",
+                    actions = SettingsActions(),
+                    onBackClick = {},
+                )
+            }
+        }
+        composeRule.waitForIdle()
+        captureScreenRoboImage(name)
+    }
 
     private fun capture(darkTheme: Boolean, name: String, state: SettingsUiState = previewSettingsState) {
         composeRule.setContent {

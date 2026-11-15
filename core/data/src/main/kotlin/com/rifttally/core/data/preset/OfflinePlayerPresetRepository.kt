@@ -27,5 +27,14 @@ internal class OfflinePlayerPresetRepository @Inject constructor(
         dao.upsert(PlayerPresetEntity(id = idGenerator.newId(), name = trimmed, colorId = colorId, legendId = legendId))
     }
 
+    override suspend fun update(preset: PlayerPreset) {
+        val trimmed = preset.name.trim()
+        if (trimmed.isEmpty()) return
+        if (dao.observeAll().first().none { it.id == preset.id }) return
+        dao.upsert(
+            PlayerPresetEntity(id = preset.id, name = trimmed, colorId = preset.colorId, legendId = preset.legendId),
+        )
+    }
+
     override suspend fun delete(id: String) = dao.delete(id)
 }

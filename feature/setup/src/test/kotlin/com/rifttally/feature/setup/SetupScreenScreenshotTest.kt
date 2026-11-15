@@ -7,6 +7,7 @@ import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.Legend
 import com.rifttally.core.ui.LEGEND_ART_TEST_TAG
+import com.rifttally.core.ui.LegendPickerSheet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import org.junit.Rule
@@ -148,7 +149,9 @@ class SetupScreenScreenshotTest {
                     onStartClick = {},
                 )
                 LegendPickerSheet(
-                    picker = picker,
+                    query = picker.query,
+                    legends = picker.legends,
+                    selectedLegendId = picker.selectedLegendId,
                     playerName = "Ana",
                     playerColor = state.players.first().pickerColor(),
                     onQueryChange = {},

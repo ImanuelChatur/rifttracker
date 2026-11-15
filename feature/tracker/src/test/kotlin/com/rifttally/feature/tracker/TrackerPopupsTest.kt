@@ -1,10 +1,12 @@
 package com.rifttally.feature.tracker
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.platform.app.InstrumentationRegistry
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.rifttally.core.designsystem.theme.RiftTheme
@@ -55,10 +57,10 @@ class TrackerPopupsTest {
         setTracker(panelCount = 2)
         composeRule.onNodeWithContentDescription(
             context.getString(R.string.feature_tracker_add_counter_for, "Ana"),
-        ).performClick()
+        ).performSemanticsAction(SemanticsActions.OnClick)
         composeRule.onNodeWithText(context.getString(R.string.feature_tracker_counter_dialog_title, "Ana"))
             .assertIsDisplayed()
-        composeRule.waitForIdle()
+        settleRipples()
         captureScreenRoboImage("tracker_popup_add_counter_far_seat.png")
     }
 
@@ -68,8 +70,8 @@ class TrackerPopupsTest {
         // Seat 3 (Dan) sits on the left in portrait.
         composeRule.onNodeWithContentDescription(
             context.getString(R.string.feature_tracker_add_counter_for, "Dan"),
-        ).performClick()
-        composeRule.waitForIdle()
+        ).performSemanticsAction(SemanticsActions.OnClick)
+        settleRipples()
         captureScreenRoboImage("tracker_popup_add_counter_side_seat.png")
     }
 
@@ -113,5 +115,18 @@ class TrackerPopupsTest {
                 )
             }
         }
+    }
+
+    /**
+     * Lets animations finish so the capture doesn't depend on timing. (The dialogs are opened with the
+     * click semantics action, not a touch, so no press ripple is left on the button underneath.)
+     */
+    private fun settleRipples() {
+        composeRule.mainClock.advanceTimeBy(RIPPLE_SETTLE_MILLIS)
+        composeRule.waitForIdle()
+    }
+
+    private companion object {
+        const val RIPPLE_SETTLE_MILLIS = 2_000L
     }
 }

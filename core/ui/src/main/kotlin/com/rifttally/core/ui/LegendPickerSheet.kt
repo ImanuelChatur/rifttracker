@@ -1,4 +1,4 @@
-package com.rifttally.feature.setup
+package com.rifttally.core.ui
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
@@ -41,17 +41,20 @@ import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.designsystem.theme.reduceMotionEnabled
 import com.rifttally.core.model.Legend
-import com.rifttally.core.ui.LegendBackdrop
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
 /**
- * Searchable 3-column grid of Legend portrait cards plus "None". The selected card gets a ring in the
- * player's [playerColor].
+ * Searchable 3-column grid of Legend portrait cards plus "None", in a bottom sheet. The selected card
+ * gets a ring in the player's [playerColor]. [legends] is already filtered by [query] (by the caller's
+ * ViewModel); [selectedLegendId] `null` selects "None".
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun LegendPickerSheet(
-    picker: LegendPickerUiState,
+public fun LegendPickerSheet(
+    query: String,
+    legends: ImmutableList<Legend>,
+    selectedLegendId: String?,
     playerName: String,
     playerColor: PlayerColor,
     onQueryChange: (String) -> Unit,
@@ -61,7 +64,9 @@ internal fun LegendPickerSheet(
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier) {
         LegendPickerContent(
-            picker = picker,
+            query = query,
+            legends = legends,
+            selectedLegendId = selectedLegendId,
             playerName = playerName,
             playerColor = playerColor,
             onQueryChange = onQueryChange,
@@ -71,8 +76,10 @@ internal fun LegendPickerSheet(
 }
 
 @Composable
-internal fun LegendPickerContent(
-    picker: LegendPickerUiState,
+public fun LegendPickerContent(
+    query: String,
+    legends: ImmutableList<Legend>,
+    selectedLegendId: String?,
     playerName: String,
     playerColor: PlayerColor,
     onQueryChange: (String) -> Unit,
@@ -84,13 +91,13 @@ internal fun LegendPickerContent(
         verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.md),
     ) {
         Text(
-            text = stringResource(R.string.feature_setup_choose_legend, playerName),
+            text = stringResource(R.string.core_ui_choose_legend, playerName),
             style = RiftTheme.typography.titleLarge,
         )
         OutlinedTextField(
-            value = picker.query,
+            value = query,
             onValueChange = onQueryChange,
-            label = { Text(stringResource(R.string.feature_setup_legend_search)) },
+            label = { Text(stringResource(R.string.core_ui_legend_search)) },
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
             shape = RiftTheme.shapes.medium,
             singleLine = true,
@@ -104,23 +111,23 @@ internal fun LegendPickerContent(
             item(key = NONE_KEY) {
                 LegendCard(
                     legend = null,
-                    selected = picker.selectedLegendId == null,
+                    selected = selectedLegendId == null,
                     playerColor = playerColor,
                     onClick = { onLegendSelect(null) },
                 )
             }
-            items(picker.legends, key = { "legend:${it.id}" }) { legend ->
+            items(legends, key = { "legend:${it.id}" }) { legend ->
                 LegendCard(
                     legend = legend,
-                    selected = legend.id == picker.selectedLegendId,
+                    selected = legend.id == selectedLegendId,
                     playerColor = playerColor,
                     onClick = { onLegendSelect(legend.id) },
                 )
             }
-            if (picker.legends.isEmpty() && picker.query.isNotBlank()) {
+            if (legends.isEmpty() && query.isNotBlank()) {
                 item(key = EMPTY_KEY, span = { GridItemSpan(maxLineSpan) }) {
                     Text(
-                        text = stringResource(R.string.feature_setup_legend_empty),
+                        text = stringResource(R.string.core_ui_legend_empty),
                         style = RiftTheme.typography.bodyMedium,
                         color = RiftTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(RiftTheme.spacing.md),
@@ -140,7 +147,7 @@ private fun LegendCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val name = legend?.name ?: stringResource(R.string.feature_setup_legend_none)
+    val name = legend?.name ?: stringResource(R.string.core_ui_legend_none)
     val shape = RiftTheme.shapes.largeIncreased
     val ring = RiftTheme.sizes.borderThick
     val ringColor by animateColorAsState(
@@ -219,16 +226,13 @@ private fun LegendPickerContentPreview() {
     RiftTheme {
         Surface {
             LegendPickerContent(
-                picker = LegendPickerUiState(
-                    playerIndex = 0,
-                    query = "",
-                    legends = persistentListOf(
-                        Legend("jinx", "Jinx", null),
-                        Legend("viktor", "Viktor", null),
-                        Legend("miss_fortune", "Miss Fortune", null),
-                    ),
-                    selectedLegendId = "jinx",
+                query = "",
+                legends = persistentListOf(
+                    Legend("jinx", "Jinx", null),
+                    Legend("viktor", "Viktor", null),
+                    Legend("miss_fortune", "Miss Fortune", null),
                 ),
+                selectedLegendId = "jinx",
                 playerName = "Ana",
                 playerColor = PlayerColors.Orange,
                 onQueryChange = {},

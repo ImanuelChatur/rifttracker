@@ -14,6 +14,7 @@ import com.rifttally.core.model.SideId
  * @property targetScore current target score (always ≥ 1).
  * @property isEnded whether a [GameEvent.GameEnded] was applied.
  * @property winner the winner named when the game ended, or `null` (no winner, or not ended).
+ * @property firstPlayer who goes first (the latest valid [GameEvent.FirstPlayerChosen]), or `null`.
  */
 public data class GameState(
     val config: GameConfig,
@@ -22,6 +23,7 @@ public data class GameState(
     val targetScore: Int,
     val isEnded: Boolean = false,
     val winner: SideId? = null,
+    val firstPlayer: PlayerId? = null,
 ) {
     /** Points of [sideId], or 0 if the side is unknown. */
     public fun pointsOf(sideId: SideId): Int = points[sideId] ?: 0

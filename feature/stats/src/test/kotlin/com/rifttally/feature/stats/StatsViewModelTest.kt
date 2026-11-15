@@ -38,7 +38,7 @@ class StatsViewModelTest {
 
     @Test
     fun noGames_isEmpty() = runTest {
-        games.createGame(duel("x", "Ana" to null, "Ben" to null, null, 0).config) // active only
+        games.createGame(duel("x", "Ana" to null, "Ben" to null, null, 0).config, emptyList()) // active only
 
         viewModel.uiState.test {
             assertIs<StatsUiState.Empty>(expectMostRecentItem())

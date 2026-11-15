@@ -48,6 +48,20 @@ class GameLogTest {
     }
 
     @Test
+    fun firstPlayerPick_becomesALine_evenWhenTheSamePlayerIsPickedAgain() {
+        val lines = log(e.first(P1), e.first(P1), e.first(UNKNOWN_PLAYER), e.end(null), e.first(P2))
+
+        assertEquals(
+            listOf(
+                GameLogLine.FirstPlayer("e1", "Player p1"),
+                GameLogLine.FirstPlayer("e2", "Player p1"),
+                GameLogLine.GameEnded("e4", null),
+            ),
+            lines,
+        )
+    }
+
+    @Test
     fun sideWithoutName_isDropped() {
         val lines = gameLog(config, history(config, listOf(e.points(S2, 1))), mapOf(S1 to "Ana"))
 

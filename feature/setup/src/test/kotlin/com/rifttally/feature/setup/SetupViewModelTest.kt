@@ -1,13 +1,19 @@
 package com.rifttally.feature.setup
 
 import app.cash.turbine.test
+import com.rifttally.core.data.game.FirstPlayerPicker
 import com.rifttally.core.designsystem.theme.PlayerColors
+import com.rifttally.core.game.GameEvent
+import com.rifttally.core.game.GameEventFactory
+import com.rifttally.core.game.IdGenerator
 import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.GameId
 import com.rifttally.core.model.Legend
+import com.rifttally.core.model.PlayerId
 import com.rifttally.core.model.PlayerPreset
 import com.rifttally.core.model.SideId
 import com.rifttally.core.testing.MainDispatcherRule
+import com.rifttally.core.testing.TestClock
 import com.rifttally.core.testing.repository.FakeGameRepository
 import com.rifttally.core.testing.repository.FakeLegendRepository
 import com.rifttally.core.testing.repository.FakePlayerPresetRepository
@@ -16,10 +22,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 
+@OptIn(ExperimentalTime::class)
 class SetupViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
@@ -31,8 +39,11 @@ class SetupViewModelTest {
         listOf(Legend("jinx", "Jinx", null), Legend("viktor", "Viktor", null), Legend("lee_sin", "Lee Sin", null)),
     )
 
+    /** Always picks the second player. */
+    private val picker = FirstPlayerPicker(settings, { 1 }, GameEventFactory(TestClock(), IdGenerator { "pick" }))
+
     // Lazy: created inside each test, after MainDispatcherRule has installed the test Main dispatcher.
-    private val viewModel by lazy { SetupViewModel(games, legends, settings, presets) }
+    private val viewModel by lazy { SetupViewModel(games, legends, settings, presets, picker) }
 
     private val defaultNames = listOf("Player 1", "Player 2")
 
@@ -126,6 +137,25 @@ class SetupViewModelTest {
         assertEquals(9, config.targetScore)
         assertEquals(listOf(SideId("s1"), SideId("s2")), config.sides.map { it.id })
         config.sides.zip(config.players).forEach { (side, player) -> assertEquals(listOf(player.id), side.playerIds) }
+    }
+
+    @Test
+    fun startGame_withPickSettingOn_startsTheLogWithAPick() = runTest {
+        viewModel.onStartGame(defaultNames, "XP")
+
+        val game = games.allGames.single()
+        val pick = game.events.single() as GameEvent.FirstPlayerChosen
+        assertEquals(PlayerId("p2"), pick.playerId)
+        assertEquals(game.config.players[1].id, pick.playerId)
+    }
+
+    @Test
+    fun startGame_withPickSettingOff_startsWithAnEmptyLog() = runTest {
+        settings.setPickFirstPlayer(false)
+
+        viewModel.onStartGame(defaultNames, "XP")
+
+        assertEquals(emptyList(), games.allGames.single().events)
     }
 
     @Test
@@ -319,7 +349,7 @@ class SetupViewModelTest {
     @Test
     fun loadedPreset_isLinkedInConfig_unlessTheNameChanges() = runTest {
         val presets = FakePlayerPresetRepository(listOf(PlayerPreset("ana", "Ana", "green", "jinx")))
-        val viewModel = SetupViewModel(games, legends, settings, presets)
+        val viewModel = SetupViewModel(games, legends, settings, presets, picker)
         viewModel.uiState.test {
             @Suppress("ControlFlowWithEmptyBody")
             while (awaitItem().presets.isEmpty()) {}
@@ -369,7 +399,7 @@ class SetupViewModelTest {
     @Test
     fun savingAnExistingName_reusesThatPreset() = runTest {
         val presets = FakePlayerPresetRepository(listOf(PlayerPreset("ana", "Ana", "green", "jinx")))
-        val viewModel = SetupViewModel(games, legends, settings, presets)
+        val viewModel = SetupViewModel(games, legends, settings, presets, picker)
         viewModel.onNameChange(0, "ana")
         viewModel.onColorSelect(0, "pink")
         viewModel.onPlayerSave(0)

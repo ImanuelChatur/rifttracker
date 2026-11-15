@@ -30,7 +30,7 @@ class HistoryViewModelTest {
 
     @Test
     fun noEndedGames_isEmptyHistory() = runTest {
-        games.createGame(twoPlayers) // still active
+        games.createGame(twoPlayers, emptyList()) // still active
 
         viewModel.uiState.test {
             val state = assertIs<HistoryUiState.Success>(expectMostRecentItem())

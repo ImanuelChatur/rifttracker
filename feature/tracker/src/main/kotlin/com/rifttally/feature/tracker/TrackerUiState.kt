@@ -26,8 +26,22 @@ internal sealed interface TrackerUiState {
         val hapticsEnabled: Boolean,
         val keepScreenOn: Boolean,
         val immersiveMode: Boolean,
+        /** The "<Name> goes first" reveal to play, or `null`. */
+        val firstPlayerReveal: FirstPlayerRevealUiState? = null,
     ) : TrackerUiState
 }
+
+/**
+ * Reveals who goes first: a highlight cycles across the panels and settles on [panelIndex] (the side of
+ * the picked player [name]), then "<Name> goes first" faces that seat. The result is decided before the
+ * animation starts. [animate] is false once it has started (e.g. after rotation): show the result only.
+ */
+internal data class FirstPlayerRevealUiState(
+    val pickId: String,
+    val panelIndex: Int,
+    val name: String,
+    val animate: Boolean = true,
+)
 
 /** A point owner's panel: a player (or, from Phase 4, a team). */
 internal data class SidePanelUiState(
@@ -35,6 +49,8 @@ internal data class SidePanelUiState(
     val points: Int,
     val isAtTarget: Boolean,
     val players: ImmutableList<PanelPlayerUiState>,
+    /** The player on this side who goes first, while the "1st" marker shows; `null` otherwise. */
+    val firstPlayerName: String? = null,
 ) {
     /** "Ana", or "Ana & Ben" for a team. */
     val displayName: String get() = players.joinToString(separator = " & ") { it.name }

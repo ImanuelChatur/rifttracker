@@ -38,6 +38,9 @@ public abstract class GameEventDao {
     @Insert
     protected abstract suspend fun insertGame(game: GameEntity)
 
+    @Insert
+    protected abstract suspend fun insertAll(events: List<GameEventEntity>)
+
     /** 1 if the game exists and hasn't ended, else 0. */
     @Query("SELECT COUNT(*) FROM game WHERE id = :gameId AND ended_at IS NULL")
     protected abstract suspend fun countActive(gameId: String): Int
@@ -77,8 +80,9 @@ public abstract class GameEventDao {
 
     /**
      * Restart, in one transaction: ends [oldGameId] with the given `GameEnded` event (unless it already
-     * ended or doesn't exist) and inserts [newGame]. A crash can't leave both games open. As in
-     * [append], [endTimestamp] becomes the old game's `ended_at` and `updated_at`.
+     * ended or doesn't exist) and inserts [newGame] with its opening [newEvents] (e.g. the first-player
+     * pick). A crash can't leave both games open. As in [append], [endTimestamp] becomes the old game's
+     * `ended_at` and `updated_at`.
      */
     @Transaction
     public open suspend fun restart(
@@ -87,10 +91,12 @@ public abstract class GameEventDao {
         endTimestamp: Long,
         endPayload: String,
         newGame: GameEntity,
+        newEvents: List<GameEventEntity> = emptyList(),
     ) {
         if (countActive(oldGameId) > 0) {
             append(oldGameId, endEventId, endTimestamp, endPayload, endsGame = true)
         }
         insertGame(newGame)
+        insertAll(newEvents)
     }
 }

@@ -35,4 +35,6 @@
     <string name="core_ui_log_target">Target score → %1$d</string>
     <string name="core_ui_log_ended_winner">Game ended · %1$s won</string>
     <string name="core_ui_log_ended">Game ended</string>
+    <!-- %1$s = player name. -->
+    <string name="core_ui_log_first_player">%1$s goes first</string>
 </resources>

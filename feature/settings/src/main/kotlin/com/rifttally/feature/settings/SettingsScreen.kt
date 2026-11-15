@@ -73,6 +73,7 @@ internal fun SettingsRoute(
             onDynamicColorToggle = viewModel::onDynamicColorToggle,
             onHapticsToggle = viewModel::onHapticsToggle,
             onKeepScreenOnToggle = viewModel::onKeepScreenOnToggle,
+            onPickFirstPlayerToggle = viewModel::onPickFirstPlayerToggle,
             onImmersiveModeToggle = viewModel::onImmersiveModeToggle,
             onDefaultFormatSelect = viewModel::onDefaultFormatSelect,
             onAddXpByDefaultToggle = viewModel::onAddXpByDefaultToggle,
@@ -101,6 +102,7 @@ internal data class SettingsActions(
     val onImmersiveModeToggle: (Boolean) -> Unit = {},
     val onDefaultFormatSelect: (GameFormat) -> Unit = {},
     val onAddXpByDefaultToggle: (Boolean) -> Unit = {},
+    val onPickFirstPlayerToggle: (Boolean) -> Unit = {},
     val onPresetDelete: (id: String) -> Unit = {},
     val onPresetEdit: (id: String) -> Unit = {},
     val onPresetNameChange: (String) -> Unit = {},
@@ -220,13 +222,22 @@ private fun LazyListScope.settingsItems(state: SettingsUiState.Success, versionN
 
     item { ListSectionHeader(stringResource(R.string.feature_settings_section_defaults)) }
     item {
-        SegmentedTile(index = 0, count = 2) {
+        SegmentedTile(index = 0, count = DEFAULTS_TILES) {
             DefaultFormatSelector(selected = state.defaultGameFormat, onSelect = actions.onDefaultFormatSelect)
         }
     }
     item {
-        SegmentedTile(index = 1, count = 2) {
+        SegmentedTile(index = 1, count = DEFAULTS_TILES) {
             SwitchRow(R.string.feature_settings_default_xp, state.addXpCounterByDefault, actions.onAddXpByDefaultToggle)
+        }
+    }
+    item {
+        SegmentedTile(index = 2, count = DEFAULTS_TILES) {
+            SwitchRow(
+                R.string.feature_settings_pick_first_player,
+                state.pickFirstPlayer,
+                actions.onPickFirstPlayerToggle,
+            )
         }
     }
 
@@ -453,6 +464,7 @@ private fun PresetsEmpty(modifier: Modifier = Modifier) {
 
 private const val SKELETON_TILES = 4
 private const val ABOUT_TILES = 3
+private const val DEFAULTS_TILES = 3
 
 internal val previewSettingsState = SettingsUiState.Success(
     themeMode = ThemeMode.DARK,
@@ -462,6 +474,7 @@ internal val previewSettingsState = SettingsUiState.Success(
     immersiveMode = true,
     defaultGameFormat = GameFormat.TWO_PLAYERS,
     addXpCounterByDefault = false,
+    pickFirstPlayer = true,
     presets = persistentListOf(
         PresetUiState("1", "Ana", "orange", "Jinx"),
         PresetUiState("2", "Ben", "sky", null),

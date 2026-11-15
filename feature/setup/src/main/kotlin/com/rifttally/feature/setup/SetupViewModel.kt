@@ -2,6 +2,7 @@ package com.rifttally.feature.setup
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rifttally.core.data.game.FirstPlayerPicker
 import com.rifttally.core.data.game.GameRepository
 import com.rifttally.core.data.legend.LegendRepository
 import com.rifttally.core.data.preset.PlayerPresetRepository
@@ -45,6 +46,7 @@ internal class SetupViewModel @Inject constructor(
     legendRepository: LegendRepository,
     private val userSettingsRepository: UserSettingsRepository,
     private val presetRepository: PlayerPresetRepository,
+    private val firstPlayerPicker: FirstPlayerPicker,
 ) : ViewModel() {
 
     private val form = MutableStateFlow(SetupForm(format = GameFormat.TWO_PLAYERS).resizedTo(GameFormat.TWO_PLAYERS))
@@ -161,7 +163,8 @@ internal class SetupViewModel @Inject constructor(
         form.update { it.copy(isStarting = true) }
         viewModelScope.launch {
             val addXp = userSettingsRepository.userSettings.first().addXpCounterByDefault
-            val gameId = gameRepository.createGame(current.toConfig(defaultNames, xpLabel.takeIf { addXp }))
+            val config = current.toConfig(defaultNames, xpLabel.takeIf { addXp })
+            val gameId = gameRepository.createGame(config, firstPlayerPicker.openingEvents(config))
             navigation.send(SetupNavigationEvent.OpenTracker(gameId))
         }
     }

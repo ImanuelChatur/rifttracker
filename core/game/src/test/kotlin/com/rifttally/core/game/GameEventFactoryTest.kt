@@ -51,6 +51,11 @@ class GameEventFactoryTest {
     }
 
     @Test
+    fun firstPlayerChosen() {
+        assertEquals(GameEvent.FirstPlayerChosen("id1", 1_000, P2), factory.firstPlayerChosen(P2))
+    }
+
+    @Test
     fun gameEnded() {
         assertEquals(GameEvent.GameEnded("id1", 1_000, S1), factory.gameEnded(S1))
         assertEquals(GameEvent.GameEnded("id2", 1_000, null), factory.gameEnded(null))

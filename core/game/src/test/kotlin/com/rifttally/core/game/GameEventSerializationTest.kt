@@ -18,6 +18,7 @@ class GameEventSerializationTest {
             e.adjustCounter(P1, 3),
             e.removeCounter(P1),
             e.target(11),
+            e.first(P2),
             e.end(S1),
             e.end(null),
         )
@@ -35,6 +36,14 @@ class GameEventSerializationTest {
         assertEquals(
             """{"type":"points_adjusted","id":"e1","timestamp":42,"sideId":"s1","delta":1}""",
             json.encodeToString(GameEvent.serializer(), event),
+        )
+    }
+
+    @Test
+    fun firstPlayerChosen_usesItsSerialName() {
+        assertEquals(
+            """{"type":"first_player_chosen","id":"e1","timestamp":7,"playerId":"p2"}""",
+            json.encodeToString(GameEvent.serializer(), GameEvent.FirstPlayerChosen("e1", 7, P2)),
         )
     }
 

@@ -34,6 +34,8 @@ class TrackerScreenTest {
     private var ends = 0
     private var keepPlaying = 0
     private var backs = 0
+    private var picks = 0
+    private val revealDismissals = mutableListOf<String>()
     private val counterAdds = mutableListOf<Pair<PlayerId, String>>()
     private val counterChanges = mutableListOf<Triple<PlayerId, CounterId, Int>>()
 
@@ -52,6 +54,8 @@ class TrackerScreenTest {
                     onCounterAdd = { player, label -> counterAdds += player to label },
                     onCounterChange = { player, counter, delta -> counterChanges += Triple(player, counter, delta) },
                     onCounterRemove = { _, _ -> },
+                    onPickFirstPlayer = { picks++ },
+                    onFirstPlayerRevealDismiss = { revealDismissals += it },
                 )
             }
         }
@@ -71,6 +75,32 @@ class TrackerScreenTest {
             .performClick()
 
         assertEquals(listOf(SideId("s1") to 1, SideId("s2") to -1), changes)
+    }
+
+    @Test
+    fun firstPlayerReveal_showsTheName_andATapAnywhereDismissesIt() {
+        setContent(
+            previewTrackerState.copy(firstPlayerReveal = FirstPlayerRevealUiState("pick", 1, "Ben", animate = false)),
+        )
+
+        composeTestRule.onNodeWithText(
+            context.getString(R.string.feature_tracker_goes_first, "Ben"),
+        ).assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.feature_tracker_goes_first, "Ben")).performClick()
+
+        assertEquals(listOf("pick"), revealDismissals)
+        // The tap was caught by the reveal, not by a score zone.
+        assertEquals(emptyList<Pair<SideId, Int>>(), changes)
+    }
+
+    @Test
+    fun menu_picksFirstPlayer() {
+        setContent(previewTrackerState)
+
+        composeTestRule.onNodeWithContentDescription(context.getString(R.string.feature_tracker_menu)).performClick()
+        composeTestRule.onNodeWithText(context.getString(R.string.feature_tracker_menu_first_player)).performClick()
+
+        assertEquals(1, picks)
     }
 
     @Test

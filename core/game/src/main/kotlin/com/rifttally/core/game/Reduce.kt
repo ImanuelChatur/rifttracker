@@ -17,6 +17,7 @@ import com.rifttally.core.model.SideId
  *   [config] is raised to [MIN_TARGET_SCORE].
  * - [GameEvent.GameEnded] with an unknown winner is ignored. Once the game has ended, every later
  *   event is ignored.
+ * - [GameEvent.FirstPlayerChosen] for an unknown player is ignored; otherwise the latest pick wins.
  * - Initial counters from [config] are clamped at 0; for duplicate counter ids the first one wins.
  */
 public fun reduce(config: GameConfig, events: List<GameEvent>): GameState {
@@ -56,6 +57,7 @@ private class Reducer(private val config: GameConfig) {
     private var targetScore = config.targetScore.coerceAtLeast(MIN_TARGET_SCORE)
     private var winner: SideId? = null
     private var isEnded = false
+    private var firstPlayer: PlayerId? = null
 
     fun apply(event: GameEvent) {
         if (isEnded) return
@@ -88,6 +90,10 @@ private class Reducer(private val config: GameConfig) {
                 if (event.newScore >= MIN_TARGET_SCORE) targetScore = event.newScore
             }
 
+            is GameEvent.FirstPlayerChosen -> {
+                if (event.playerId in counters) firstPlayer = event.playerId
+            }
+
             is GameEvent.GameEnded -> {
                 if (event.winner == null || event.winner in points) {
                     isEnded = true
@@ -104,6 +110,7 @@ private class Reducer(private val config: GameConfig) {
         targetScore = targetScore,
         isEnded = isEnded,
         winner = winner,
+        firstPlayer = firstPlayer,
     )
 }
 

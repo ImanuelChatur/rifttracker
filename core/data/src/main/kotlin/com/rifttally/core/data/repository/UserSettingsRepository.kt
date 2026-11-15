@@ -22,4 +22,6 @@ public interface UserSettingsRepository {
     public suspend fun setDefaultGameFormat(format: GameFormat)
 
     public suspend fun setAddXpCounterByDefault(enabled: Boolean)
+
+    public suspend fun setPickFirstPlayer(enabled: Boolean)
 }

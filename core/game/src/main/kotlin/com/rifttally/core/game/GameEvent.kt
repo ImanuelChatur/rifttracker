@@ -69,6 +69,15 @@ public sealed interface GameEvent {
     public data class TargetScoreChanged(override val id: String, override val timestamp: Long, val newScore: Int) :
         GameEvent
 
+    /**
+     * Records who goes first (a player; in 2v2 their team is their side). The latest valid pick wins;
+     * an unknown player is ignored.
+     */
+    @Serializable
+    @SerialName("first_player_chosen")
+    public data class FirstPlayerChosen(override val id: String, override val timestamp: Long, val playerId: PlayerId) :
+        GameEvent
+
     /** Ends the game, optionally naming a [winner]. Later events are ignored by [reduce]. */
     @Serializable
     @SerialName("game_ended")

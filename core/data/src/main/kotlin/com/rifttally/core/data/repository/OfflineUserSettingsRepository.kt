@@ -24,4 +24,6 @@ internal class OfflineUserSettingsRepository @Inject constructor(private val dat
     override suspend fun setDefaultGameFormat(format: GameFormat): Unit = dataSource.setDefaultGameFormat(format)
 
     override suspend fun setAddXpCounterByDefault(enabled: Boolean): Unit = dataSource.setAddXpCounterByDefault(enabled)
+
+    override suspend fun setPickFirstPlayer(enabled: Boolean): Unit = dataSource.setPickFirstPlayer(enabled)
 }

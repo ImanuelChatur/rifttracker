@@ -75,13 +75,18 @@ internal class OfflineGameRepository @Inject constructor(
             game?.toRecord(events)
         }.flowOn(ioDispatcher)
 
-    override suspend fun createGame(config: GameConfig): GameId {
+    override suspend fun createGame(config: GameConfig, openingEvents: List<GameEvent>): GameId {
         val game = newGameEntity(config)
-        gameDao.insert(game)
+        writeMutex.withLock { gameDao.insertWithEvents(game, openingEvents.toEntities(game.id)) }
         return GameId(game.id)
     }
 
-    override suspend fun restartGame(oldGameId: GameId, endEvent: GameEvent.GameEnded, newConfig: GameConfig): GameId {
+    override suspend fun restartGame(
+        oldGameId: GameId,
+        endEvent: GameEvent.GameEnded,
+        newConfig: GameConfig,
+        openingEvents: List<GameEvent>,
+    ): GameId {
         val game = newGameEntity(newConfig)
         writeMutex.withLock {
             eventDao.restart(
@@ -90,9 +95,21 @@ internal class OfflineGameRepository @Inject constructor(
                 endTimestamp = endEvent.timestamp,
                 endPayload = GameJson.encodeToString(GameEvent.serializer(), endEvent),
                 newGame = game,
+                newEvents = openingEvents.toEntities(game.id),
             )
         }
         return GameId(game.id)
+    }
+
+    /** A fresh log for [gameId]: seq 1, 2, ... in order. */
+    private fun List<GameEvent>.toEntities(gameId: String): List<GameEventEntity> = mapIndexed { index, event ->
+        GameEventEntity(
+            id = event.id,
+            gameId = gameId,
+            seq = index + 1,
+            timestamp = event.timestamp,
+            payload = GameJson.encodeToString(GameEvent.serializer(), event),
+        )
     }
 
     private fun newGameEntity(config: GameConfig): GameEntity {
@@ -143,15 +160,7 @@ internal class OfflineGameRepository @Inject constructor(
                     configJson = GameJson.encodeToString(GameConfig.serializer(), record.config),
                     endedAt = record.endedAt,
                 ),
-                events = record.events.mapIndexed { index, event ->
-                    GameEventEntity(
-                        id = event.id,
-                        gameId = record.id.value,
-                        seq = index + 1,
-                        timestamp = event.timestamp,
-                        payload = GameJson.encodeToString(GameEvent.serializer(), event),
-                    )
-                },
+                events = record.events.toEntities(record.id.value),
             )
         }
     }

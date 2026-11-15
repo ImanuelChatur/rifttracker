@@ -21,6 +21,9 @@ public sealed interface GameLogLine {
 
     public data class TargetChanged(override val id: String, val targetScore: Int) : GameLogLine
 
+    /** "Ana goes first". */
+    public data class FirstPlayer(override val id: String, val name: String) : GameLogLine
+
     /** [winnerName] is `null` when the game ended without a winner. */
     public data class GameEnded(override val id: String, val winnerName: String?) : GameLogLine
 }

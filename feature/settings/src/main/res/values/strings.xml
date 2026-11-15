@@ -29,6 +29,7 @@
         <item quantity="other">%1$d players</item>
     </plurals>
     <string name="feature_settings_default_xp">Add XP counter to all players</string>
+    <string name="feature_settings_pick_first_player">Pick first player at game start</string>
 
     <string name="feature_settings_presets_empty">No saved players yet. Use “Save player” in a new game’s setup.</string>
     <!-- %1$s = saved player's name. -->

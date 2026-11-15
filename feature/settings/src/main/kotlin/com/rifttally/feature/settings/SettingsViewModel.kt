@@ -53,6 +53,7 @@ internal class SettingsViewModel @Inject constructor(
             immersiveMode = settings.immersiveMode,
             defaultGameFormat = settings.defaultGameFormat,
             addXpCounterByDefault = settings.addXpCounterByDefault,
+            pickFirstPlayer = settings.pickFirstPlayer,
             presets = presets.map { preset ->
                 val legend = preset.legendId?.let(legendsById::get)
                 PresetUiState(
@@ -90,6 +91,8 @@ internal class SettingsViewModel @Inject constructor(
     fun onDynamicColorToggle(enabled: Boolean) = launch { settingsRepository.setUseDynamicColor(enabled) }
 
     fun onHapticsToggle(enabled: Boolean) = launch { settingsRepository.setHapticsEnabled(enabled) }
+
+    fun onPickFirstPlayerToggle(enabled: Boolean) = launch { settingsRepository.setPickFirstPlayer(enabled) }
 
     fun onKeepScreenOnToggle(enabled: Boolean) = launch { settingsRepository.setKeepScreenOn(enabled) }
 

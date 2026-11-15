@@ -48,6 +48,7 @@ class SettingsViewModelTest {
         viewModel.onImmersiveModeToggle(false)
         viewModel.onDefaultFormatSelect(GameFormat.TEAMS_2V2)
         viewModel.onAddXpByDefaultToggle(true)
+        viewModel.onPickFirstPlayerToggle(false)
 
         val current = settings.current
         assertEquals(ThemeMode.LIGHT, current.themeMode)
@@ -57,6 +58,7 @@ class SettingsViewModelTest {
         assertEquals(false, current.immersiveMode)
         assertEquals(GameFormat.TEAMS_2V2, current.defaultGameFormat)
         assertEquals(true, current.addXpCounterByDefault)
+        assertEquals(false, current.pickFirstPlayer)
     }
 
     @Test

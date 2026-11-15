@@ -65,9 +65,9 @@ public class FakeGameRepository : GameRepository {
         stale.value = emptyMap()
     }
 
-    override suspend fun createGame(config: GameConfig): GameId {
+    override suspend fun createGame(config: GameConfig, openingEvents: List<GameEvent>): GameId {
         val id = GameId("game${++created}")
-        games.update { it + GameRecord(id = id, config = config, events = emptyList(), createdAt = 0) }
+        games.update { it + GameRecord(id = id, config = config, events = openingEvents, createdAt = 0) }
         return id
     }
 
@@ -92,9 +92,14 @@ public class FakeGameRepository : GameRepository {
         }
     }
 
-    override suspend fun restartGame(oldGameId: GameId, endEvent: GameEvent.GameEnded, newConfig: GameConfig): GameId {
+    override suspend fun restartGame(
+        oldGameId: GameId,
+        endEvent: GameEvent.GameEnded,
+        newConfig: GameConfig,
+        openingEvents: List<GameEvent>,
+    ): GameId {
         if (games.value.any { it.id == oldGameId && it.endedAt == null }) appendEvent(oldGameId, endEvent)
-        return createGame(newConfig)
+        return createGame(newConfig, openingEvents)
     }
 
     override suspend fun deleteGame(id: GameId) {

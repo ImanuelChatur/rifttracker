@@ -3,6 +3,7 @@ package com.rifttally.feature.tracker
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rifttally.core.data.game.FirstPlayerPicker
 import com.rifttally.core.data.game.GameRecord
 import com.rifttally.core.data.game.GameRepository
 import com.rifttally.core.data.legend.LegendRepository
@@ -43,11 +44,12 @@ import kotlinx.coroutines.launch
  */
 @HiltViewModel
 internal class TrackerViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
     private val gameRepository: GameRepository,
     legendRepository: LegendRepository,
     userSettingsRepository: UserSettingsRepository,
     private val eventFactory: GameEventFactory,
+    private val firstPlayerPicker: FirstPlayerPicker,
 ) : ViewModel() {
 
     // Navigation stores route arguments under their property names. Read by key (not toRoute()) so the
@@ -85,6 +87,17 @@ internal class TrackerViewModel @Inject constructor(
     /** Set while ending or restarting, so a double tap can't end twice or create two new games. */
     private var isLeaving = false
 
+    /**
+     * The first-player picks already revealed (dismissed), and the one whose cycling started, by event
+     * id. In [SavedStateHandle], so rotation or process death doesn't replay a reveal. Every revealed id
+     * is kept, so undoing a re-roll doesn't replay the earlier pick's reveal.
+     */
+    private val revealMemory = combine(
+        savedStateHandle.getStateFlow<List<String>>(KEY_REVEALED_PICKS, emptyList()),
+        savedStateHandle.getStateFlow<String?>(KEY_STARTED_PICK, null),
+        writesSettled,
+    ) { revealed, started, _ -> RevealMemory(revealed = revealed.toSet(), started = started) }
+
     private val navigation = Channel<TrackerNavigationEvent>(Channel.BUFFERED)
 
     /** One-off navigation requests (leave after ending, open a restarted game). */
@@ -95,8 +108,8 @@ internal class TrackerViewModel @Inject constructor(
         legendRepository.legends,
         userSettingsRepository.userSettings,
         dismissedBanner,
-        writesSettled,
-    ) { record, legends, settings, dismissed, _ ->
+        revealMemory,
+    ) { record, legends, settings, dismissed, reveal ->
         if (record == null) {
             latest = null
             awaitingSync = false
@@ -114,7 +127,7 @@ internal class TrackerViewModel @Inject constructor(
             // A side that left the target (by points, undo or a target change) can trigger the banner again.
             val stillDismissed = dismissed intersect sidesAtTarget(state).toSet()
             if (stillDismissed != dismissed) dismissedBanner.value = stillDismissed
-            buildUiState(source, initial, entries, state, legends, settings, stillDismissed)
+            buildUiState(source, initial, entries, state, legends, settings, stillDismissed, reveal)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TrackerUiState.Loading)
 
@@ -163,6 +176,26 @@ internal class TrackerViewModel @Inject constructor(
         append(eventFactory.counterRemoved(playerId, counterId))
     }
 
+    /** Menu "Pick first player": a new random pick (re-roll), revealed like the one at game start. */
+    fun onPickFirstPlayer() {
+        val snapshot = latest ?: return
+        if (snapshot.state.isEnded) return
+        val pick = firstPlayerPicker.pick(snapshot.record.config) ?: return
+        append(pick)
+    }
+
+    /** The reveal of pick [pickId] started: if the screen is recreated, it shows the result directly. */
+    fun onFirstPlayerRevealStart(pickId: String) {
+        savedStateHandle[KEY_STARTED_PICK] = pickId
+    }
+
+    /** The reveal of pick [pickId] was tapped away (or timed out): it isn't shown again. */
+    fun onFirstPlayerRevealDismiss(pickId: String) {
+        val revealed = savedStateHandle.get<List<String>>(KEY_REVEALED_PICKS).orEmpty()
+        if (pickId in revealed) return
+        savedStateHandle[KEY_REVEALED_PICKS] = ArrayList(revealed + pickId)
+    }
+
     /** "Keep playing": hides the banner until another side reaches the target. */
     fun onKeepPlaying() {
         val state = latest?.state ?: return
@@ -180,7 +213,8 @@ internal class TrackerViewModel @Inject constructor(
 
     /**
      * Ends this game without a winner and starts a new one with the same players and current target, in
-     * one transaction (a crash can't leave two open games).
+     * one transaction (a crash can't leave two open games). The new game gets its own first-player pick
+     * when that setting is on.
      */
     fun onRestart() {
         val snapshot = latest ?: return
@@ -190,7 +224,7 @@ internal class TrackerViewModel @Inject constructor(
         val end = eventFactory.gameEnded(winner = null)
         if (!snapshot.state.isEnded) applyOptimistically(end)
         write {
-            val newGameId = gameRepository.restartGame(gameId, end, config)
+            val newGameId = gameRepository.restartGame(gameId, end, config, firstPlayerPicker.openingEvents(config))
             navigation.send(TrackerNavigationEvent.OpenGame(newGameId))
         }
     }
@@ -229,7 +263,15 @@ internal class TrackerViewModel @Inject constructor(
     }
 
     private data class Snapshot(val record: GameRecord, val state: GameState)
+
+    private companion object {
+        const val KEY_REVEALED_PICKS = "revealed_first_player_picks"
+        const val KEY_STARTED_PICK = "started_first_player_pick"
+    }
 }
+
+/** Event ids of the first-player picks already revealed, and of the one whose cycling started. */
+private data class RevealMemory(val revealed: Set<String>, val started: String?)
 
 @Suppress("LongParameterList")
 private fun buildUiState(
@@ -240,8 +282,13 @@ private fun buildUiState(
     legends: List<Legend>,
     settings: UserSettings,
     dismissed: Set<SideId>,
+    reveal: RevealMemory,
 ): TrackerUiState.Success {
     val legendsById = legends.associateBy { it.id }
+    val pickIndex = currentPickIndex(record.events, state)
+    // The "1st" marker stays until the first points change after the pick.
+    val showMarker = pickIndex >= 0 &&
+        record.events.subList(pickIndex + 1, record.events.size).none { it is GameEvent.PointsAdjusted }
     val playersById = record.config.players.associateBy { it.id }
     val atTarget = sidesAtTarget(state)
     val panels = record.config.sides.map { side ->
@@ -249,6 +296,9 @@ private fun buildUiState(
             sideId = side.id,
             points = state.pointsOf(side.id),
             isAtTarget = side.id in atTarget,
+            firstPlayerName = state.firstPlayer
+                ?.takeIf { showMarker && it in side.playerIds }
+                ?.let { playersById[it]?.name },
             players = side.playerIds.mapNotNull(playersById::get).map { player ->
                 val legend = player.legendId?.let(legendsById::get)
                 PanelPlayerUiState(
@@ -267,6 +317,24 @@ private fun buildUiState(
     }
     val sideNames = panels.associate { it.sideId to it.displayName }
     val showBanner = !state.isEnded && atTarget.isNotEmpty() && !dismissed.containsAll(atTarget)
+    // Only a pick nothing has happened after yet: reopening a game once play has started doesn't replay
+    // it. (Leaving and reopening before anything happened shows it again: nobody has played yet.)
+    val pick = record.events.getOrNull(pickIndex)?.takeIf { pickIndex == record.events.lastIndex }
+    val firstPlayerReveal = pick?.takeIf { it.id !in reveal.revealed && !state.isEnded }?.let { event ->
+        val playerId = state.firstPlayer
+        val panelIndex = record.config.sides.indexOfFirst { playerId in it.playerIds }
+        val name = playerId?.let(playersById::get)?.name
+        if (panelIndex < 0 || name == null) {
+            null
+        } else {
+            FirstPlayerRevealUiState(
+                pickId = event.id,
+                panelIndex = panelIndex,
+                name = name,
+                animate = event.id != reveal.started,
+            )
+        }
+    }
     return TrackerUiState.Success(
         panels = panels.toImmutableList(),
         targetScore = state.targetScore,
@@ -282,7 +350,14 @@ private fun buildUiState(
         hapticsEnabled = settings.hapticsEnabled,
         keepScreenOn = settings.keepScreenOn,
         immersiveMode = settings.immersiveMode,
+        firstPlayerReveal = firstPlayerReveal,
     )
+}
+
+/** Index in [events] of the pick behind [GameState.firstPlayer] (the latest valid one), or -1. */
+private fun currentPickIndex(events: List<GameEvent>, state: GameState): Int {
+    val firstPlayer = state.firstPlayer ?: return -1
+    return events.indexOfLast { it is GameEvent.FirstPlayerChosen && it.playerId == firstPlayer }
 }
 
 /** Navigation requested by [TrackerViewModel]. */

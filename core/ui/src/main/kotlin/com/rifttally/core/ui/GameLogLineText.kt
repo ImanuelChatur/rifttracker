@@ -17,6 +17,8 @@ public fun GameLogLine.text(): String = when (this) {
 
     is GameLogLine.TargetChanged -> stringResource(R.string.core_ui_log_target, targetScore)
 
+    is GameLogLine.FirstPlayer -> stringResource(R.string.core_ui_log_first_player, name)
+
     is GameLogLine.GameEnded -> winnerName?.let { winner -> stringResource(R.string.core_ui_log_ended_winner, winner) }
         ?: stringResource(R.string.core_ui_log_ended)
 }

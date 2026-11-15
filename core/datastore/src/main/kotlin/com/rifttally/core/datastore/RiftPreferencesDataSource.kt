@@ -34,6 +34,7 @@ public class RiftPreferencesDataSource @Inject constructor(private val dataStore
                 defaultGameFormat = prefs[Keys.DEFAULT_GAME_FORMAT].toEnumOrNull<GameFormat>()
                     ?: defaults.defaultGameFormat,
                 addXpCounterByDefault = prefs[Keys.XP_BY_DEFAULT] ?: defaults.addXpCounterByDefault,
+                pickFirstPlayer = prefs[Keys.PICK_FIRST_PLAYER] ?: defaults.pickFirstPlayer,
             )
         }
 
@@ -52,6 +53,8 @@ public class RiftPreferencesDataSource @Inject constructor(private val dataStore
 
     public suspend fun setAddXpCounterByDefault(enabled: Boolean): Unit = update { it[Keys.XP_BY_DEFAULT] = enabled }
 
+    public suspend fun setPickFirstPlayer(enabled: Boolean): Unit = update { it[Keys.PICK_FIRST_PLAYER] = enabled }
+
     private suspend fun update(block: (MutablePreferences) -> Unit) {
         dataStore.edit { block(it) }
     }
@@ -67,5 +70,6 @@ public class RiftPreferencesDataSource @Inject constructor(private val dataStore
         val IMMERSIVE = booleanPreferencesKey("immersive_mode")
         val DEFAULT_GAME_FORMAT = stringPreferencesKey("default_game_format")
         val XP_BY_DEFAULT = booleanPreferencesKey("xp_counter_by_default")
+        val PICK_FIRST_PLAYER = booleanPreferencesKey("pick_first_player")
     }
 }

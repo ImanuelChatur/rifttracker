@@ -2,6 +2,7 @@ package com.rifttally.feature.tracker
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import com.rifttally.core.data.game.FirstPlayerPicker
 import com.rifttally.core.game.GameEvent
 import com.rifttally.core.game.GameEventFactory
 import com.rifttally.core.game.GameLogLine
@@ -58,6 +59,10 @@ class TrackerViewModelTest {
     private var eventIds = 0
     private val factory = GameEventFactory(TestClock(), IdGenerator { "e${++eventIds}" })
 
+    /** The index the "random" pick returns. */
+    private var pickIndex = 1
+    private val picker = FirstPlayerPicker(settings, { pickIndex }, factory)
+
     private val config = GameConfig(
         format = GameFormat.TWO_PLAYERS,
         sides = listOf(Side(S1, listOf(P1)), Side(S2, listOf(P2))),
@@ -69,13 +74,14 @@ class TrackerViewModelTest {
     private val gameId = GameId("game1")
 
     private suspend fun viewModel(): TrackerViewModel {
-        check(games.createGame(config) == gameId)
+        check(games.createGame(config, emptyList()) == gameId)
         return TrackerViewModel(
             savedStateHandle = SavedStateHandle(mapOf(TrackerRoute::gameId.name to gameId.value)),
             gameRepository = games,
             legendRepository = legends,
             userSettingsRepository = settings,
             eventFactory = factory,
+            firstPlayerPicker = picker,
         )
     }
 
@@ -341,13 +347,14 @@ class TrackerViewModelTest {
         val withXp = config.copy(
             initialCounters = mapOf(P2 to listOf(Counter(XP_ID, "XP", 0))),
         )
-        check(games.createGame(withXp) == gameId)
+        check(games.createGame(withXp, emptyList()) == gameId)
         val viewModel = TrackerViewModel(
             savedStateHandle = SavedStateHandle(mapOf(TrackerRoute::gameId.name to gameId.value)),
             gameRepository = games,
             legendRepository = legends,
             userSettingsRepository = settings,
             eventFactory = factory,
+            firstPlayerPicker = picker,
         )
         viewModel.uiState.test {
             val panel = assertIs<TrackerUiState.Success>(expectMostRecentItem()).panels[1]
@@ -373,13 +380,14 @@ class TrackerViewModelTest {
     }
 
     private suspend fun viewModelFor(gameConfig: GameConfig): TrackerViewModel {
-        check(games.createGame(gameConfig) == gameId)
+        check(games.createGame(gameConfig, emptyList()) == gameId)
         return TrackerViewModel(
             savedStateHandle = SavedStateHandle(mapOf(TrackerRoute::gameId.name to gameId.value)),
             gameRepository = games,
             legendRepository = legends,
             userSettingsRepository = settings,
             eventFactory = factory,
+            firstPlayerPicker = picker,
         )
     }
 
@@ -531,7 +539,8 @@ class TrackerViewModelTest {
                 val event = assertIs<TrackerNavigationEvent.OpenGame>(awaitItem())
                 val newGame = games.allGames.first { it.id == event.gameId }
                 assertEquals(config.copy(targetScore = 10), newGame.config)
-                assertEquals(emptyList(), newGame.events)
+                // "Pick first player at game start" is on by default: the new game opens with a pick.
+                assertEquals(listOf(P2), newGame.events.map { (it as GameEvent.FirstPlayerChosen).playerId })
             }
             cancelAndIgnoreRemainingEvents()
         }
@@ -539,6 +548,181 @@ class TrackerViewModelTest {
         // One active game: the new one.
         assertEquals(1, games.allGames.count { it.endedAt == null })
     }
+
+    @Test
+    fun restart_withPickSettingOff_opensAnEmptyGame() = runTest {
+        settings.setPickFirstPlayer(false)
+        val viewModel = viewModel()
+        viewModel.uiState.test {
+            viewModel.navigationEvents.test {
+                viewModel.onRestart()
+                val event = assertIs<TrackerNavigationEvent.OpenGame>(awaitItem())
+                assertEquals(emptyList(), games.allGames.first { it.id == event.gameId }.events)
+            }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // region First player
+
+    /** A tracker on a game that opened with a pick of [P2] (as Setup creates it), sharing [handle]. */
+    private fun trackerOnPickedGame(handle: SavedStateHandle) = TrackerViewModel(
+        savedStateHandle = handle,
+        gameRepository = games,
+        legendRepository = legends,
+        userSettingsRepository = settings,
+        eventFactory = factory,
+        firstPlayerPicker = picker,
+    )
+
+    private suspend fun createPickedGame(): GameEvent.FirstPlayerChosen {
+        val pick = factory.firstPlayerChosen(P2)
+        check(games.createGame(config, listOf(pick)) == gameId)
+        return pick
+    }
+
+    private fun handle() = SavedStateHandle(mapOf(TrackerRoute::gameId.name to gameId.value))
+
+    @Test
+    fun pickAtCreation_isRevealedOnItsSeat_withMarker() = runTest {
+        val pick = createPickedGame()
+        val viewModel = trackerOnPickedGame(handle())
+        viewModel.uiState.test {
+            val state = assertIs<TrackerUiState.Success>(expectMostRecentItem())
+            assertEquals(FirstPlayerRevealUiState(pick.id, panelIndex = 1, name = "Ben"), state.firstPlayerReveal)
+            assertEquals(listOf(null, "Ben"), state.panels.map { it.firstPlayerName })
+            assertEquals(listOf<GameLogLine>(GameLogLine.FirstPlayer(pick.id, "Ben")), state.history)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun reveal_isShownOnce_evenAfterRecreation() = runTest {
+        val pick = createPickedGame()
+        val handle = handle()
+        val viewModel = trackerOnPickedGame(handle)
+        viewModel.uiState.test {
+            expectMostRecentItem()
+            viewModel.onFirstPlayerRevealStart(pick.id)
+            // Started (e.g. then rotated mid-cycle): the result shows without cycling again.
+            assertEquals(false, assertIs<TrackerUiState.Success>(expectMostRecentItem()).firstPlayerReveal?.animate)
+            viewModel.onFirstPlayerRevealDismiss(pick.id)
+            assertNull(assertIs<TrackerUiState.Success>(expectMostRecentItem()).firstPlayerReveal)
+            cancelAndIgnoreRemainingEvents()
+        }
+        // Process death / rotation: a new ViewModel on the same saved state doesn't replay it.
+        val recreated = trackerOnPickedGame(handle)
+        recreated.uiState.test {
+            assertNull(assertIs<TrackerUiState.Success>(expectMostRecentItem()).firstPlayerReveal)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun reopeningAGameUnderWay_doesNotReplayTheReveal() = runTest {
+        createPickedGame()
+        games.appendEvent(gameId, factory.pointsAdjusted(S1, 1))
+
+        val viewModel = trackerOnPickedGame(handle())
+        viewModel.uiState.test {
+            val state = assertIs<TrackerUiState.Success>(expectMostRecentItem())
+            assertNull(state.firstPlayerReveal)
+            // The first points change also hides the "1st" marker.
+            assertEquals(listOf(null, null), state.panels.map { it.firstPlayerName })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun marker_staysThroughCounterChanges_untilPointsChange() = runTest {
+        createPickedGame()
+        val viewModel = trackerOnPickedGame(handle())
+        viewModel.uiState.test {
+            expectMostRecentItem()
+            viewModel.onCounterAdd(P1, "XP")
+            assertEquals("Ben", viewModel.success().panels[1].firstPlayerName)
+            viewModel.onPointsChange(S2, 1)
+            assertNull(viewModel.success().panels[1].firstPlayerName)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun menuPick_rerolls_andPlaysTheRevealAgain() = withViewModel { viewModel ->
+        viewModel.onPointsChange(S1, 1)
+        pickIndex = 0
+
+        viewModel.onPickFirstPlayer()
+
+        val pick = assertIs<GameEvent.FirstPlayerChosen>(events().last())
+        assertEquals(P1, pick.playerId)
+        val state = viewModel.success()
+        assertEquals(FirstPlayerRevealUiState(pick.id, panelIndex = 0, name = "Ana"), state.firstPlayerReveal)
+        assertEquals(listOf("Ana", null), state.panels.map { it.firstPlayerName })
+        assertEquals(GameLogLine.FirstPlayer(pick.id, "Ana"), state.history.first())
+    }
+
+    @Test
+    fun menuPick_inTeams_marksThePlayersTeamPanel() = runTest {
+        val teams = GameConfig(
+            format = GameFormat.TEAMS_2V2,
+            sides = listOf(Side(S1, listOf(P1, P3)), Side(S2, listOf(P2, P4))),
+            players = listOf(
+                Player(P1, "Ana", "orange"),
+                Player(P2, "Ben", "sky"),
+                Player(P3, "Cleo", "green"),
+                Player(P4, "Dan", "pink"),
+            ),
+        )
+        val viewModel = viewModelFor(teams)
+        viewModel.uiState.test {
+            expectMostRecentItem()
+            pickIndex = 2 // Cleo, on the first team
+            viewModel.onPickFirstPlayer()
+            val state = viewModel.success()
+            assertEquals(0, state.firstPlayerReveal?.panelIndex)
+            assertEquals("Cleo", state.firstPlayerReveal?.name)
+            assertEquals(listOf("Cleo", null), state.panels.map { it.firstPlayerName })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun undoingADismissedReroll_doesNotReplayTheEarlierPick() = runTest {
+        val first = createPickedGame()
+        val viewModel = trackerOnPickedGame(handle())
+        viewModel.uiState.test {
+            expectMostRecentItem()
+            viewModel.onFirstPlayerRevealDismiss(first.id)
+            viewModel.onPickFirstPlayer()
+            val reroll = assertNotNull(viewModel.success().firstPlayerReveal)
+            viewModel.onFirstPlayerRevealDismiss(reroll.pickId)
+            viewModel.onUndo()
+            assertEquals(listOf(first.id), events().map { it.id })
+            assertNull(viewModel.success().firstPlayerReveal)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun undo_removesThePick_andItsReveal() = withViewModel { viewModel ->
+        viewModel.onPickFirstPlayer()
+        viewModel.onUndo()
+
+        assertEquals(emptyList(), events())
+        assertNull(viewModel.success().firstPlayerReveal)
+        assertEquals(listOf(null, null), viewModel.success().panels.map { it.firstPlayerName })
+    }
+
+    @Test
+    fun menuPick_afterTheGameEnded_doesNothing() = withViewModel { viewModel ->
+        viewModel.onEndGame()
+        viewModel.onPickFirstPlayer()
+
+        assertIs<GameEvent.GameEnded>(events().single())
+    }
+
+    // endregion
 
     @Test
     fun history_isNewestFirst_withTotals() = withViewModel { viewModel ->
@@ -577,6 +761,7 @@ class TrackerViewModelTest {
             legendRepository = legends,
             userSettingsRepository = settings,
             eventFactory = factory,
+            firstPlayerPicker = picker,
         )
         viewModel.uiState.test {
             assertEquals(TrackerUiState.NotFound, expectMostRecentItem())
@@ -587,6 +772,8 @@ class TrackerViewModelTest {
     private companion object {
         val P1 = PlayerId("p1")
         val P2 = PlayerId("p2")
+        val P3 = PlayerId("p3")
+        val P4 = PlayerId("p4")
         val S1 = SideId("s1")
         val S2 = SideId("s2")
         val XP_ID = CounterId("xp")

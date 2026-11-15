@@ -6,7 +6,8 @@ import com.rifttally.core.model.SideId
 /**
  * Turns the replayed log ([entries], from [history]) into display lines, oldest first. [sideNames] maps
  * each side to its display name; [initial] is the state before the first event. Events that changed
- * nothing (unknown side, after the end, …) are dropped.
+ * nothing (unknown side, after the end, …) are dropped, except a valid first-player pick: re-rolling
+ * the same player is still a roll worth showing.
  */
 public fun gameLog(
     config: GameConfig,
@@ -18,8 +19,10 @@ public fun gameLog(
     return entries.mapIndexedNotNull { index, entry ->
         val before = if (index == 0) initial else entries[index - 1].stateAfter
         val after = entry.stateAfter
-        if (after == before) return@mapIndexedNotNull null
-        when (val event = entry.event) {
+        val event = entry.event
+        val isPick = event is GameEvent.FirstPlayerChosen && !before.isEnded && event.playerId in playerNames
+        if (after == before && !isPick) return@mapIndexedNotNull null
+        when (event) {
             is GameEvent.PointsAdjusted -> sideNames[event.sideId]?.let { name ->
                 GameLogLine.Points(event.id, name, event.delta, after.pointsOf(event.sideId))
             }
@@ -45,6 +48,10 @@ public fun gameLog(
             }
 
             is GameEvent.TargetScoreChanged -> GameLogLine.TargetChanged(event.id, after.targetScore)
+
+            is GameEvent.FirstPlayerChosen -> playerNames[event.playerId]?.let { name ->
+                GameLogLine.FirstPlayer(event.id, name)
+            }
 
             is GameEvent.GameEnded -> GameLogLine.GameEnded(event.id, event.winner?.let(sideNames::get))
         }

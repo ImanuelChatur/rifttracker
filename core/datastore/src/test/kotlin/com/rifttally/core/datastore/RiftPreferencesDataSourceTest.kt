@@ -43,6 +43,7 @@ class RiftPreferencesDataSourceTest {
         dataSource.setImmersiveMode(false)
         dataSource.setDefaultGameFormat(GameFormat.TEAMS_2V2)
         dataSource.setAddXpCounterByDefault(true)
+        dataSource.setPickFirstPlayer(false)
 
         assertEquals(
             UserSettings(
@@ -53,6 +54,7 @@ class RiftPreferencesDataSourceTest {
                 immersiveMode = false,
                 defaultGameFormat = GameFormat.TEAMS_2V2,
                 addXpCounterByDefault = true,
+                pickFirstPlayer = false,
             ),
             dataSource.userSettings.first(),
         )

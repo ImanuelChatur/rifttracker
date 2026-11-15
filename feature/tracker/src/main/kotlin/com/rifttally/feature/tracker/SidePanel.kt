@@ -227,12 +227,54 @@ internal fun SidePanel(
                 }
             }
         }
+        panel.firstPlayerName?.let { name ->
+            FirstPlayerMarker(
+                name = name,
+                isTeam = panel.players.size > 1,
+                pillColor = if (onArt) tableColors.artPill else tableColors.panelPill,
+                contentColor = contentColor,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = topInset)
+                    .padding(RiftTheme.spacing.lg),
+            )
+        }
         DeltaBadge(
             value = panel.points,
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = topInset)
                 .padding(RiftTheme.spacing.lg),
+        )
+    }
+}
+
+/** "1st" (or "1st · Ana" on a team) on the starting player's panel, until the first points change. */
+@Composable
+private fun FirstPlayerMarker(
+    name: String,
+    isTeam: Boolean,
+    pillColor: Color,
+    contentColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    val description = stringResource(R.string.feature_tracker_first_marker_description, name)
+    Surface(
+        modifier = modifier.clearAndSetSemantics { contentDescription = description },
+        shape = RiftTheme.shapes.full,
+        color = pillColor,
+        contentColor = contentColor,
+    ) {
+        Text(
+            text = if (isTeam) {
+                stringResource(R.string.feature_tracker_first_marker_team, name)
+            } else {
+                stringResource(R.string.feature_tracker_first_marker)
+            },
+            style = RiftTheme.typography.labelLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = RiftTheme.spacing.sm, vertical = RiftTheme.spacing.xxs),
         )
     }
 }

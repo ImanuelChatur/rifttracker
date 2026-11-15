@@ -50,7 +50,7 @@ class HomeViewModelTest {
 
     @Test
     fun activeGame_showsScoresAndLegends() = runTest {
-        val id = games.createGame(config)
+        val id = games.createGame(config, emptyList())
         games.appendEvent(id, GameEvent.PointsAdjusted("e1", 0, SideId("s2"), 4))
 
         viewModel.uiState.test {
@@ -66,7 +66,7 @@ class HomeViewModelTest {
 
     @Test
     fun endedGame_isNotResumable() = runTest {
-        val id = games.createGame(config)
+        val id = games.createGame(config, emptyList())
         games.appendEvent(id, GameEvent.GameEnded("e1", 0, null))
 
         viewModel.uiState.test {
@@ -77,7 +77,7 @@ class HomeViewModelTest {
 
     @Test
     fun endedGames_areListedAsRecent_withWinner() = runTest {
-        val id = games.createGame(config)
+        val id = games.createGame(config, emptyList())
         games.appendEvent(id, GameEvent.PointsAdjusted("e1", 0, SideId("s1"), 8))
         games.appendEvent(id, GameEvent.GameEnded("e2", 1_000, SideId("s1")))
 
@@ -97,7 +97,7 @@ class HomeViewModelTest {
     @Test
     fun sameNames_onlyTheWinningSideIsMarked() = runTest {
         val twins = config.copy(players = config.players.map { it.copy(name = "Ana") })
-        val id = games.createGame(twins)
+        val id = games.createGame(twins, emptyList())
         games.appendEvent(id, GameEvent.GameEnded("e1", 1_000, SideId("s2")))
 
         viewModel.uiState.test {

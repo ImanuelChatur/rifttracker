@@ -51,7 +51,7 @@ class OfflineGameRepositoryTest {
 
     @Test
     fun createGame_storesConfig_withEmptyLog() = runTest(dispatcher) {
-        val id = repository.createGame(config)
+        val id = repository.createGame(config, emptyList())
 
         val record = assertNotNull(repository.observeGame(id).first())
         assertEquals(config, record.config)
@@ -61,7 +61,7 @@ class OfflineGameRepositoryTest {
 
     @Test
     fun appendEvent_persistsInOrder_andRoundTripsPayload() = runTest(dispatcher) {
-        val id = repository.createGame(config)
+        val id = repository.createGame(config, emptyList())
         val events = listOf(points("e1"), points("e2", SIDE_2, -1), GameEvent.TargetScoreChanged("e3", 11, 10))
 
         events.forEach { repository.appendEvent(id, it) }
@@ -71,7 +71,7 @@ class OfflineGameRepositoryTest {
 
     @Test
     fun observeGame_emitsOnEveryAppend() = runTest(dispatcher) {
-        val id = repository.createGame(config)
+        val id = repository.createGame(config, emptyList())
         repository.observeGame(id).test {
             assertEquals(0, awaitItem()?.events?.size)
             repository.appendEvent(id, points("e1"))
@@ -82,7 +82,7 @@ class OfflineGameRepositoryTest {
 
     @Test
     fun undo_removesNewestEvent_only() = runTest(dispatcher) {
-        val id = repository.createGame(config)
+        val id = repository.createGame(config, emptyList())
         repository.appendEvent(id, points("e1"))
         repository.appendEvent(id, points("e2"))
 
@@ -93,7 +93,7 @@ class OfflineGameRepositoryTest {
 
     @Test
     fun undo_onEmptyLog_isNoOp() = runTest(dispatcher) {
-        val id = repository.createGame(config)
+        val id = repository.createGame(config, emptyList())
 
         repository.undoLastEvent(id)
 
@@ -102,7 +102,7 @@ class OfflineGameRepositoryTest {
 
     @Test
     fun gameEnded_endsGame_andUndoReopensIt() = runTest(dispatcher) {
-        val id = repository.createGame(config)
+        val id = repository.createGame(config, emptyList())
         repository.appendEvent(id, points("e1"))
         repository.appendEvent(id, GameEvent.GameEnded("e2", 20, winner = SIDE_1))
 
@@ -117,10 +117,10 @@ class OfflineGameRepositoryTest {
 
     @Test
     fun restartGame_endsOldGame_andNewOneIsActive() = runTest(dispatcher) {
-        val old = repository.createGame(config)
+        val old = repository.createGame(config, emptyList())
         repository.appendEvent(old, points("e1"))
 
-        val new = repository.restartGame(old, GameEvent.GameEnded("end", 30, winner = null), config)
+        val new = repository.restartGame(old, GameEvent.GameEnded("end", 30, winner = null), config, emptyList())
 
         val oldRecord = assertNotNull(repository.observeGame(old).first())
         assertEquals(30L, oldRecord.endedAt)
@@ -130,11 +130,35 @@ class OfflineGameRepositoryTest {
     }
 
     @Test
+    fun createGame_withOpeningEvents_storesThemInOrder() = runTest(dispatcher) {
+        val pick = GameEvent.FirstPlayerChosen("pick", 5, PlayerId("p2"))
+
+        val id = repository.createGame(config, listOf(pick, points("e1")))
+
+        assertEquals(listOf(pick, points("e1")), repository.observeGame(id).first()?.events)
+        assertEquals(listOf(1, 2), eventDao.events.value.map { it.seq })
+        // The log continues after them.
+        repository.appendEvent(id, points("e2"))
+        assertEquals(listOf("pick", "e1", "e2"), repository.observeGame(id).first()?.events?.map { it.id })
+    }
+
+    @Test
+    fun restartGame_withOpeningEvents_startsTheNewGameWithThem() = runTest(dispatcher) {
+        val old = repository.createGame(config, emptyList())
+        val pick = GameEvent.FirstPlayerChosen("pick", 31, PlayerId("p1"))
+
+        val new = repository.restartGame(old, GameEvent.GameEnded("end", 30, winner = null), config, listOf(pick))
+
+        assertEquals(listOf(pick), repository.observeGame(new).first()?.events)
+        assertEquals(listOf("end"), repository.observeGame(old).first()?.events?.map { it.id })
+    }
+
+    @Test
     fun restartGame_onEndedGame_doesNotEndItTwice() = runTest(dispatcher) {
-        val old = repository.createGame(config)
+        val old = repository.createGame(config, emptyList())
         repository.appendEvent(old, GameEvent.GameEnded("end1", 20, winner = SIDE_1))
 
-        repository.restartGame(old, GameEvent.GameEnded("end2", 30, winner = null), config)
+        repository.restartGame(old, GameEvent.GameEnded("end2", 30, winner = null), config, emptyList())
 
         val oldRecord = assertNotNull(repository.observeGame(old).first())
         assertEquals(listOf("end1"), oldRecord.events.map { it.id })
@@ -143,9 +167,9 @@ class OfflineGameRepositoryTest {
 
     @Test
     fun activeGame_isMostRecentlyPlayedUnendedGame() = runTest(dispatcher) {
-        val first = repository.createGame(config)
+        val first = repository.createGame(config, emptyList())
         clock.advanceBy(1.seconds)
-        val second = repository.createGame(config)
+        val second = repository.createGame(config, emptyList())
         assertEquals(second, repository.activeGame.first()?.id)
 
         // Playing the older game makes it the one to resume.
@@ -165,7 +189,7 @@ class OfflineGameRepositoryTest {
 
     @Test
     fun corruptEventPayload_isSkipped() = runTest(dispatcher) {
-        val id = repository.createGame(config)
+        val id = repository.createGame(config, emptyList())
         repository.appendEvent(id, points("e1"))
         eventDao.insert(GameEventEntity(id = "bad", gameId = id.value, seq = 99, timestamp = 0, payload = "{nope"))
 
@@ -174,7 +198,7 @@ class OfflineGameRepositoryTest {
 
     @Test
     fun corruptConfig_yieldsNull() = runTest(dispatcher) {
-        val id = repository.createGame(config)
+        val id = repository.createGame(config, emptyList())
         gameDao.games.value = gameDao.games.value.mapValues { (_, game) -> game.copy(configJson = "{}") }
 
         assertNull(repository.observeGame(id).first())
@@ -182,9 +206,9 @@ class OfflineGameRepositoryTest {
 
     @Test
     fun recentGames_areEndedGames_newestFirst_withEvents() = runTest(dispatcher) {
-        val first = repository.createGame(config)
-        val second = repository.createGame(config)
-        repository.createGame(config) // still active: not listed
+        val first = repository.createGame(config, emptyList())
+        val second = repository.createGame(config, emptyList())
+        repository.createGame(config, emptyList()) // still active: not listed
         repository.appendEvent(first, points("e1"))
         repository.appendEvent(first, GameEvent.GameEnded("e2", 100, SIDE_1))
         repository.appendEvent(second, GameEvent.GameEnded("e3", 200, null))
@@ -198,9 +222,9 @@ class OfflineGameRepositoryTest {
 
     @Test
     fun endedGames_areAllEndedGames_newestFirst_withTheirOwnEvents() = runTest(dispatcher) {
-        val first = repository.createGame(config)
-        val second = repository.createGame(config)
-        val active = repository.createGame(config)
+        val first = repository.createGame(config, emptyList())
+        val second = repository.createGame(config, emptyList())
+        val active = repository.createGame(config, emptyList())
         repository.appendEvent(first, points("e1"))
         repository.appendEvent(first, GameEvent.GameEnded("e2", 100, SIDE_1))
         repository.appendEvent(active, points("e3"))
@@ -217,8 +241,8 @@ class OfflineGameRepositoryTest {
 
     @Test
     fun endedGames_skipsGamesWithUnreadableConfig() = runTest(dispatcher) {
-        val good = repository.createGame(config)
-        val bad = repository.createGame(config)
+        val good = repository.createGame(config, emptyList())
+        val bad = repository.createGame(config, emptyList())
         repository.appendEvent(good, GameEvent.GameEnded("e1", 100, null))
         repository.appendEvent(bad, GameEvent.GameEnded("e2", 200, null))
         gameDao.games.value = gameDao.games.value.mapValues { (id, game) ->
@@ -230,7 +254,7 @@ class OfflineGameRepositoryTest {
 
     @Test
     fun endedGames_emitsWhenAGameEnds() = runTest(dispatcher) {
-        val id = repository.createGame(config)
+        val id = repository.createGame(config, emptyList())
         repository.endedGames().test {
             assertEquals(emptyList(), awaitItem())
             repository.appendEvent(id, GameEvent.GameEnded("e1", 100, SIDE_1))
@@ -241,8 +265,8 @@ class OfflineGameRepositoryTest {
 
     @Test
     fun deleteGame_removesGameAndEvents_only() = runTest(dispatcher) {
-        val keep = repository.createGame(config)
-        val drop = repository.createGame(config)
+        val keep = repository.createGame(config, emptyList())
+        val drop = repository.createGame(config, emptyList())
         repository.appendEvent(keep, points("e1"))
         repository.appendEvent(drop, points("e2"))
         repository.appendEvent(drop, GameEvent.GameEnded("e3", 100, SIDE_1))
@@ -258,7 +282,7 @@ class OfflineGameRepositoryTest {
 
     @Test
     fun restoreGame_bringsBackTheDeletedGame_exactly() = runTest(dispatcher) {
-        val id = repository.createGame(config)
+        val id = repository.createGame(config, emptyList())
         repository.appendEvent(id, points("e1"))
         repository.appendEvent(id, points("e2", SIDE_2, delta = 3))
         repository.appendEvent(id, GameEvent.GameEnded("e3", 100, SIDE_2))

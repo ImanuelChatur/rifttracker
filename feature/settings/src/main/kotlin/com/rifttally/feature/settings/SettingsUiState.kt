@@ -17,6 +17,7 @@ internal sealed interface SettingsUiState {
         val immersiveMode: Boolean,
         val defaultGameFormat: GameFormat,
         val addXpCounterByDefault: Boolean,
+        val pickFirstPlayer: Boolean,
         val presets: ImmutableList<PresetUiState> = persistentListOf(),
         /** The saved player being edited, or `null` when the editor is closed. */
         val presetEditor: PresetEditorUiState? = null,

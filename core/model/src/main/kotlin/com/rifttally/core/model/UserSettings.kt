@@ -9,4 +9,6 @@ public data class UserSettings(
     val immersiveMode: Boolean = true,
     val defaultGameFormat: GameFormat = GameFormat.TWO_PLAYERS,
     val addXpCounterByDefault: Boolean = false,
+    /** Randomly pick who goes first when a game is created. */
+    val pickFirstPlayer: Boolean = true,
 )

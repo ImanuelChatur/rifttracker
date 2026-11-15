@@ -48,6 +48,9 @@ public class GameEventFactory(
     public fun targetScoreChanged(newScore: Int): GameEvent.TargetScoreChanged =
         GameEvent.TargetScoreChanged(id = newId(), timestamp = now(), newScore = newScore)
 
+    public fun firstPlayerChosen(playerId: PlayerId): GameEvent.FirstPlayerChosen =
+        GameEvent.FirstPlayerChosen(id = newId(), timestamp = now(), playerId = playerId)
+
     public fun gameEnded(winner: SideId?): GameEvent.GameEnded =
         GameEvent.GameEnded(id = newId(), timestamp = now(), winner = winner)
 

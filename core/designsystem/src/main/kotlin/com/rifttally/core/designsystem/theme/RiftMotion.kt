@@ -34,6 +34,12 @@ public class RiftMotion internal constructor() {
     public val enterStaggerMillis: Long = 40L
 
     /**
+     * One step of the first-player reveal's highlight hopping between panels (it slows down toward the
+     * end). Discrete hops, not a transition; each hop's fade still uses an effects spring.
+     */
+    public val revealStepMillis: Long = 90L
+
+    /**
      * The target-reached edge pulse: the one allowed infinite tween (DESIGN.md §7). Use a static value
      * instead when [reduceMotionEnabled] is true.
      */

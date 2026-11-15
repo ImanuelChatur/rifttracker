@@ -33,4 +33,7 @@ public class FakeUserSettingsRepository(initial: UserSettings = UserSettings()) 
 
     override suspend fun setAddXpCounterByDefault(enabled: Boolean): Unit =
         state.update { it.copy(addXpCounterByDefault = enabled) }
+
+    override suspend fun setPickFirstPlayer(enabled: Boolean): Unit =
+        state.update { it.copy(pickFirstPlayer = enabled) }
 }

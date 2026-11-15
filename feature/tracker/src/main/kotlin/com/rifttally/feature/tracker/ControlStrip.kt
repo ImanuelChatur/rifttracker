@@ -32,6 +32,7 @@ internal fun ControlStrip(
     onMenuDismiss: () -> Unit,
     onChangeTargetClick: () -> Unit,
     onHistoryClick: () -> Unit,
+    onPickFirstPlayerClick: () -> Unit,
     onRestartClick: () -> Unit,
     onEndGameClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -58,6 +59,7 @@ internal fun ControlStrip(
             DropdownMenu(expanded = isMenuOpen, onDismissRequest = onMenuDismiss) {
                 MenuItem(R.string.feature_tracker_menu_target, onChangeTargetClick)
                 MenuItem(R.string.feature_tracker_menu_history, onHistoryClick)
+                MenuItem(R.string.feature_tracker_menu_first_player, onPickFirstPlayerClick)
                 MenuItem(R.string.feature_tracker_menu_restart, onRestartClick)
                 MenuItem(R.string.feature_tracker_menu_end, onEndGameClick)
             }
@@ -83,6 +85,7 @@ private fun ControlStripPreview() {
             onMenuDismiss = {},
             onChangeTargetClick = {},
             onHistoryClick = {},
+            onPickFirstPlayerClick = {},
             onRestartClick = {},
             onEndGameClick = {},
         )

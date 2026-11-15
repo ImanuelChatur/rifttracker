@@ -29,6 +29,7 @@ import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
@@ -75,6 +76,9 @@ internal fun TrackerRoute(
         onEndGame = viewModel::onEndGame,
         onKeepPlaying = viewModel::onKeepPlaying,
         onRestart = viewModel::onRestart,
+        onPickFirstPlayer = viewModel::onPickFirstPlayer,
+        onFirstPlayerRevealStart = viewModel::onFirstPlayerRevealStart,
+        onFirstPlayerRevealDismiss = viewModel::onFirstPlayerRevealDismiss,
         onCounterAdd = viewModel::onCounterAdd,
         onCounterChange = viewModel::onCounterChange,
         onCounterRemove = viewModel::onCounterRemove,
@@ -100,6 +104,9 @@ internal fun TrackerScreen(
     onCounterChange: (PlayerId, CounterId, Int) -> Unit,
     onCounterRemove: (PlayerId, CounterId) -> Unit,
     modifier: Modifier = Modifier,
+    onPickFirstPlayer: () -> Unit = {},
+    onFirstPlayerRevealStart: (pickId: String) -> Unit = {},
+    onFirstPlayerRevealDismiss: (pickId: String) -> Unit = {},
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = RiftTheme.colorScheme.background) {
         when (uiState) {
@@ -115,6 +122,9 @@ internal fun TrackerScreen(
                 onEndGame = onEndGame,
                 onKeepPlaying = onKeepPlaying,
                 onRestart = onRestart,
+                onPickFirstPlayer = onPickFirstPlayer,
+                onFirstPlayerRevealStart = onFirstPlayerRevealStart,
+                onFirstPlayerRevealDismiss = onFirstPlayerRevealDismiss,
                 onCounterAdd = onCounterAdd,
                 onCounterChange = onCounterChange,
                 onCounterRemove = onCounterRemove,
@@ -132,6 +142,9 @@ private fun TrackerTable(
     onEndGame: () -> Unit,
     onKeepPlaying: () -> Unit,
     onRestart: () -> Unit,
+    onPickFirstPlayer: () -> Unit,
+    onFirstPlayerRevealStart: (pickId: String) -> Unit,
+    onFirstPlayerRevealDismiss: (pickId: String) -> Unit,
     onCounterAdd: (PlayerId, String) -> Unit,
     onCounterChange: (PlayerId, CounterId, Int) -> Unit,
     onCounterRemove: (PlayerId, CounterId) -> Unit,
@@ -149,6 +162,13 @@ private fun TrackerTable(
 
     // The seat rotation of the player who asked, so the dialog faces them.
     var addCounterTurns by rememberSaveable { mutableIntStateOf(0) }
+    val reveal = state.firstPlayerReveal
+    val revealDisplay = rememberFirstPlayerReveal(
+        reveal = reveal,
+        panelCount = state.panels.size,
+        onStart = onFirstPlayerRevealStart,
+        onDismiss = onFirstPlayerRevealDismiss,
+    )
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -167,27 +187,50 @@ private fun TrackerTable(
                     onMenuDismiss = dismiss,
                     onChangeTargetClick = { overlay = TrackerOverlay.Target },
                     onHistoryClick = { overlay = TrackerOverlay.History },
+                    onPickFirstPlayerClick = {
+                        dismiss()
+                        onPickFirstPlayer()
+                    },
                     onRestartClick = { overlay = TrackerOverlay.Restart },
                     onEndGameClick = { overlay = TrackerOverlay.EndGame },
                 )
             },
             panel = { index, panelModifier, stripInset, quarterTurns ->
                 val panel = state.panels[index]
-                SidePanel(
-                    panel = panel,
-                    hapticsEnabled = state.hapticsEnabled,
-                    onPointsChange = { delta -> onPointsChange(panel.sideId, delta) },
-                    onCounterChange = onCounterChange,
-                    onCounterRemove = onCounterRemove,
-                    onAddCounterClick = { playerId ->
-                        addCounterTurns = quarterTurns
-                        addCounterFor = playerId.value
-                    },
-                    modifier = panelModifier,
-                    topInset = stripInset,
-                )
+                Box(modifier = panelModifier) {
+                    SidePanel(
+                        panel = panel,
+                        hapticsEnabled = state.hapticsEnabled,
+                        onPointsChange = { delta -> onPointsChange(panel.sideId, delta) },
+                        onCounterChange = onCounterChange,
+                        onCounterRemove = onCounterRemove,
+                        onAddCounterClick = { playerId ->
+                            addCounterTurns = quarterTurns
+                            addCounterFor = playerId.value
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        topInset = stripInset,
+                    )
+                    if (reveal != null && revealDisplay != null) {
+                        FirstPlayerRevealOverlay(
+                            name = reveal.name,
+                            highlighted = revealDisplay.highlighted == index,
+                            showResult = revealDisplay.settled && index == reveal.panelIndex,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
             },
         )
+        if (reveal != null) {
+            FirstPlayerRevealTapCatcher(
+                name = reveal.name,
+                onDismiss = { onFirstPlayerRevealDismiss(reveal.pickId) },
+                modifier = Modifier
+                    .matchParentSize()
+                    .zIndex(2f),
+            )
+        }
         state.winnerBanner?.let { banner ->
             WinnerBanner(
                 banner = banner,
@@ -295,6 +338,7 @@ private fun TrackerScreenTwoPlayersPreview() {
             onEndGame = {},
             onKeepPlaying = {},
             onRestart = {},
+            onPickFirstPlayer = {},
             onCounterAdd = { _, _ -> },
             onCounterChange = { _, _, _ -> },
             onCounterRemove = { _, _ -> },
@@ -315,6 +359,7 @@ private fun TrackerScreenBannerPreview() {
             onEndGame = {},
             onKeepPlaying = {},
             onRestart = {},
+            onPickFirstPlayer = {},
             onCounterAdd = { _, _ -> },
             onCounterChange = { _, _, _ -> },
             onCounterRemove = { _, _ -> },
@@ -371,6 +416,7 @@ private fun TrackerPreviewFor(panels: ImmutableList<SidePanelUiState>) {
             onEndGame = {},
             onKeepPlaying = {},
             onRestart = {},
+            onPickFirstPlayer = {},
             onCounterAdd = { _, _ -> },
             onCounterChange = { _, _, _ -> },
             onCounterRemove = { _, _ -> },

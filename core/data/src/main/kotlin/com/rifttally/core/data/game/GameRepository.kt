@@ -19,17 +19,25 @@ public interface GameRepository {
     /** The game with [id], or `null` if it doesn't exist (or its data can't be read). */
     public fun observeGame(id: GameId): Flow<GameRecord?>
 
-    /** Stores a new game with an empty event log and returns its id. */
-    public suspend fun createGame(config: GameConfig): GameId
+    /**
+     * Stores a new game, its log starting with [openingEvents] (e.g. the first-player pick, see
+     * [FirstPlayerPicker]), in one transaction, and returns its id.
+     */
+    public suspend fun createGame(config: GameConfig, openingEvents: List<GameEvent>): GameId
 
     /** Appends [event] to the game's log. A [GameEvent.GameEnded] also marks the game ended. */
     public suspend fun appendEvent(gameId: GameId, event: GameEvent)
 
     /**
-     * Ends [oldGameId] with [endEvent] (unless it already ended) and creates a game with [newConfig], in
-     * one transaction, so a crash can't leave two open games. Returns the new game's id.
+     * Ends [oldGameId] with [endEvent] (unless it already ended) and creates a game with [newConfig] and
+     * [openingEvents], in one transaction, so a crash can't leave two open games. Returns the new game's id.
      */
-    public suspend fun restartGame(oldGameId: GameId, endEvent: GameEvent.GameEnded, newConfig: GameConfig): GameId
+    public suspend fun restartGame(
+        oldGameId: GameId,
+        endEvent: GameEvent.GameEnded,
+        newConfig: GameConfig,
+        openingEvents: List<GameEvent>,
+    ): GameId
 
     /** Removes the newest event (undo). Undoing a [GameEvent.GameEnded] makes the game active again. */
     public suspend fun undoLastEvent(gameId: GameId)

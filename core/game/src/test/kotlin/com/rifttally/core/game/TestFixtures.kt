@@ -79,5 +79,7 @@ internal class Events {
 
     fun target(newScore: Int) = GameEvent.TargetScoreChanged(nextId(), sequence, newScore)
 
+    fun first(player: PlayerId) = GameEvent.FirstPlayerChosen(nextId(), sequence, player)
+
     fun end(winner: SideId?) = GameEvent.GameEnded(nextId(), sequence, winner)
 }

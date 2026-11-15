@@ -37,8 +37,18 @@
     <string name="feature_tracker_target_label">Target %1$d</string>
     <string name="feature_tracker_menu_target">Change target score</string>
     <string name="feature_tracker_menu_history">History</string>
+    <string name="feature_tracker_menu_first_player">Pick first player</string>
     <string name="feature_tracker_menu_restart">Restart</string>
     <string name="feature_tracker_menu_end">End game</string>
+
+    <!-- First-player pick. %1$s = player name. -->
+    <string name="feature_tracker_goes_first">%1$s goes first</string>
+    <string name="feature_tracker_goes_first_dismiss">Dismiss</string>
+    <!-- Small marker on the starting player's panel until the first points change. -->
+    <string name="feature_tracker_first_marker">1st</string>
+    <!-- Same, on a team panel: %1$s = the teammate who starts. -->
+    <string name="feature_tracker_first_marker_team">1st · %1$s</string>
+    <string name="feature_tracker_first_marker_description">%1$s went first</string>
 
     <!-- Winner banner. %1$s = names of everyone at the target, e.g. "Ana" or "Ana, Ben". -->
     <string name="feature_tracker_banner_title">Winner?</string>

@@ -66,6 +66,23 @@ class GameDaoTest {
     }
 
     @Test
+    fun restart_insertsTheNewGamesOpeningEvents() = runTest {
+        gameDao.insert(game("old", updatedAt = 1))
+
+        eventDao.restart(
+            "old",
+            endEventId = "end",
+            endTimestamp = 7,
+            endPayload = "{}",
+            newGame = game("new", updatedAt = 7),
+            newEvents = listOf(event("pick", seq = 1, gameId = "new")),
+        )
+
+        assertEquals(listOf("pick"), eventDao.observeEvents("new").first().map { it.id })
+        assertEquals(listOf("end"), eventDao.observeEvents("old").first().map { it.id })
+    }
+
+    @Test
     fun restart_ofEndedGame_doesNotAppendASecondEnd() = runTest {
         gameDao.insert(game("old", updatedAt = 1, endedAt = 1))
 

@@ -4,8 +4,10 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.rifttally.core.designsystem.theme.RiftTheme
+import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.PlayerId
 import com.rifttally.core.model.SideId
+import com.rifttally.core.ui.ResultCardState
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import org.junit.Rule
@@ -96,6 +98,8 @@ class TrackerGameOverScreenshotTest(private val case: Case) {
                 gameOver = GameOverUiState(
                     winnerName = case.winner?.let { panels[it].displayName },
                     winnerIsTeam = case.teams,
+                    // Present after every real game over: shows the Share button.
+                    resultCard = ResultCardState(GameFormat.TWO_PLAYERS, endedAt = 0, sides = persistentListOf()),
                     sides = panels.mapIndexed { index, panel ->
                         GameOverSideUiState(
                             name = panel.displayName,

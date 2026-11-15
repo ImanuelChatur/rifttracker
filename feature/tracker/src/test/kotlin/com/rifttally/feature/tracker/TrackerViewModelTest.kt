@@ -96,6 +96,7 @@ class TrackerViewModelTest {
             firstPlayerPicker = picker,
             timerRepository = timers,
             clock = timerClock,
+            shareDispatcher = mainDispatcherRule.testDispatcher,
         )
     }
 
@@ -371,6 +372,7 @@ class TrackerViewModelTest {
             firstPlayerPicker = picker,
             timerRepository = timers,
             clock = timerClock,
+            shareDispatcher = mainDispatcherRule.testDispatcher,
         )
         viewModel.uiState.test {
             val panel = assertIs<TrackerUiState.Success>(expectMostRecentItem()).panels[1]
@@ -406,6 +408,7 @@ class TrackerViewModelTest {
             firstPlayerPicker = picker,
             timerRepository = timers,
             clock = timerClock,
+            shareDispatcher = mainDispatcherRule.testDispatcher,
         )
     }
 
@@ -540,8 +543,11 @@ class TrackerViewModelTest {
                     GameOverSideUiState("Ben", "sky", 1, isWinner = false),
                 ),
             ),
-            viewModel.success().gameOver,
+            viewModel.success().gameOver?.copy(resultCard = null),
         )
+        val card = assertNotNull(viewModel.success().gameOver?.resultCard)
+        assertEquals(listOf(3, 1), card.sides.map { it.score })
+        assertEquals(listOf(true, false), card.sides.map { it.isWinner })
         assertNull(viewModel.success().winnerBanner)
     }
 
@@ -815,6 +821,7 @@ class TrackerViewModelTest {
             firstPlayerPicker = picker,
             timerRepository = timers,
             clock = timerClock,
+            shareDispatcher = mainDispatcherRule.testDispatcher,
         )
         backgroundScope.launch { second.timerState.collect {} }
         runCurrent()
@@ -886,6 +893,7 @@ class TrackerViewModelTest {
         firstPlayerPicker = picker,
         timerRepository = timers,
         clock = timerClock,
+        shareDispatcher = mainDispatcherRule.testDispatcher,
     )
 
     private suspend fun createPickedGame(): GameEvent.FirstPlayerChosen {
@@ -1077,6 +1085,7 @@ class TrackerViewModelTest {
             firstPlayerPicker = picker,
             timerRepository = timers,
             clock = timerClock,
+            shareDispatcher = mainDispatcherRule.testDispatcher,
         )
         viewModel.uiState.test {
             assertEquals(TrackerUiState.NotFound, expectMostRecentItem())

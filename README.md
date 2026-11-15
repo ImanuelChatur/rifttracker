@@ -49,7 +49,8 @@ build-logic/convention  Convention plugins (rifttally.android.application/librar
 :core:datastore         Preferences DataStore (user settings)
 :core:data              Repositories: the only module features use for data
 :core:designsystem      Theme, tokens, player palette, base components
-:core:ui                Shared composables
+:core:ui                Shared composables, incl. the shareable ResultCard (its sharer needs :app's
+                        FileProvider: authority <applicationId>.fileprovider, res/xml/file_paths.xml)
 :core:stats             Pure Kotlin match history and stats, derived from stored games
 :core:testing           Test rules, test clock, fakes
 

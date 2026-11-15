@@ -242,7 +242,8 @@ internal class SetupViewModel @Inject constructor(
             val addXp = userSettingsRepository.userSettings.first().addXpCounterByDefault
             val config = current.toConfig(defaultNames, xpLabel.takeIf { addXp })
             val gameId = gameRepository.createGame(config, firstPlayerPicker.openingEvents(config))
-            // A new game from Setup always starts a fresh timer (full length, paused), before it opens.
+            // A new game from Setup always starts a fresh timer (full length, paused), before it opens. A
+            // separate write from createGame: a process death in between leaves the game without a timer.
             val timer = timerRepository.choice.first()
             if (timer.enabled) timerRepository.createTimer(gameId, timer.minutes)
             navigation.send(SetupNavigationEvent.OpenTracker(gameId))

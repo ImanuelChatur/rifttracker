@@ -19,6 +19,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -41,9 +42,11 @@ import com.rifttally.core.model.GameId
 import com.rifttally.core.model.PlayerId
 import com.rifttally.core.model.SideId
 import com.rifttally.core.ui.ImmersiveModeEffect
+import com.rifttally.core.ui.rememberResultCardSharer
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun TrackerRoute(
@@ -57,6 +60,8 @@ internal fun TrackerRoute(
     // Collected separately so the once-a-second tick only recomposes the timer, and stops when hidden.
     val timer by viewModel.timerState.collectAsStateWithLifecycle()
     val currentOnOpenGame by rememberUpdatedState(onOpenGame)
+    val sharer = rememberResultCardSharer(viewModel.shareDispatcher)
+    val scope = rememberCoroutineScope()
     LaunchedEffect(viewModel) {
         viewModel.navigationEvents.collect { event ->
             when (event) {
@@ -82,6 +87,11 @@ internal fun TrackerRoute(
         onPickFirstPlayer = viewModel::onPickFirstPlayer,
         onRematch = viewModel::onRematch,
         onHome = onExit,
+        onShare = {
+            (uiState as? TrackerUiState.Success)?.gameOver?.resultCard?.let { card ->
+                scope.launch { sharer.share(card) }
+            }
+        },
         onFirstPlayerRevealStart = viewModel::onFirstPlayerRevealStart,
         onFirstPlayerRevealDismiss = viewModel::onFirstPlayerRevealDismiss,
         onCounterAdd = viewModel::onCounterAdd,
@@ -115,6 +125,7 @@ internal fun TrackerScreen(
     onPickFirstPlayer: () -> Unit = {},
     onRematch: () -> Unit = {},
     onHome: () -> Unit = {},
+    onShare: () -> Unit = {},
     onFirstPlayerRevealStart: (pickId: String) -> Unit = {},
     onFirstPlayerRevealDismiss: (pickId: String) -> Unit = {},
     timer: RoundTimerUiState? = null,
@@ -138,6 +149,7 @@ internal fun TrackerScreen(
                 onPickFirstPlayer = onPickFirstPlayer,
                 onRematch = onRematch,
                 onHome = onHome,
+                onShare = onShare,
                 onFirstPlayerRevealStart = onFirstPlayerRevealStart,
                 onFirstPlayerRevealDismiss = onFirstPlayerRevealDismiss,
                 onCounterAdd = onCounterAdd,
@@ -163,6 +175,7 @@ private fun TrackerTable(
     onPickFirstPlayer: () -> Unit,
     onRematch: () -> Unit,
     onHome: () -> Unit,
+    onShare: () -> Unit,
     onFirstPlayerRevealStart: (pickId: String) -> Unit,
     onFirstPlayerRevealDismiss: (pickId: String) -> Unit,
     onCounterAdd: (PlayerId, String) -> Unit,
@@ -270,6 +283,7 @@ private fun TrackerTable(
                 onRematch = onRematch,
                 onHome = onHome,
                 onUndo = undo,
+                onShare = onShare,
                 modifier = Modifier
                     .matchParentSize()
                     .zIndex(3f),

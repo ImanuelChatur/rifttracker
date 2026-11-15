@@ -18,6 +18,8 @@ import com.rifttally.feature.setup.navigation.SetupRoute
 import com.rifttally.feature.setup.navigation.navigateToSetup
 import com.rifttally.feature.setup.navigation.setupScreen
 import com.rifttally.feature.stats.navigation.PlayerStatsRoute
+import com.rifttally.feature.stats.navigation.legendStatsScreen
+import com.rifttally.feature.stats.navigation.navigateToLegendStats
 import com.rifttally.feature.stats.navigation.navigateToPlayerStats
 import com.rifttally.feature.stats.navigation.navigateToStats
 import com.rifttally.feature.stats.navigation.playerStatsScreen
@@ -88,14 +90,16 @@ fun RiftNavHost(navController: NavHostController, modifier: Modifier = Modifier)
         )
         statsScreen(
             onBackClick = { navController.navigateUp() },
-            onPlayerClick = { playerKey -> navController.navigateToPlayerStats(playerKey, singleTop) },
+            onPlayerClick = { route -> navController.navigateToPlayerStats(route, singleTop) },
+            onLegendClick = { route -> navController.navigateToLegendStats(route, singleTop) },
         )
+        legendStatsScreen(onBackClick = { navController.navigateUp() })
         playerStatsScreen(
             onBackClick = { navController.navigateUp() },
             // Opponent → their stats replaces the current player, so A → B → A → … can't grow the back stack.
-            onPlayerClick = { playerKey ->
+            onPlayerClick = { route ->
                 navController.navigateToPlayerStats(
-                    playerKey,
+                    route,
                     navOptions {
                         launchSingleTop = true
                         popUpTo<PlayerStatsRoute> { inclusive = true }

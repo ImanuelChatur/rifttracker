@@ -4,6 +4,7 @@ import com.rifttally.core.game.GameLogLine
 import com.rifttally.core.model.CounterId
 import com.rifttally.core.model.PlayerId
 import com.rifttally.core.model.SideId
+import com.rifttally.core.ui.ResultCardState
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
@@ -41,6 +42,8 @@ internal data class GameOverUiState(
     val winnerName: String?,
     val sides: ImmutableList<GameOverSideUiState>,
     val winnerIsTeam: Boolean = false,
+    /** The shareable result picture's content (Share button). */
+    val resultCard: ResultCardState? = null,
 )
 
 internal data class GameOverSideUiState(val name: String, val colorId: String, val points: Int, val isWinner: Boolean)

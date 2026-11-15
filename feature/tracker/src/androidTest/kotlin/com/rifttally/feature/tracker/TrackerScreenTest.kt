@@ -12,8 +12,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.model.CounterId
+import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.PlayerId
 import com.rifttally.core.model.SideId
+import com.rifttally.core.ui.ResultCardState
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import org.junit.Assert.assertEquals
@@ -37,6 +39,7 @@ class TrackerScreenTest {
     private var picks = 0
     private var rematches = 0
     private var homes = 0
+    private var shares = 0
     private val revealDismissals = mutableListOf<String>()
     private val counterAdds = mutableListOf<Pair<PlayerId, String>>()
     private val counterChanges = mutableListOf<Triple<PlayerId, CounterId, Int>>()
@@ -59,6 +62,7 @@ class TrackerScreenTest {
                     onPickFirstPlayer = { picks++ },
                     onRematch = { rematches++ },
                     onHome = { homes++ },
+                    onShare = { shares++ },
                     onFirstPlayerRevealDismiss = { revealDismissals += it },
                 )
             }
@@ -107,6 +111,7 @@ class TrackerScreenTest {
                         GameOverSideUiState("Ana", "orange", 6, isWinner = false),
                         GameOverSideUiState("Ben", "sky", 8, isWinner = true),
                     ),
+                    resultCard = ResultCardState(GameFormat.TWO_PLAYERS, endedAt = 0, sides = persistentListOf()),
                 ),
             ),
         )
@@ -115,10 +120,12 @@ class TrackerScreenTest {
             .assertIsDisplayed()
         composeTestRule.onNodeWithText(context.getString(R.string.feature_tracker_game_over_rematch)).performClick()
         composeTestRule.onNodeWithText(context.getString(R.string.feature_tracker_game_over_home)).performClick()
+        composeTestRule.onNodeWithText(context.getString(R.string.feature_tracker_game_over_share)).performClick()
         composeTestRule.onNodeWithText(context.getString(R.string.feature_tracker_undo)).performClick()
 
         assertEquals(1, rematches)
         assertEquals(1, homes)
+        assertEquals(1, shares)
         assertEquals(1, undos)
     }
 

@@ -60,6 +60,7 @@ internal fun GameOverOverlay(
     onHome: () -> Unit,
     onUndo: () -> Unit,
     modifier: Modifier = Modifier,
+    onShare: () -> Unit = {},
 ) {
     val reducedMotion = reduceMotionEnabled()
     val motion = RiftTheme.motion.standard
@@ -90,6 +91,7 @@ internal fun GameOverOverlay(
                 onRematch = onRematch,
                 onHome = onHome,
                 onUndo = onUndo,
+                onShare = onShare,
                 modifier = Modifier.padding(RiftTheme.spacing.lg),
             )
         }
@@ -102,6 +104,7 @@ private fun GameOverCard(
     onRematch: () -> Unit,
     onHome: () -> Unit,
     onUndo: () -> Unit,
+    onShare: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val title = stringResource(R.string.feature_tracker_game_over)
@@ -155,6 +158,9 @@ private fun GameOverCard(
                 modifier = Modifier.padding(top = RiftTheme.spacing.sm),
             ) {
                 RiftTextButton(text = stringResource(R.string.feature_tracker_undo), onClick = onUndo)
+                if (gameOver.resultCard != null) {
+                    RiftTextButton(text = stringResource(R.string.feature_tracker_game_over_share), onClick = onShare)
+                }
                 RiftOutlinedButton(text = stringResource(R.string.feature_tracker_game_over_home), onClick = onHome)
                 RiftButton(text = stringResource(R.string.feature_tracker_game_over_rematch), onClick = onRematch)
             }

@@ -83,6 +83,7 @@
     <string name="feature_tracker_game_over_no_winner">No winner</string>
     <string name="feature_tracker_game_over_rematch">Rematch</string>
     <string name="feature_tracker_game_over_home">Home</string>
+    <string name="feature_tracker_game_over_share">Share</string>
 
     <!-- Winner banner. %1$s = names of everyone at the target, e.g. "Ana" or "Ana, Ben". -->
     <string name="feature_tracker_banner_title">Winner?</string>

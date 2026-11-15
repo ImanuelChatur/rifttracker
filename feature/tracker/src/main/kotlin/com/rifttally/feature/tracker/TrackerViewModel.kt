@@ -3,6 +3,7 @@ package com.rifttally.feature.tracker
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rifttally.core.common.dispatchers.IoDispatcher
 import com.rifttally.core.data.game.FirstPlayerPicker
 import com.rifttally.core.data.game.GameRecord
 import com.rifttally.core.data.game.GameRepository
@@ -25,12 +26,14 @@ import com.rifttally.core.model.MIN_TARGET_SCORE
 import com.rifttally.core.model.PlayerId
 import com.rifttally.core.model.SideId
 import com.rifttally.core.model.UserSettings
+import com.rifttally.core.ui.ResultCardState
 import com.rifttally.feature.tracker.navigation.TrackerRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -63,6 +66,8 @@ internal class TrackerViewModel @Inject constructor(
     private val firstPlayerPicker: FirstPlayerPicker,
     private val timerRepository: RoundTimerRepository,
     private val clock: Clock,
+    /** Writes the shared result picture (see `rememberResultCardSharer`). */
+    @IoDispatcher val shareDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     // Navigation stores route arguments under their property names. Read by key (not toRoute()) so the
@@ -278,6 +283,8 @@ internal class TrackerViewModel @Inject constructor(
             val newGameId = leavingOrReset {
                 gameRepository.createGame(config, firstPlayerPicker.openingEvents(config)).also { newId ->
                     // A round can hold several games: the timer carries over as it is, before the switch.
+                    // Not in the same transaction as the game: a process death in this tiny gap
+                    // would leave the new game without its timer (accepted; the game itself is safe).
                     timerRepository.copyTimer(gameId, newId)
                 }
             }
@@ -443,6 +450,16 @@ private fun buildUiState(
             GameOverUiState(
                 winnerName = state.winner?.let(sideNames::get),
                 winnerIsTeam = panels.firstOrNull { it.sideId == state.winner }?.players?.size?.let { it > 1 } == true,
+                resultCard = ResultCardState.of(
+                    config = record.config,
+                    scores = state.points,
+                    winner = state.winner,
+                    // Until Room confirms the end, the optimistic GameEnded event has the time.
+                    endedAt = record.endedAt
+                        ?: record.events.lastOrNull { it is GameEvent.GameEnded }?.timestamp
+                        ?: record.createdAt,
+                    legendsById = legendsById,
+                ),
                 sides = panels.map { panel ->
                     GameOverSideUiState(
                         name = panel.displayName,

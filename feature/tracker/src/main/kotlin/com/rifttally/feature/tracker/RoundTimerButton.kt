@@ -149,13 +149,17 @@ private fun TimeUpHaptic(timer: RoundTimerUiState, enabled: Boolean) {
     LaunchedEffect(timer.phase) {
         val previous = lastPhase
         lastPhase = timer.phase
+        // Only a crossing seen live: coming back to the app minutes after 0 doesn't buzz late.
         val crossedZero = previous != null && previous != RoundTimerPhase.Overtime &&
-            timer.phase == RoundTimerPhase.Overtime
+            timer.phase == RoundTimerPhase.Overtime && timer.seconds <= TIME_UP_HAPTIC_WINDOW_SECONDS
         if (crossedZero && timer.isRunning && enabled) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
     }
 }
 
 internal const val ROUND_TIMER_TEST_TAG = "round_timer"
+
+/** The time-up haptic fires only within this many seconds after 0. */
+private const val TIME_UP_HAPTIC_WINDOW_SECONDS = 2
 
 @PreviewRiftThemes
 @Composable

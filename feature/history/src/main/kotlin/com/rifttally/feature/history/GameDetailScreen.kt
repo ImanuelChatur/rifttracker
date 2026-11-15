@@ -17,7 +17,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -26,12 +28,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
+import com.rifttally.core.designsystem.component.RiftButton
 import com.rifttally.core.designsystem.component.RiftIconButton
 import com.rifttally.core.designsystem.component.RiftTopAppBar
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.designsystem.theme.headlineMediumEmphasized
 import com.rifttally.core.game.GameLogLine
 import com.rifttally.core.model.GameFormat
+import com.rifttally.core.model.GameId
 import com.rifttally.core.ui.list.CenteredList
 import com.rifttally.core.ui.list.EmptyState
 import com.rifttally.core.ui.list.ListSectionHeader
@@ -43,11 +47,25 @@ import kotlinx.collections.immutable.persistentListOf
 @Composable
 internal fun GameDetailRoute(
     onBackClick: () -> Unit,
+    onPlayAgain: (GameId) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: GameDetailViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    GameDetailScreen(uiState = uiState, onBackClick = onBackClick, modifier = modifier)
+    val currentOnPlayAgain by rememberUpdatedState(onPlayAgain)
+    LaunchedEffect(viewModel) {
+        viewModel.navigationEvents.collect { event ->
+            when (event) {
+                is GameDetailNavigationEvent.OpenTracker -> currentOnPlayAgain(event.gameId)
+            }
+        }
+    }
+    GameDetailScreen(
+        uiState = uiState,
+        onBackClick = onBackClick,
+        onPlayAgainClick = viewModel::onPlayAgain,
+        modifier = modifier,
+    )
 }
 
 /**
@@ -55,7 +73,12 @@ internal fun GameDetailRoute(
  * emphasized container. Duration, the score chart and the event log follow as calm tonal tiles.
  */
 @Composable
-internal fun GameDetailScreen(uiState: GameDetailUiState, onBackClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun GameDetailScreen(
+    uiState: GameDetailUiState,
+    onBackClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    onPlayAgainClick: () -> Unit = {},
+) {
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -84,7 +107,7 @@ internal fun GameDetailScreen(uiState: GameDetailUiState, onBackClick: () -> Uni
             )
 
             is GameDetailUiState.Success -> CenteredList(scaffoldPadding = padding) {
-                item(key = "result") { FinalResultCard(state = uiState) }
+                item(key = "result") { FinalResultCard(state = uiState, onPlayAgainClick = onPlayAgainClick) }
                 item(key = "facts") { GameFacts(state = uiState) }
                 item(key = "chart_header") {
                     ListSectionHeader(stringResource(R.string.feature_history_section_chart))
@@ -115,9 +138,16 @@ internal fun GameDetailScreen(uiState: GameDetailUiState, onBackClick: () -> Uni
     }
 }
 
-/** The hero: date and format, "Ana won" (emphasized display type), then each side's final score. */
+/**
+ * The hero: date and format, "Ana won" (emphasized display type), each side's final score, and "Play
+ * again" (the screen's one filled button).
+ */
 @Composable
-private fun FinalResultCard(state: GameDetailUiState.Success, modifier: Modifier = Modifier) {
+private fun FinalResultCard(
+    state: GameDetailUiState.Success,
+    onPlayAgainClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RiftTheme.shapes.extraLarge,
@@ -147,6 +177,11 @@ private fun FinalResultCard(state: GameDetailUiState.Success, modifier: Modifier
             state.sides.forEach { side ->
                 SideResultRow(side = side)
             }
+            RiftButton(
+                text = stringResource(R.string.feature_history_play_again),
+                onClick = onPlayAgainClick,
+                modifier = Modifier.align(Alignment.End),
+            )
         }
     }
 }

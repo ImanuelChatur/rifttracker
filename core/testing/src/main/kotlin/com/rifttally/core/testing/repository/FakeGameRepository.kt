@@ -60,12 +60,16 @@ public class FakeGameRepository : GameRepository {
     /** Runs before every append/undo; set it to suspend to keep writes in flight. */
     public var beforeWrite: (suspend () -> Unit)? = null
 
+    /** Runs before every createGame; set it to suspend to keep a creation in flight. */
+    public var beforeCreate: (suspend () -> Unit)? = null
+
     /** Ends [emitStale]: [observeGame] emits the real games again. */
     public fun flush() {
         stale.value = emptyMap()
     }
 
     override suspend fun createGame(config: GameConfig, openingEvents: List<GameEvent>): GameId {
+        beforeCreate?.invoke()
         val id = GameId("game${++created}")
         games.update { it + GameRecord(id = id, config = config, events = openingEvents, createdAt = 0) }
         return id

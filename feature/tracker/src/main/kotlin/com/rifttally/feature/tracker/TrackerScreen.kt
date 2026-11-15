@@ -28,6 +28,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -53,16 +54,16 @@ internal fun TrackerRoute(
     viewModel: TrackerViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val currentOnExit by rememberUpdatedState(onExit)
     val currentOnOpenGame by rememberUpdatedState(onOpenGame)
     LaunchedEffect(viewModel) {
         viewModel.navigationEvents.collect { event ->
             when (event) {
-                TrackerNavigationEvent.Exit -> currentOnExit()
                 is TrackerNavigationEvent.OpenGame -> currentOnOpenGame(event.gameId)
             }
         }
     }
+    // Back from Game over goes Home without a BackHandler (which would turn off predictive back,
+    // DESIGN.md §7): every way into the tracker leaves Home directly below it (see RiftNavHost).
     val keepScreenOn = (uiState as? TrackerUiState.Success)?.keepScreenOn == true
     (uiState as? TrackerUiState.Success)?.let { success ->
         ImmersiveModeEffect(enabled = success.immersiveMode)
@@ -77,6 +78,8 @@ internal fun TrackerRoute(
         onKeepPlaying = viewModel::onKeepPlaying,
         onRestart = viewModel::onRestart,
         onPickFirstPlayer = viewModel::onPickFirstPlayer,
+        onRematch = viewModel::onRematch,
+        onHome = onExit,
         onFirstPlayerRevealStart = viewModel::onFirstPlayerRevealStart,
         onFirstPlayerRevealDismiss = viewModel::onFirstPlayerRevealDismiss,
         onCounterAdd = viewModel::onCounterAdd,
@@ -105,6 +108,8 @@ internal fun TrackerScreen(
     onCounterRemove: (PlayerId, CounterId) -> Unit,
     modifier: Modifier = Modifier,
     onPickFirstPlayer: () -> Unit = {},
+    onRematch: () -> Unit = {},
+    onHome: () -> Unit = {},
     onFirstPlayerRevealStart: (pickId: String) -> Unit = {},
     onFirstPlayerRevealDismiss: (pickId: String) -> Unit = {},
 ) {
@@ -123,6 +128,8 @@ internal fun TrackerScreen(
                 onKeepPlaying = onKeepPlaying,
                 onRestart = onRestart,
                 onPickFirstPlayer = onPickFirstPlayer,
+                onRematch = onRematch,
+                onHome = onHome,
                 onFirstPlayerRevealStart = onFirstPlayerRevealStart,
                 onFirstPlayerRevealDismiss = onFirstPlayerRevealDismiss,
                 onCounterAdd = onCounterAdd,
@@ -143,6 +150,8 @@ private fun TrackerTable(
     onKeepPlaying: () -> Unit,
     onRestart: () -> Unit,
     onPickFirstPlayer: () -> Unit,
+    onRematch: () -> Unit,
+    onHome: () -> Unit,
     onFirstPlayerRevealStart: (pickId: String) -> Unit,
     onFirstPlayerRevealDismiss: (pickId: String) -> Unit,
     onCounterAdd: (PlayerId, String) -> Unit,
@@ -176,7 +185,10 @@ private fun TrackerTable(
     ) {
         TrackerTableLayout(
             panelCount = state.panels.size,
-            modifier = Modifier.padding(RiftTheme.spacing.sm),
+            modifier = Modifier
+                .padding(RiftTheme.spacing.sm)
+                // Under Game over the table is inert: screen readers skip it and land on the card.
+                .then(if (state.gameOver != null) Modifier.clearAndSetSemantics {} else Modifier),
             strip = {
                 ControlStrip(
                     targetScore = state.targetScore,
@@ -229,6 +241,17 @@ private fun TrackerTable(
                 modifier = Modifier
                     .matchParentSize()
                     .zIndex(2f),
+            )
+        }
+        state.gameOver?.let { gameOver ->
+            GameOverOverlay(
+                gameOver = gameOver,
+                onRematch = onRematch,
+                onHome = onHome,
+                onUndo = undo,
+                modifier = Modifier
+                    .matchParentSize()
+                    .zIndex(3f),
             )
         }
         state.winnerBanner?.let { banner ->

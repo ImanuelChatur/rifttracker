@@ -24,6 +24,7 @@ import com.rifttally.core.model.SideId
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +32,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -54,6 +58,18 @@ internal class SetupViewModel @Inject constructor(
     /** Saved players as last emitted, for [onPresetApply]. */
     private var latestPresets: List<PlayerPreset> = emptyList()
 
+    /** Recent lineups as last shown, for [onLineupApply]. */
+    private var latestLineups: List<GameConfig> = emptyList()
+
+    /** The active game (if any) and recent ended games: the source of "Recent lineups". */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val lineups = combine(gameRepository.activeGame, gameRepository.recentGames(LINEUP_SOURCE_GAMES)) {
+            active,
+            ended,
+        ->
+        recentLineups(listOfNotNull(active) + ended)
+    }
+
     /** Whether the user picked a format, so the saved default doesn't override their choice. */
     private var formatChosen = false
 
@@ -67,11 +83,15 @@ internal class SetupViewModel @Inject constructor(
         legendRepository.legends,
         userSettingsRepository.userSettings,
         presetRepository.presets,
-    ) { form, legends, settings, presets -> form.toUiState(legends, settings.addXpCounterByDefault, presets) }
+        lineups,
+    ) { form, legends, settings, presets, lineups ->
+        latestLineups = lineups
+        form.toUiState(legends, settings.addXpCounterByDefault, presets, lineups)
+    }
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),
-            form.value.toUiState(emptyList(), false, emptyList()),
+            form.value.toUiState(emptyList(), false, emptyList(), emptyList()),
         )
 
     /**
@@ -105,6 +125,40 @@ internal class SetupViewModel @Inject constructor(
                 legendId = preset.legendId,
                 presetId = preset.id,
                 presetName = preset.name,
+            )
+        }
+    }
+
+    /**
+     * Fills the whole form from recent lineup [index]: format, seats (name, color, Legend, team) and that
+     * game's target. A seat that had a placeholder name ("Player 2") gets a blank name; a seat stays
+     * linked to its saved player only if that saved player still exists under the same name.
+     */
+    fun onLineupApply(index: Int) {
+        val config = latestLineups.getOrNull(index) ?: return
+        formatChosen = true
+        form.update { current ->
+            val count = config.players.size
+            current.copy(
+                format = config.format,
+                players = config.players.mapIndexed { seat, player ->
+                    val preset = player.presetId
+                        ?.let { id -> latestPresets.firstOrNull { it.id == id } }
+                        ?.takeIf { it.name.trim().equals(player.name.trim(), ignoreCase = true) }
+                    val sideId = config.sides.firstOrNull { player.id in it.playerIds }?.id?.value
+                    PlayerForm(
+                        name = if (player.hasDefaultName) "" else player.name,
+                        colorId = player.colorId,
+                        legendId = player.legendId,
+                        team = Team.entries.firstOrNull { it.sideId == sideId }
+                            ?: if (seat < count / 2) Team.A else Team.B,
+                        presetId = preset?.id,
+                        presetName = preset?.name,
+                    )
+                },
+                targetScore = config.targetScore,
+                pickerFor = null,
+                legendQuery = "",
             )
         }
     }
@@ -182,6 +236,7 @@ internal class SetupViewModel @Inject constructor(
         legends: List<Legend>,
         addXpCounter: Boolean,
         presets: List<PlayerPreset>,
+        lineups: List<GameConfig>,
     ): SetupUiState {
         latestPresets = presets
         val byId = legends.associateBy { it.id }
@@ -211,6 +266,14 @@ internal class SetupViewModel @Inject constructor(
             },
             addXpCounter = addXpCounter,
             presets = presets.map { SavedPlayerUiState(id = it.id, name = it.name) }.toImmutableList(),
+            recentLineups = lineups.mapIndexed { index, config ->
+                RecentLineupUiState(
+                    index = index,
+                    names = config.players.map { it.name }.toImmutableList(),
+                    colorIds = config.players.map { it.colorId }.toImmutableList(),
+                    format = config.format,
+                )
+            }.toImmutableList(),
             teamsInvalid = format.isTeams && !canStart(),
             canStart = canStart() && !isStarting,
             isStarting = isStarting,
@@ -307,6 +370,9 @@ internal class SetupViewModel @Inject constructor(
 
     private companion object {
         const val TEAM_SIZE = 2
+
+        /** Recent ended games scanned for distinct lineups (repeats of one lineup are common). */
+        const val LINEUP_SOURCE_GAMES = 50
         val XP_COUNTER_ID = CounterId("xp")
     }
 }

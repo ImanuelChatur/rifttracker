@@ -28,8 +28,22 @@ internal sealed interface TrackerUiState {
         val immersiveMode: Boolean,
         /** The "<Name> goes first" reveal to play, or `null`. */
         val firstPlayerReveal: FirstPlayerRevealUiState? = null,
+        /** Set once the game has ended: the Game over overlay. */
+        val gameOver: GameOverUiState? = null,
     ) : TrackerUiState
 }
+
+/**
+ * The Game over overlay: [winnerName] (`null` = no winner; [winnerIsTeam] for "Ana & Ben win") and the
+ * final scores in seat order.
+ */
+internal data class GameOverUiState(
+    val winnerName: String?,
+    val sides: ImmutableList<GameOverSideUiState>,
+    val winnerIsTeam: Boolean = false,
+)
+
+internal data class GameOverSideUiState(val name: String, val colorId: String, val points: Int, val isWinner: Boolean)
 
 /**
  * Reveals who goes first: a highlight cycles across the panels and settles on [panelIndex] (the side of

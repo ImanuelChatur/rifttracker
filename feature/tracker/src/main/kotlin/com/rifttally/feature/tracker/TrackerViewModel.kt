@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.rifttally.core.data.game.FirstPlayerPicker
 import com.rifttally.core.data.game.GameRecord
 import com.rifttally.core.data.game.GameRepository
+import com.rifttally.core.data.game.rematchConfig
 import com.rifttally.core.data.legend.LegendRepository
 import com.rifttally.core.data.repository.UserSettingsRepository
 import com.rifttally.core.game.GameEvent
@@ -84,7 +85,10 @@ internal class TrackerViewModel @Inject constructor(
     /** Sides whose "Winner?" banner was dismissed with "Keep playing". Pruned to sides still at target. */
     private val dismissedBanner = MutableStateFlow<Set<SideId>>(emptySet())
 
-    /** Set while ending or restarting, so a double tap can't end twice or create two new games. */
+    /**
+     * Set once Restart or Rematch is creating the next game, so a double tap can't create two, and no
+     * further change (e.g. an Undo reopening this game) races the switch.
+     */
     private var isLeaving = false
 
     /**
@@ -138,9 +142,10 @@ internal class TrackerViewModel @Inject constructor(
         append(eventFactory.pointsAdjusted(sideId, delta))
     }
 
+    /** Removes the newest event. Undoing the end reopens the game (and hides the Game over overlay). */
     fun onUndo() {
         val snapshot = latest ?: return
-        if (snapshot.record.events.isEmpty()) return
+        if (isLeaving || snapshot.record.events.isEmpty()) return
         val events = snapshot.record.events.dropLast(1)
         latest = Snapshot(snapshot.record.copy(events = events), reduce(snapshot.record.config, events))
         awaitingSync = true
@@ -202,13 +207,32 @@ internal class TrackerViewModel @Inject constructor(
         dismissedBanner.value = sidesAtTarget(state).toSet()
     }
 
-    /** Ends the game. The winner is the only side at the target, or none if zero or several are. */
+    /**
+     * Ends the game. The winner is the only side at the target, or none if zero or several are. The
+     * tracker stays open and shows Game over (Rematch, Home, Undo).
+     */
     fun onEndGame() {
         val state = latest?.state ?: return
         if (state.isEnded || isLeaving) return
-        isLeaving = true
         val winner = sidesAtTarget(state).singleOrNull()
-        append(eventFactory.gameEnded(winner)) { navigation.send(TrackerNavigationEvent.Exit) }
+        append(eventFactory.gameEnded(winner))
+    }
+
+    /**
+     * Game over → Rematch: a new game with the same lineup and the final target (see [rematchConfig]),
+     * with its own first-player pick when that setting is on. Opens it in place of this one.
+     */
+    fun onRematch() {
+        val snapshot = latest ?: return
+        if (!snapshot.state.isEnded || isLeaving) return
+        isLeaving = true
+        val config = snapshot.record.rematchConfig()
+        write {
+            val newGameId = leavingOrReset {
+                gameRepository.createGame(config, firstPlayerPicker.openingEvents(config))
+            }
+            navigation.send(TrackerNavigationEvent.OpenGame(newGameId))
+        }
     }
 
     /**
@@ -224,7 +248,9 @@ internal class TrackerViewModel @Inject constructor(
         val end = eventFactory.gameEnded(winner = null)
         if (!snapshot.state.isEnded) applyOptimistically(end)
         write {
-            val newGameId = gameRepository.restartGame(gameId, end, config, firstPlayerPicker.openingEvents(config))
+            val newGameId = leavingOrReset {
+                gameRepository.restartGame(gameId, end, config, firstPlayerPicker.openingEvents(config))
+            }
             navigation.send(TrackerNavigationEvent.OpenGame(newGameId))
         }
     }
@@ -239,6 +265,14 @@ internal class TrackerViewModel @Inject constructor(
             gameRepository.appendEvent(gameId, event)
             afterWrite()
         }
+    }
+
+    /** Runs [block]; if it fails, clears [isLeaving] so Rematch, Restart and Undo work again. */
+    private suspend fun <T> leavingOrReset(block: suspend () -> T): T = try {
+        block()
+    } catch (e: Exception) {
+        isLeaving = false
+        throw e
     }
 
     /** Runs [block] (a repository write), counted in [pendingWrites]. */
@@ -351,6 +385,22 @@ private fun buildUiState(
         keepScreenOn = settings.keepScreenOn,
         immersiveMode = settings.immersiveMode,
         firstPlayerReveal = firstPlayerReveal,
+        gameOver = if (state.isEnded) {
+            GameOverUiState(
+                winnerName = state.winner?.let(sideNames::get),
+                winnerIsTeam = panels.firstOrNull { it.sideId == state.winner }?.players?.size?.let { it > 1 } == true,
+                sides = panels.map { panel ->
+                    GameOverSideUiState(
+                        name = panel.displayName,
+                        colorId = panel.players.firstOrNull()?.colorId.orEmpty(),
+                        points = panel.points,
+                        isWinner = panel.sideId == state.winner,
+                    )
+                }.toImmutableList(),
+            )
+        } else {
+            null
+        },
     )
 }
 
@@ -362,9 +412,6 @@ private fun currentPickIndex(events: List<GameEvent>, state: GameState): Int {
 
 /** Navigation requested by [TrackerViewModel]. */
 internal sealed interface TrackerNavigationEvent {
-    /** The game ended: leave the tracker. */
-    data object Exit : TrackerNavigationEvent
-
-    /** The game was restarted as [gameId]: show that game instead. */
+    /** Restart or Rematch created [gameId]: show that game instead. */
     data class OpenGame(val gameId: GameId) : TrackerNavigationEvent
 }

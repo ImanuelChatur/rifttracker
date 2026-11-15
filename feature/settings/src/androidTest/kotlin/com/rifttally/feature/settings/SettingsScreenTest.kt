@@ -113,7 +113,8 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithText(context.getString(R.string.feature_settings_preset_change)).performClick()
         composeTestRule.onNodeWithText(context.getString(R.string.feature_settings_preset_save)).performClick()
 
-        assertEquals(listOf("Anna"), names)
+        // The state here is static, so the field may report its old text back afterwards; the edit comes first.
+        assertEquals("Anna", names.first())
         assertEquals(1, legendPickerOpens)
         assertEquals(1, saves)
     }

@@ -18,6 +18,8 @@ internal data class SetupUiState(
     val addXpCounter: Boolean = false,
     /** Saved players that can fill a player row. */
     val presets: ImmutableList<SavedPlayerUiState> = persistentListOf(),
+    /** Lineups of the most recent games, newest first; tapping one fills the form. Empty hides the row. */
+    val recentLineups: ImmutableList<RecentLineupUiState> = persistentListOf(),
     /** 2v2 only: teams aren't two players each, so the game can't start yet. */
     val teamsInvalid: Boolean = false,
     val canStart: Boolean = true,
@@ -48,6 +50,14 @@ internal data class LegendPickerUiState(
     val query: String,
     val legends: ImmutableList<Legend>,
     val selectedLegendId: String?,
+)
+
+/** One recent lineup: player [names] and [colorIds] in seat order, and the [format]. */
+internal data class RecentLineupUiState(
+    val index: Int,
+    val names: ImmutableList<String>,
+    val colorIds: ImmutableList<String>,
+    val format: GameFormat,
 )
 
 /** A saved player offered in "Load saved player". */

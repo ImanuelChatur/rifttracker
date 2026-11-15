@@ -2,30 +2,40 @@ package com.rifttally.feature.history
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import com.rifttally.core.data.game.FirstPlayerPicker
+import com.rifttally.core.game.GameEvent
+import com.rifttally.core.game.GameEventFactory
 import com.rifttally.core.game.GameLogLine
+import com.rifttally.core.game.IdGenerator
 import com.rifttally.core.model.Legend
 import com.rifttally.core.testing.MainDispatcherRule
+import com.rifttally.core.testing.TestClock
 import com.rifttally.core.testing.repository.FakeGameRepository
 import com.rifttally.core.testing.repository.FakeLegendRepository
+import com.rifttally.core.testing.repository.FakeUserSettingsRepository
 import com.rifttally.feature.history.navigation.GameDetailRoute
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 
+@OptIn(ExperimentalTime::class)
 class GameDetailViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
     private val games = FakeGameRepository()
     private val legends = FakeLegendRepository(listOf(Legend("jinx", "Jinx", null)))
+    private val settings = FakeUserSettingsRepository()
 
     private fun viewModel(gameId: String) = GameDetailViewModel(
         savedStateHandle = SavedStateHandle(mapOf(GameDetailRoute::gameId.name to gameId)),
         gameRepository = games,
         legendRepository = legends,
         defaultDispatcher = mainDispatcherRule.testDispatcher,
+        firstPlayerPicker = FirstPlayerPicker(settings, { 0 }, GameEventFactory(TestClock(), IdGenerator { "pick" })),
     )
 
     @Test
@@ -74,6 +84,28 @@ class GameDetailViewModelTest {
             assertEquals(11, state.targetScore)
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun playAgain_createsTheSameLineupWithAPick_andOpensIt() = runTest {
+        val played = endedGame("g", endedAt = 1_000, points = listOf(S1 to 2))
+        // The target was raised mid-game: Play again starts from the target the game ended on.
+        val ended = played.copy(events = listOf(GameEvent.TargetScoreChanged("t", 1, 12)) + played.events)
+        games.addGame(ended)
+        val viewModel = viewModel("g")
+        viewModel.uiState.test {
+            expectMostRecentItem()
+            viewModel.navigationEvents.test {
+                viewModel.onPlayAgain()
+                viewModel.onPlayAgain() // double tap: one game
+                val event = assertIs<GameDetailNavigationEvent.OpenTracker>(awaitItem())
+                val created = games.allGames.first { it.id == event.gameId }
+                assertEquals(ended.config.copy(targetScore = 12), created.config)
+                assertIs<GameEvent.FirstPlayerChosen>(created.events.single())
+            }
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(2, games.allGames.size)
     }
 
     @Test

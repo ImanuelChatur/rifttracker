@@ -35,6 +35,8 @@ class TrackerScreenTest {
     private var keepPlaying = 0
     private var backs = 0
     private var picks = 0
+    private var rematches = 0
+    private var homes = 0
     private val revealDismissals = mutableListOf<String>()
     private val counterAdds = mutableListOf<Pair<PlayerId, String>>()
     private val counterChanges = mutableListOf<Triple<PlayerId, CounterId, Int>>()
@@ -55,6 +57,8 @@ class TrackerScreenTest {
                     onCounterChange = { player, counter, delta -> counterChanges += Triple(player, counter, delta) },
                     onCounterRemove = { _, _ -> },
                     onPickFirstPlayer = { picks++ },
+                    onRematch = { rematches++ },
+                    onHome = { homes++ },
                     onFirstPlayerRevealDismiss = { revealDismissals += it },
                 )
             }
@@ -91,6 +95,31 @@ class TrackerScreenTest {
         assertEquals(listOf("pick"), revealDismissals)
         // The tap was caught by the reveal, not by a score zone.
         assertEquals(emptyList<Pair<SideId, Int>>(), changes)
+    }
+
+    @Test
+    fun gameOver_offersRematchHomeAndUndo_andBlocksTheTable() {
+        setContent(
+            previewTrackerState.copy(
+                gameOver = GameOverUiState(
+                    winnerName = "Ben",
+                    sides = persistentListOf(
+                        GameOverSideUiState("Ana", "orange", 6, isWinner = false),
+                        GameOverSideUiState("Ben", "sky", 8, isWinner = true),
+                    ),
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithText(context.getString(R.string.feature_tracker_game_over_winner, "Ben"))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.feature_tracker_game_over_rematch)).performClick()
+        composeTestRule.onNodeWithText(context.getString(R.string.feature_tracker_game_over_home)).performClick()
+        composeTestRule.onNodeWithText(context.getString(R.string.feature_tracker_undo)).performClick()
+
+        assertEquals(1, rematches)
+        assertEquals(1, homes)
+        assertEquals(1, undos)
     }
 
     @Test

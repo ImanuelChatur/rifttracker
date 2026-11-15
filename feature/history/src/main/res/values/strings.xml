@@ -56,4 +56,6 @@
     <!-- Accessibility label of the chart. %1$s = final scores, e.g. "Ana, 8 points, Ben, 5 points". -->
     <string name="feature_history_chart_description">Score over time chart. Final scores: %1$s</string>
 
+    <!-- Game detail: a new game with the same players. -->
+    <string name="feature_history_play_again">Play again</string>
 </resources>

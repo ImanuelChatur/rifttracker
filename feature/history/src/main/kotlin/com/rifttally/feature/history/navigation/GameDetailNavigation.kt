@@ -16,8 +16,9 @@ fun NavController.navigateToGameDetail(gameId: GameId, navOptions: NavOptions? =
     navigate(route = GameDetailRoute(gameId.value), navOptions = navOptions)
 }
 
-fun NavGraphBuilder.gameDetailScreen(onBackClick: () -> Unit) {
+/** [onPlayAgain] is called with the new game "Play again" created; `:app` opens it in the tracker. */
+fun NavGraphBuilder.gameDetailScreen(onBackClick: () -> Unit, onPlayAgain: (GameId) -> Unit) {
     composable<GameDetailRoute> {
-        GameDetailRouteContent(onBackClick = onBackClick)
+        GameDetailRouteContent(onBackClick = onBackClick, onPlayAgain = onPlayAgain)
     }
 }

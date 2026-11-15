@@ -67,6 +67,35 @@ class SetupScreenScreenshotTest {
     fun fourPlayers_landscape_light() =
         captureForm(previewSetupFourPlayersState, darkTheme = false, name = "setup_fourplayers_land_light.png")
 
+    @Test
+    fun recentLineups_dark() = captureForm(withLineups(), darkTheme = true, name = "setup_lineups_dark.png")
+
+    @Test
+    fun recentLineups_light() = captureForm(withLineups(), darkTheme = false, name = "setup_lineups_light.png")
+
+    private fun withLineups(): SetupUiState = twoPlayers().copy(
+        recentLineups = persistentListOf(
+            RecentLineupUiState(
+                0,
+                persistentListOf("Ana", "Ben"),
+                persistentListOf("orange", "sky"),
+                GameFormat.TWO_PLAYERS,
+            ),
+            RecentLineupUiState(
+                1,
+                persistentListOf("Ana", "Ben", "Cleo"),
+                persistentListOf("orange", "sky", "green"),
+                GameFormat.THREE_PLAYERS,
+            ),
+            RecentLineupUiState(
+                2,
+                persistentListOf("Ana", "Ben", "Cleo", "Dan"),
+                persistentListOf("orange", "sky", "green", "pink"),
+                GameFormat.TEAMS_2V2,
+            ),
+        ),
+    )
+
     private fun twoPlayers(): SetupUiState = previewSetupState.copy(
         players = previewSetupState.players.mapIndexed { index, player ->
             if (index == 0) player.copy(legend = Legend("jinx", "Jinx", TestArt.Warm.uri(256, 256))) else player

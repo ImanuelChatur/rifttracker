@@ -104,6 +104,7 @@ internal fun SetupRoute(
         onTeamSelect = viewModel::onTeamSelect,
         onPlayerSave = viewModel::onPlayerSave,
         onPresetApply = viewModel::onPresetApply,
+        onLineupApply = viewModel::onLineupApply,
         onLegendClick = viewModel::onLegendPickerOpen,
         onTargetIncrease = viewModel::onTargetScoreIncrease,
         onTargetDecrease = viewModel::onTargetScoreDecrease,
@@ -148,6 +149,7 @@ internal fun SetupScreen(
     onAddXpCounterToggle: (Boolean) -> Unit,
     onStartClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onLineupApply: (index: Int) -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier,
@@ -198,6 +200,10 @@ internal fun SetupScreen(
                     .padding(bottom = RiftTheme.spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.md),
             ) {
+                if (uiState.recentLineups.isNotEmpty()) {
+                    SectionHeader(text = stringResource(R.string.feature_setup_recent_lineups))
+                    RecentLineupsRow(lineups = uiState.recentLineups, onApply = onLineupApply)
+                }
                 SectionHeader(text = stringResource(R.string.feature_setup_format_label))
                 FormatSelector(selected = uiState.format, onSelect = onFormatSelect)
                 if (uiState.teamsInvalid) {

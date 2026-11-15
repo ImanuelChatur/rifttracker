@@ -50,6 +50,14 @@
     <string name="feature_tracker_first_marker_team">1st · %1$s</string>
     <string name="feature_tracker_first_marker_description">%1$s went first</string>
 
+    <!-- Game over overlay. %1$s = winner (player or team, e.g. "Ana &amp; Ben"). -->
+    <string name="feature_tracker_game_over">Game over</string>
+    <string name="feature_tracker_game_over_winner">%1$s wins</string>
+    <string name="feature_tracker_game_over_team_winner">%1$s win</string>
+    <string name="feature_tracker_game_over_no_winner">No winner</string>
+    <string name="feature_tracker_game_over_rematch">Rematch</string>
+    <string name="feature_tracker_game_over_home">Home</string>
+
     <!-- Winner banner. %1$s = names of everyone at the target, e.g. "Ana" or "Ana, Ben". -->
     <string name="feature_tracker_banner_title">Winner?</string>
     <string name="feature_tracker_banner_body">%1$s reached the target</string>

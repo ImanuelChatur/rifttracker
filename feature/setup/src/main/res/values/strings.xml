@@ -37,4 +37,9 @@
     <string name="feature_setup_preset_load_for">Load saved player for %1$s</string>
     <string name="feature_setup_preset_save">Save player</string>
     <string name="feature_setup_preset_save_for">Save %1$s as a saved player</string>
+    <!-- Recent lineups. %1$s = player names joined with " · ", %2$s = format, e.g. "3 players" or "2v2". -->
+    <string name="feature_setup_recent_lineups">Recent lineups</string>
+    <string name="feature_setup_lineup_separator">" · "</string>
+    <string name="feature_setup_lineup_label">%1$s, %2$s</string>
+    <string name="feature_setup_lineup_apply">Use lineup %1$s</string>
 </resources>

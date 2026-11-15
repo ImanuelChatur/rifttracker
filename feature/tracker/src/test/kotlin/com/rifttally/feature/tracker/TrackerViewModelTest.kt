@@ -30,6 +30,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.ExperimentalTime
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
@@ -506,18 +507,106 @@ class TrackerViewModelTest {
     }
 
     @Test
-    fun endGame_withSingleSideAtTarget_namesWinner_andExits() = runTest {
-        val viewModel = viewModel()
+    fun endGame_withSingleSideAtTarget_namesWinner_andShowsGameOver() = withViewModel { viewModel ->
+        repeat(3) { viewModel.onPointsChange(S1, 1) }
+        viewModel.onPointsChange(S2, 1)
+
+        viewModel.onEndGame()
+
+        assertEquals(GameEvent.GameEnded(id = "e5", timestamp = 0, winner = S1), events().last())
+        assertNull(games.activeGame.first())
+        assertEquals(
+            GameOverUiState(
+                winnerName = "Ana",
+                sides = persistentListOf(
+                    GameOverSideUiState("Ana", "orange", 3, isWinner = true),
+                    GameOverSideUiState("Ben", "sky", 1, isWinner = false),
+                ),
+            ),
+            viewModel.success().gameOver,
+        )
+        assertNull(viewModel.success().winnerBanner)
+    }
+
+    @Test
+    fun gameOver_withoutWinner_saysSo() = withViewModel { viewModel ->
+        viewModel.onEndGame()
+
+        val gameOver = assertNotNull(viewModel.success().gameOver)
+        assertNull(gameOver.winnerName)
+        assertTrue(gameOver.sides.none { it.isWinner })
+    }
+
+    @Test
+    fun undoOnGameOver_reopensTheGame() = withViewModel { viewModel ->
+        viewModel.onPointsChange(S1, 1)
+        viewModel.onEndGame()
+
+        viewModel.onUndo()
+
+        assertNull(viewModel.success().gameOver)
+        assertEquals(gameId, games.activeGame.first()?.id)
+        // Playable again.
+        viewModel.onPointsChange(S1, 1)
+        assertEquals(2, viewModel.success().panels[0].points)
+    }
+
+    @Test
+    fun pointsWhileGameOver_areIgnored() = withViewModel { viewModel ->
+        viewModel.onEndGame()
+        viewModel.onPointsChange(S1, 1)
+        viewModel.onCounterAdd(P1, "XP")
+
+        assertIs<GameEvent.GameEnded>(events().single())
+    }
+
+    @Test
+    fun rematch_opensANewGameWithTheSameLineupAndFinalTarget() = runTest {
+        val withXp = config.copy(initialCounters = mapOf(P1 to listOf(Counter(XP_ID, "XP", 0))))
+        val viewModel = viewModelFor(withXp)
         viewModel.uiState.test {
-            repeat(3) { viewModel.onPointsChange(S1, 1) }
+            viewModel.onTargetScoreChange(5)
+            viewModel.onCounterAdd(P2, "Gold") // mid-game counters aren't carried over
+            viewModel.onEndGame()
             viewModel.navigationEvents.test {
-                viewModel.onEndGame()
-                assertEquals(TrackerNavigationEvent.Exit, awaitItem())
+                viewModel.onRematch()
+                viewModel.onRematch() // double tap: still one new game
+                val event = assertIs<TrackerNavigationEvent.OpenGame>(awaitItem())
+                val newGame = games.allGames.first { it.id == event.gameId }
+                assertEquals(withXp.copy(targetScore = 5), newGame.config)
+                // With the default setting, the rematch opens with its own first-player pick.
+                assertIs<GameEvent.FirstPlayerChosen>(newGame.events.single())
             }
             cancelAndIgnoreRemainingEvents()
         }
-        assertEquals(GameEvent.GameEnded(id = "e4", timestamp = 0, winner = S1), events().last())
-        assertNull(games.activeGame.first())
+        assertEquals(2, games.allGames.size)
+        assertEquals(1, games.allGames.count { it.endedAt == null })
+    }
+
+    @Test
+    fun undo_whileRematchIsCreatingTheGame_isIgnored() = runTest {
+        val viewModel = viewModel()
+        viewModel.uiState.test {
+            viewModel.onEndGame()
+            advanceUntilIdle()
+            val gate = CompletableDeferred<Unit>()
+            games.beforeCreate = { gate.await() }
+            viewModel.onRematch()
+            viewModel.onUndo() // must not reopen the old game while the new one is created
+            games.beforeCreate = null
+            gate.complete(Unit)
+            advanceUntilIdle()
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertIs<GameEvent.GameEnded>(events().single())
+        assertEquals(1, games.allGames.count { it.endedAt == null })
+    }
+
+    @Test
+    fun rematch_beforeTheEnd_doesNothing() = withViewModel { viewModel ->
+        viewModel.onRematch()
+
+        assertEquals(1, games.allGames.size)
     }
 
     @Test

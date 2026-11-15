@@ -15,7 +15,8 @@ import org.junit.runner.RunWith
 
 /**
  * End to end through the real app (real Hilt graph and Room database): set up a 2-player game,
- * score, undo, leave and resume it from Home, then end it.
+ * dismiss the first-player reveal, score, undo, leave and resume it from Home, end it (Game over) and
+ * go Home.
  */
 @OptIn(ExperimentalTestApi::class)
 @RunWith(AndroidJUnit4::class)
@@ -47,6 +48,12 @@ class TwoPlayerGameFlowTest {
             .performClick()
         composeTestRule.waitUntilExactlyOneExists(hasContentDescription(increase(0)), TIMEOUT_MILLIS)
 
+        // "Pick first player" is on by default: the reveal covers the table until tapped away.
+        val goesFirst = hasContentDescription(" goes first", substring = true)
+        composeTestRule.waitUntilExactlyOneExists(goesFirst, TIMEOUT_MILLIS)
+        composeTestRule.onNode(goesFirst).performClick()
+        composeTestRule.waitUntilDoesNotExist(goesFirst, TIMEOUT_MILLIS)
+
         // Score twice, undo once: 1 point stored.
         composeTestRule.onNodeWithContentDescription(increase(0)).performClick()
         composeTestRule.waitUntilExactlyOneExists(hasContentDescription(increase(1)), TIMEOUT_MILLIS)
@@ -56,22 +63,16 @@ class TwoPlayerGameFlowTest {
             string(com.rifttally.feature.tracker.R.string.feature_tracker_undo),
         )
             .performClick()
-        composeTestRule.waitUntilAtLeastOneExists(
-            hasContentDescription("$player1, no Legend, 1 point", substring = true),
-            TIMEOUT_MILLIS,
-        )
+        composeTestRule.waitUntilExactlyOneExists(hasContentDescription(increase(1)), TIMEOUT_MILLIS)
 
         // Leave and resume from Home.
         composeTestRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
         val resume = string(com.rifttally.feature.home.R.string.feature_home_resume)
         composeTestRule.waitUntilAtLeastOneExists(hasText(resume), TIMEOUT_MILLIS)
         composeTestRule.onNodeWithText(resume).performClick()
-        composeTestRule.waitUntilAtLeastOneExists(
-            hasContentDescription("$player1, no Legend, 1 point", substring = true),
-            TIMEOUT_MILLIS,
-        )
+        composeTestRule.waitUntilExactlyOneExists(hasContentDescription(increase(1)), TIMEOUT_MILLIS)
 
-        // End from the menu: back at Home with no game to resume.
+        // End from the menu: Game over, then Home with no game to resume.
         composeTestRule.onNodeWithContentDescription(
             string(com.rifttally.feature.tracker.R.string.feature_tracker_menu),
         )
@@ -83,6 +84,9 @@ class TwoPlayerGameFlowTest {
         // The menu is closed now, so the dialog's confirm button is the only "End game".
         composeTestRule.onNodeWithText(string(com.rifttally.feature.tracker.R.string.feature_tracker_menu_end))
             .performClick()
+        val home = string(com.rifttally.feature.tracker.R.string.feature_tracker_game_over_home)
+        composeTestRule.waitUntilExactlyOneExists(hasText(home), TIMEOUT_MILLIS)
+        composeTestRule.onNodeWithText(home).performClick()
         composeTestRule.waitUntilAtLeastOneExists(
             hasText(string(com.rifttally.feature.home.R.string.feature_home_new_game)),
             TIMEOUT_MILLIS,

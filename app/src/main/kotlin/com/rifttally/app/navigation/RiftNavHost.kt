@@ -76,7 +76,16 @@ fun RiftNavHost(navController: NavHostController, modifier: Modifier = Modifier)
             onBackClick = { navController.navigateUp() },
             onGameClick = { gameId -> navController.navigateToGameDetail(gameId, singleTop) },
         )
-        gameDetailScreen(onBackClick = { navController.navigateUp() })
+        gameDetailScreen(
+            onBackClick = { navController.navigateUp() },
+            // Back from the new game goes Home, not to the old game's detail.
+            onPlayAgain = { gameId ->
+                navController.navigateToTracker(
+                    gameId = gameId,
+                    navOptions = navOptions { popUpTo<HomeRoute> { inclusive = false } },
+                )
+            },
+        )
         statsScreen(
             onBackClick = { navController.navigateUp() },
             onPlayerClick = { playerKey -> navController.navigateToPlayerStats(playerKey, singleTop) },

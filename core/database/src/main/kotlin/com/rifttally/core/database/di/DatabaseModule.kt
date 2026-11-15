@@ -6,6 +6,7 @@ import com.rifttally.core.common.dispatchers.IoDispatcher
 import com.rifttally.core.database.RiftDatabase
 import com.rifttally.core.database.dao.GameDao
 import com.rifttally.core.database.dao.GameEventDao
+import com.rifttally.core.database.dao.GameTimerDao
 import com.rifttally.core.database.dao.PlayerPresetDao
 import dagger.Module
 import dagger.Provides
@@ -32,6 +33,9 @@ internal object DatabaseModule {
 
     @Provides
     fun providesGameEventDao(database: RiftDatabase): GameEventDao = database.gameEventDao()
+
+    @Provides
+    fun providesGameTimerDao(database: RiftDatabase): GameTimerDao = database.gameTimerDao()
 
     @Provides
     fun providesPlayerPresetDao(database: RiftDatabase): PlayerPresetDao = database.playerPresetDao()

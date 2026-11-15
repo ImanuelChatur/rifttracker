@@ -40,6 +40,32 @@
     <string name="feature_tracker_menu_first_player">Pick first player</string>
     <string name="feature_tracker_menu_restart">Restart</string>
     <string name="feature_tracker_menu_end">End game</string>
+    <string name="feature_tracker_menu_reset_timer">Reset timer</string>
+
+    <!-- Round timer on the center strip. %1$d = minutes, %2$d = seconds. -->
+    <string name="feature_tracker_timer_time">%1$02d:%2$02d</string>
+    <!-- Overtime, counting up after 0, e.g. "+02:13". -->
+    <string name="feature_tracker_timer_overtime">+%1$02d:%2$02d</string>
+    <plurals name="feature_tracker_timer_minutes">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+    <plurals name="feature_tracker_timer_seconds">
+        <item quantity="one">%1$d second</item>
+        <item quantity="other">%1$d seconds</item>
+    </plurals>
+    <!-- %1$s = minutes part, %2$s = seconds part, e.g. "12 minutes 30 seconds". -->
+    <string name="feature_tracker_timer_minutes_seconds">%1$s %2$s</string>
+    <!-- %1$s = a duration, e.g. "12 minutes 30 seconds". -->
+    <string name="feature_tracker_timer_left_description">%1$s left in round</string>
+    <string name="feature_tracker_timer_over_description">%1$s over time</string>
+    <string name="feature_tracker_timer_running">Running</string>
+    <string name="feature_tracker_timer_paused">Paused</string>
+    <string name="feature_tracker_timer_start">Start round timer</string>
+    <string name="feature_tracker_timer_pause">Pause round timer</string>
+    <!-- Announced once, at the 5-minute mark and at 0. -->
+    <string name="feature_tracker_timer_five_minutes_left">5 minutes left in round</string>
+    <string name="feature_tracker_timer_up">Round time is up</string>
 
     <!-- First-player pick. %1$s = player name. -->
     <string name="feature_tracker_goes_first">%1$s goes first</string>

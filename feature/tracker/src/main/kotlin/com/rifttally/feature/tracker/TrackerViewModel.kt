@@ -9,6 +9,7 @@ import com.rifttally.core.data.game.GameRepository
 import com.rifttally.core.data.game.rematchConfig
 import com.rifttally.core.data.legend.LegendRepository
 import com.rifttally.core.data.repository.UserSettingsRepository
+import com.rifttally.core.data.timer.RoundTimerRepository
 import com.rifttally.core.game.GameEvent
 import com.rifttally.core.game.GameEventFactory
 import com.rifttally.core.game.GameState
@@ -27,13 +28,21 @@ import com.rifttally.core.model.UserSettings
 import com.rifttally.feature.tracker.navigation.TrackerRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -43,6 +52,7 @@ import kotlinx.coroutines.launch
  * The live table. State is derived from the stored event log; every action appends an event (or, for
  * undo, removes the newest one). Never mutates scores directly.
  */
+@OptIn(ExperimentalTime::class)
 @HiltViewModel
 internal class TrackerViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
@@ -51,6 +61,8 @@ internal class TrackerViewModel @Inject constructor(
     userSettingsRepository: UserSettingsRepository,
     private val eventFactory: GameEventFactory,
     private val firstPlayerPicker: FirstPlayerPicker,
+    private val timerRepository: RoundTimerRepository,
+    private val clock: Clock,
 ) : ViewModel() {
 
     // Navigation stores route arguments under their property names. Read by key (not toRoute()) so the
@@ -134,6 +146,41 @@ internal class TrackerViewModel @Inject constructor(
             buildUiState(source, initial, entries, state, legends, settings, stillDismissed, reveal)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TrackerUiState.Loading)
+
+    /**
+     * The round timer, or `null` if this game has none. While it runs this ticks once a second, and only
+     * while the screen collects it (stops as soon as it is no longer visible: nothing runs in the
+     * background). The stored timer, not this ticker, is the truth, so ticks can't drift.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val timerState: StateFlow<RoundTimerUiState?> = timerRepository.observeTimer(gameId)
+        .flatMapLatest { timer ->
+            when {
+                timer == null -> flowOf(null)
+
+                !timer.isRunning -> flowOf(timer.toUiState(nowMs()))
+
+                else -> flow {
+                    while (true) {
+                        val now = nowMs()
+                        emit(timer.toUiState(now))
+                        delay(timer.millisUntilNextSecond(now))
+                    }
+                }
+            }
+        }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+
+    /** Tap on the timer: start if paused, pause if running. Not an event: Undo never touches it. */
+    fun onTimerToggle() {
+        viewModelScope.launch { timerRepository.toggle(gameId) }
+    }
+
+    /** Menu "Reset timer": full length, paused. */
+    fun onTimerReset() {
+        viewModelScope.launch { timerRepository.reset(gameId) }
+    }
 
     fun onPointsChange(sideId: SideId, delta: Int) {
         val state = latest?.state ?: return
@@ -229,7 +276,10 @@ internal class TrackerViewModel @Inject constructor(
         val config = snapshot.record.rematchConfig()
         write {
             val newGameId = leavingOrReset {
-                gameRepository.createGame(config, firstPlayerPicker.openingEvents(config))
+                gameRepository.createGame(config, firstPlayerPicker.openingEvents(config)).also { newId ->
+                    // A round can hold several games: the timer carries over as it is, before the switch.
+                    timerRepository.copyTimer(gameId, newId)
+                }
             }
             navigation.send(TrackerNavigationEvent.OpenGame(newGameId))
         }
@@ -249,7 +299,9 @@ internal class TrackerViewModel @Inject constructor(
         if (!snapshot.state.isEnded) applyOptimistically(end)
         write {
             val newGameId = leavingOrReset {
-                gameRepository.restartGame(gameId, end, config, firstPlayerPicker.openingEvents(config))
+                gameRepository.restartGame(gameId, end, config, firstPlayerPicker.openingEvents(config)).also { newId ->
+                    timerRepository.copyTimer(gameId, newId)
+                }
             }
             navigation.send(TrackerNavigationEvent.OpenGame(newGameId))
         }
@@ -295,6 +347,8 @@ internal class TrackerViewModel @Inject constructor(
         }
         awaitingSync = true
     }
+
+    private fun nowMs(): Long = clock.now().toEpochMilliseconds()
 
     private data class Snapshot(val record: GameRecord, val state: GameState)
 

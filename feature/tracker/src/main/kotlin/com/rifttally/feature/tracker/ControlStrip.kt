@@ -19,8 +19,8 @@ import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.RiftTheme
 
 /**
- * Floating control bar between the panels: a [RiftFloatingToolbar] with Undo · target · Menu.
- * (The target is a small read-only label; it is changed from the menu.)
+ * Floating control bar between the panels: a [RiftFloatingToolbar] with Undo · target · round timer (if
+ * the game has one) · Menu. (The target is a small read-only label; it is changed from the menu.)
  */
 @Composable
 internal fun ControlStrip(
@@ -36,6 +36,10 @@ internal fun ControlStrip(
     onRestartClick: () -> Unit,
     onEndGameClick: () -> Unit,
     modifier: Modifier = Modifier,
+    timer: RoundTimerUiState? = null,
+    hapticsEnabled: Boolean = false,
+    onTimerToggle: () -> Unit = {},
+    onResetTimerClick: () -> Unit = {},
 ) {
     RiftFloatingToolbar(modifier = modifier) {
         RiftIconButton(
@@ -50,6 +54,9 @@ internal fun ControlStrip(
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = RiftTheme.spacing.sm),
         )
+        if (timer != null) {
+            RoundTimerButton(timer = timer, hapticsEnabled = hapticsEnabled, onToggle = onTimerToggle)
+        }
         Box {
             RiftIconButton(
                 imageVector = Icons.Filled.MoreVert,
@@ -60,6 +67,7 @@ internal fun ControlStrip(
                 MenuItem(R.string.feature_tracker_menu_target, onChangeTargetClick)
                 MenuItem(R.string.feature_tracker_menu_history, onHistoryClick)
                 MenuItem(R.string.feature_tracker_menu_first_player, onPickFirstPlayerClick)
+                if (timer != null) MenuItem(R.string.feature_tracker_menu_reset_timer, onResetTimerClick)
                 MenuItem(R.string.feature_tracker_menu_restart, onRestartClick)
                 MenuItem(R.string.feature_tracker_menu_end, onEndGameClick)
             }
@@ -88,6 +96,7 @@ private fun ControlStripPreview() {
             onPickFirstPlayerClick = {},
             onRestartClick = {},
             onEndGameClick = {},
+            timer = RoundTimerUiState(isRunning = true, seconds = 2_843, phase = RoundTimerPhase.Normal),
         )
     }
 }

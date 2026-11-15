@@ -25,7 +25,7 @@ class StatsViewModelTest {
     )
 
     // Lazy: created inside each test, after MainDispatcherRule has installed the test Main dispatcher.
-    private val viewModel by lazy { StatsViewModel(games, legends) }
+    private val viewModel by lazy { StatsViewModel(games, legends, mainDispatcherRule.testDispatcher) }
 
     private fun addSampleGames() {
         // Ana (Jinx) 3 wins of 4; Ben (Viktor) 1 of 3; Cleo (Ahri) 0 of 1, plus a no-winner game.

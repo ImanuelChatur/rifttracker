@@ -40,7 +40,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
@@ -143,11 +142,11 @@ internal fun HomeScreen(
             contentAlignment = Alignment.TopCenter,
         ) {
             val outer = Modifier.padding(horizontal = RiftTheme.spacing.xl, vertical = RiftTheme.spacing.lg)
-            if (maxWidth >= TwoPaneMinWidth && maxWidth > maxHeight) {
+            if (maxWidth >= RiftTheme.sizes.twoPaneMinWindowWidth && maxWidth > maxHeight) {
                 // Landscape / wide (DESIGN.md §8): hero on the left, everything else on the right, so the
                 // hero stays fully visible on a compact-height window. Each pane scrolls on its own.
                 Column(
-                    modifier = outer.widthIn(max = MaxTwoPaneWidth),
+                    modifier = outer.widthIn(max = RiftTheme.sizes.twoPaneMaxWidth),
                     verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.md),
                 ) {
                     HomeHeader(onSettingsClick = onSettingsClick)
@@ -389,7 +388,7 @@ private fun RecentGameRow(game: RecentGameUiState, now: Long, modifier: Modifier
     val scores = buildAnnotatedString {
         game.sides.forEachIndexed { index, side ->
             if (index > 0) append(separator)
-            if (side.name == game.winnerName) {
+            if (side.isWinner) {
                 withStyle(winnerStyle) { append(scoreLabels[index]) }
             } else {
                 append(scoreLabels[index])
@@ -432,12 +431,6 @@ private fun RecentGameRow(game: RecentGameUiState, now: Long, modifier: Modifier
     }
 }
 
-/** From this width (medium, DESIGN.md §8) a landscape window shows Home as two panes. */
-private val TwoPaneMinWidth = 600.dp
-
-/** Width cap of the two panes together on very wide windows. */
-private val MaxTwoPaneWidth = 1040.dp
-
 internal val previewActiveGame = ActiveGameUiState(
     gameId = GameId("g1"),
     targetScore = 8,
@@ -448,7 +441,15 @@ internal val previewActiveGame = ActiveGameUiState(
 )
 
 internal val previewRecentGames = persistentListOf(
-    RecentGameUiState(GameId("g2"), 3_000_000, previewActiveGame.sides, winnerName = "Ana"),
+    RecentGameUiState(
+        GameId("g2"),
+        3_000_000,
+        persistentListOf(
+            ResumeSideUiState("Ana", 8, "orange", "Jinx", null, isWinner = true),
+            ResumeSideUiState("Ben", 5, "sky", null, null),
+        ),
+        winnerName = "Ana",
+    ),
     RecentGameUiState(
         GameId("g1"),
         1_000_000,

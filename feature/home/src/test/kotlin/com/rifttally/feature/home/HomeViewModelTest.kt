@@ -87,8 +87,22 @@ class HomeViewModelTest {
             assertEquals(id, recent.gameId)
             assertEquals(1_000L, recent.endedAt)
             assertEquals("Ana", recent.winnerName)
+            assertEquals(listOf(true, false), recent.sides.map { it.isWinner })
             assertEquals(listOf(8, 0), recent.sides.map { it.points })
             assertEquals(5_000L, state.now)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun sameNames_onlyTheWinningSideIsMarked() = runTest {
+        val twins = config.copy(players = config.players.map { it.copy(name = "Ana") })
+        val id = games.createGame(twins)
+        games.appendEvent(id, GameEvent.GameEnded("e1", 1_000, SideId("s2")))
+
+        viewModel.uiState.test {
+            val recent = assertIs<HomeUiState.Success>(expectMostRecentItem()).recentGames.single()
+            assertEquals(listOf(false, true), recent.sides.map { it.isWinner })
             cancelAndIgnoreRemainingEvents()
         }
     }

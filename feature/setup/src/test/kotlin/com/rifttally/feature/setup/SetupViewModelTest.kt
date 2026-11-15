@@ -317,7 +317,7 @@ class SetupViewModelTest {
     }
 
     @Test
-    fun loadedPreset_isLinkedInConfig_untilTheNameIsEdited() = runTest {
+    fun loadedPreset_isLinkedInConfig_unlessTheNameChanges() = runTest {
         val presets = FakePlayerPresetRepository(listOf(PlayerPreset("ana", "Ana", "green", "jinx")))
         val viewModel = SetupViewModel(games, legends, settings, presets)
         viewModel.uiState.test {
@@ -326,6 +326,8 @@ class SetupViewModelTest {
             viewModel.onPresetApply(0, "ana")
             viewModel.onPresetApply(1, "ana")
             viewModel.onColorSelect(0, "pink") // a different color keeps the link
+            viewModel.onNameChange(0, "An") // editing back to the same name keeps it
+            viewModel.onNameChange(0, " ana ")
             viewModel.onNameChange(1, "Ann") // a different name breaks it
             expectMostRecentItem()
             viewModel.onStartGame(defaultNames, "XP")

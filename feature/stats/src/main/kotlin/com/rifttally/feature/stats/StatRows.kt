@@ -52,7 +52,7 @@ internal fun PlayerStatRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = RiftTheme.sizes.heroButtonHeight)
+            .heightIn(min = RiftTheme.sizes.listRowMinHeight)
             .clickable(role = Role.Button, onClick = onClick)
             .semantics(mergeDescendants = true) { onClick(label = openLabel, action = null) }
             .padding(start = RiftTheme.spacing.lg, end = RiftTheme.spacing.sm)

@@ -26,7 +26,7 @@ class HistoryViewModelTest {
     )
 
     // Lazy: created inside each test, after MainDispatcherRule has installed the test Main dispatcher.
-    private val viewModel by lazy { HistoryViewModel(games, legends) }
+    private val viewModel by lazy { HistoryViewModel(games, legends, mainDispatcherRule.testDispatcher) }
 
     @Test
     fun noEndedGames_isEmptyHistory() = runTest {

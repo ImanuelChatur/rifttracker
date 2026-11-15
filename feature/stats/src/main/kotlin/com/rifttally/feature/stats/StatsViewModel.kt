@@ -2,6 +2,7 @@ package com.rifttally.feature.stats
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rifttally.core.common.dispatchers.DefaultDispatcher
 import com.rifttally.core.data.game.GameRepository
 import com.rifttally.core.data.game.toStatsGame
 import com.rifttally.core.data.legend.LegendRepository
@@ -12,16 +13,21 @@ import com.rifttally.core.stats.statsOverview
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 
 /** Stats overview and the Legend tab, derived from every ended game. */
 @HiltViewModel
-internal class StatsViewModel @Inject constructor(gameRepository: GameRepository, legendRepository: LegendRepository) :
-    ViewModel() {
+internal class StatsViewModel @Inject constructor(
+    gameRepository: GameRepository,
+    legendRepository: LegendRepository,
+    @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
+) : ViewModel() {
 
     private val selectedTab = MutableStateFlow(StatsTab.OVERVIEW)
     private val legendSort = MutableStateFlow(LegendSort.GAMES)
@@ -49,7 +55,8 @@ internal class StatsViewModel @Inject constructor(gameRepository: GameRepository
             selectedTab = tab,
             minGamesForRanking = MIN_GAMES_FOR_RANKING,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StatsUiState.Loading)
+    }.flowOn(defaultDispatcher)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StatsUiState.Loading)
 
     fun onTabSelect(tab: StatsTab) {
         selectedTab.value = tab

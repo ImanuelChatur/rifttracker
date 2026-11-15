@@ -99,9 +99,8 @@ internal class SetupViewModel @Inject constructor(
         applyFormat(format)
     }
 
-    /** Renaming a seat makes it someone else, so it's no longer linked to a loaded saved player. */
-    fun onNameChange(index: Int, name: String) =
-        updatePlayer(index) { it.copy(name = name.take(MAX_NAME_LENGTH), presetId = null) }
+    /** Renaming a seat to a different name unlinks it from a loaded saved player (checked in toConfig). */
+    fun onNameChange(index: Int, name: String) = updatePlayer(index) { it.copy(name = name.take(MAX_NAME_LENGTH)) }
 
     fun onColorSelect(index: Int, colorId: String) = updatePlayer(index) { it.copy(colorId = colorId) }
 
@@ -196,6 +195,10 @@ internal class SetupViewModel @Inject constructor(
     private fun SetupForm.canStart(): Boolean =
         !format.isTeams || Team.entries.all { team -> players.count { it.team == team } == TEAM_SIZE }
 
+    /** True if [name] is still saved player [presetId]'s name (trimmed, ignoring case), so stats stay linked. */
+    private fun presetNameMatches(presetId: String, name: String): Boolean =
+        latestPresets.firstOrNull { it.id == presetId }?.name?.trim().equals(name.trim(), ignoreCase = true)
+
     private fun SetupForm.toConfig(defaultNames: List<String>, xpLabel: String?): GameConfig {
         val gamePlayers = players.mapIndexed { index, player ->
             Player(
@@ -203,7 +206,7 @@ internal class SetupViewModel @Inject constructor(
                 name = player.name.trim().ifEmpty { defaultNames.getOrElse(index) { "${index + 1}" } },
                 colorId = player.colorId,
                 legendId = player.legendId,
-                presetId = player.presetId,
+                presetId = player.presetId?.takeIf { id -> presetNameMatches(id, player.name) },
             )
         }
         val sides = if (format.isTeams) {

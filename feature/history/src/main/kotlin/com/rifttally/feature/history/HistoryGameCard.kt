@@ -41,7 +41,13 @@ internal fun HistoryGameCard(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    SegmentedTile(index = index, count = count, onClick = onClick, modifier = modifier) {
+    SegmentedTile(
+        index = index,
+        count = count,
+        onClick = onClick,
+        onClickLabel = stringResource(R.string.feature_history_open_game),
+        modifier = modifier,
+    ) {
         Column(
             modifier = Modifier.padding(
                 start = RiftTheme.spacing.lg,

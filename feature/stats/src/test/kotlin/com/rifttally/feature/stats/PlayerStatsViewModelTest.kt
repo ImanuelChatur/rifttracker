@@ -25,6 +25,7 @@ class PlayerStatsViewModelTest {
         savedStateHandle = SavedStateHandle(mapOf(PlayerStatsRoute::playerKey.name to key)),
         gameRepository = games,
         legendRepository = legends,
+        defaultDispatcher = mainDispatcherRule.testDispatcher,
     )
 
     @Test

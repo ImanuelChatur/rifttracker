@@ -25,6 +25,7 @@ class GameDetailViewModelTest {
         savedStateHandle = SavedStateHandle(mapOf(GameDetailRoute::gameId.name to gameId)),
         gameRepository = games,
         legendRepository = legends,
+        defaultDispatcher = mainDispatcherRule.testDispatcher,
     )
 
     @Test

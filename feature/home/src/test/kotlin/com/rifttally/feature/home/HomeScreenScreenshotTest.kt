@@ -108,7 +108,7 @@ class HomeScreenScreenshotTest {
             GameId("g2"),
             NOW - HOUR,
             persistentListOf(
-                ResumeSideUiState("Ana", 8, "orange", "Jinx", TestArt.Warm.uri(128, 128)),
+                ResumeSideUiState("Ana", 8, "orange", "Jinx", TestArt.Warm.uri(128, 128), isWinner = true),
                 ResumeSideUiState("Ben", 5, "sky", "Viktor", null),
             ),
             winnerName = "Ana",
@@ -118,7 +118,7 @@ class HomeScreenScreenshotTest {
             NOW - DAY,
             persistentListOf(
                 ResumeSideUiState("Cleo", 4, "green", null, null),
-                ResumeSideUiState("Dan", 8, "pink", "Ahri", TestArt.Bright.uri(128, 128)),
+                ResumeSideUiState("Dan", 8, "pink", "Ahri", TestArt.Bright.uri(128, 128), isWinner = true),
                 ResumeSideUiState("Ben", 6, "sky", null, null),
             ),
             winnerName = "Dan",

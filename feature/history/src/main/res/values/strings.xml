@@ -23,6 +23,7 @@
     <string name="feature_history_winner_icon">Winner</string>
     <!-- %1$s = player names, e.g. "Ana, Ben". -->
     <string name="feature_history_row_menu">More options for the game with %1$s</string>
+    <string name="feature_history_open_game">Open game</string>
     <string name="feature_history_delete">Delete</string>
     <string name="feature_history_deleted">Game deleted</string>
     <string name="feature_history_undo">Undo</string>
@@ -43,6 +44,7 @@
     <string name="feature_history_log_empty">No changes were recorded.</string>
     <!-- %1$s = duration such as "25 minutes". -->
     <string name="feature_history_duration">Duration: %1$s</string>
+    <string name="feature_history_duration_under_minute">under a minute</string>
     <plurals name="feature_history_duration_minutes">
         <item quantity="one">%1$d minute</item>
         <item quantity="other">%1$d minutes</item>

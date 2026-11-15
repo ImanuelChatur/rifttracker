@@ -2,6 +2,7 @@ package com.rifttally.feature.history
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rifttally.core.common.dispatchers.DefaultDispatcher
 import com.rifttally.core.data.game.GameRecord
 import com.rifttally.core.data.game.GameRepository
 import com.rifttally.core.data.game.toStatsGame
@@ -12,11 +13,13 @@ import com.rifttally.core.stats.summarize
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -25,6 +28,8 @@ import kotlinx.coroutines.launch
 internal class HistoryViewModel @Inject constructor(
     private val gameRepository: GameRepository,
     legendRepository: LegendRepository,
+    // Stats replay every game's log: keep that work off the main thread.
+    @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     private val selectedFormat = MutableStateFlow<GameFormat?>(null)
@@ -57,7 +62,8 @@ internal class HistoryViewModel @Inject constructor(
             hasAnyGames = games.isNotEmpty(),
             recentlyDeleted = deleted?.id,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUiState.Loading)
+    }.flowOn(defaultDispatcher)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUiState.Loading)
 
     /** Shows only games of [format], or all games for `null`. */
     fun onFormatSelect(format: GameFormat?) {

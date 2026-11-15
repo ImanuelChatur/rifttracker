@@ -3,6 +3,7 @@ package com.rifttally.feature.history
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rifttally.core.common.dispatchers.DefaultDispatcher
 import com.rifttally.core.data.game.GameRepository
 import com.rifttally.core.data.game.toStatsGame
 import com.rifttally.core.data.legend.LegendRepository
@@ -14,9 +15,11 @@ import com.rifttally.feature.history.navigation.GameDetailRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 
 /** One finished game: final scoreboard, duration, score-over-time chart and the full event log. */
@@ -25,6 +28,8 @@ internal class GameDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     gameRepository: GameRepository,
     legendRepository: LegendRepository,
+    // Stats replay every game's log: keep that work off the main thread.
+    @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     // Navigation stores route arguments under their property names (same approach as the tracker).
@@ -57,5 +62,6 @@ internal class GameDetailViewModel @Inject constructor(
                 sideNames = summary.sides.mapIndexed { index, side -> side.sideId to sides[index].name }.toMap(),
             ).toImmutableList(),
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GameDetailUiState.Loading)
+    }.flowOn(defaultDispatcher)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GameDetailUiState.Loading)
 }

@@ -177,7 +177,8 @@ internal fun SidePanel(
                 // Short panels (seats in 3–4 player games, landscape): everything under the score shares ONE
                 // dense row (name, counters without their label, round "+★"), so the score stays the one
                 // hero element (DESIGN.md §2.2) and keeps most of the height (§5).
-                val compact = maxHeight - topInset < COMPACT_PANEL_HEIGHT && panel.players.size == 1
+                val compact =
+                    maxHeight - topInset < RiftTheme.sizes.trackerCompactPanelHeight && panel.players.size == 1
                 val footerArrangement = Arrangement.spacedBy(RiftTheme.spacing.lg, Alignment.CenterHorizontally)
                 Column(
                     modifier = Modifier
@@ -380,7 +381,7 @@ private fun PlayerFooter(
             PlayerNameChip(
                 name = player.name,
                 playerColor = playerColor,
-                modifier = Modifier.widthIn(max = COMPACT_CHIP_MAX_WIDTH),
+                modifier = Modifier.widthIn(max = RiftTheme.sizes.trackerCompactChipMaxWidth),
             )
             controls()
         }
@@ -471,12 +472,6 @@ private const val GLYPH_ALPHA = 0.4f
 private const val SCRIM_MIDDLE_STOP = 0.55f
 private const val PULSE_MIN_ALPHA = 0.35f
 private const val TARGET_GLOW_FACTOR = 1.5f
-
-/** Below this much height (after the control-bar inset) a single-player panel uses the dense footer. */
-private val COMPACT_PANEL_HEIGHT = 300.dp
-
-/** Long names ellipsize in the dense footer, so the row keeps fitting next to the counters. */
-private val COMPACT_CHIP_MAX_WIDTH = 96.dp
 
 internal val previewPanels = persistentListOf(
     SidePanelUiState(

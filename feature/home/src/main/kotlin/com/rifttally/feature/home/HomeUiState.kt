@@ -30,6 +30,8 @@ internal data class ResumeSideUiState(
     val colorId: String,
     val legendName: String?,
     val legendImageUri: String?,
+    /** True for the side that won an ended game (by id, so equal names can't both be highlighted). */
+    val isWinner: Boolean = false,
 )
 
 /** One ended game: final scores per side, who won (if anyone was named), and when it ended (epoch ms). */

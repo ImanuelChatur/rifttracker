@@ -74,13 +74,13 @@ tokens and a few hand-built components. When `material3` 1.5.0 is stable, swap o
 
 | Token | Radius | Use in Rift Tally |
 |---|---|---|
-| none | 0dp | full-bleed tracker panels (edge to edge) |
+| none | 0dp | edge-to-edge surfaces with no container (backgrounds, scrims) |
 | extraSmall | 4dp | tiny badges |
 | small | 8dp | chips, inline tags |
 | medium | 12dp | list cards (History rows), text fields |
 | large | 16dp | standard cards, sheets' inner cards |
 | largeIncreased | 20dp | Legend picker cards |
-| extraLarge | 28dp | dialogs, bottom sheets (top corners) |
+| extraLarge | 28dp | tracker panels (seats separated by gaps), dialogs, bottom sheets (top corners) |
 | extraLargeIncreased | 32dp | Home hero (Resume) card |
 | extraExtraLarge | 48dp | full-screen hero containers, if any |
 | full | pill/circle | buttons, the floating control bar, counter pills, avatars |
@@ -164,9 +164,11 @@ Token values (generated Material tokens, verified in source **[E10]**):
 
 ## 8. Layout, containment and adaptivity
 
-- **Edge-to-edge** is enforced when targeting API 35+ **[E18]** (we call `enableEdgeToEdge()`). Tracker panels draw
-  behind the system bars; *controls* (the control bar, counter pills, name chips) respect
-  `WindowInsets.safeDrawing`. Other screens use `Scaffold` insets.
+- **Edge-to-edge** is enforced when targeting API 35+ **[E18]** (we call `enableEdgeToEdge()`). The tracker
+  window background draws behind the system bars; the seats (28dp-rounded panels, §4) sit inside
+  `WindowInsets.safeDrawing` so scores and controls never land under a cutout or a rounded display corner.
+  *Decision (v2 design pass):* rounded seats with gaps were chosen over full-bleed panels because they read as
+  separate seats at the table and match the device's rounded corners. Other screens use `Scaffold` insets.
 - **Any window size.** Android 17 (API 37, our target) ignores `screenOrientation`, `resizeableActivity=false` and
   aspect-ratio limits on large screens (sw ≥ 600dp), and apps "must be ready to adapt to any window size" **[E7]**.
   Size from `currentWindowAdaptiveInfo()` window size classes. Width: compact < 600, medium 600–839,

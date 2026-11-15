@@ -44,9 +44,7 @@ internal class HomeViewModel @Inject constructor(
                     gameId = record.id,
                     endedAt = record.endedAt ?: record.createdAt,
                     sides = sides,
-                    winnerName = state.winner?.let { winner ->
-                        record.config.sides.indexOfFirst { it.id == winner }.takeIf { it >= 0 }?.let { sides[it].name }
-                    },
+                    winnerName = sides.firstOrNull { it.isWinner }?.name,
                 )
             }.toImmutableList(),
             now = clock.now().toEpochMilliseconds(),
@@ -66,6 +64,7 @@ internal class HomeViewModel @Inject constructor(
                 colorId = first?.colorId.orEmpty(),
                 legendName = legend?.name,
                 legendImageUri = legend?.imageUri,
+                isWinner = side.id == state.winner,
             )
         }.toImmutableList()
     }

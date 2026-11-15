@@ -24,9 +24,10 @@ internal fun dateTimeText(epochMillis: Long): String = DateUtils.formatDateTime(
         DateUtils.FORMAT_ABBREV_MONTH,
 )
 
-/** "25 minutes" under an hour, "1 h 5 min" from an hour on. */
+/** "Under a minute", "25 minutes" under an hour, "1 h 5 min" from an hour on. */
 @Composable
 internal fun durationText(minutes: Long): String {
+    if (minutes < 1) return stringResource(R.string.feature_history_duration_under_minute)
     val hours = (minutes / MINUTES_PER_HOUR).toInt()
     val rest = (minutes % MINUTES_PER_HOUR).toInt()
     return if (hours == 0) {

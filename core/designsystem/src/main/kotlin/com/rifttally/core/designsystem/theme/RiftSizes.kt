@@ -28,4 +28,14 @@ public data class RiftSizes(
     public val heroArtHeight: Dp = 168.dp,
     /** Max width of a screen's content column on wide windows (DESIGN.md §8: ≈ 640dp, centered). */
     public val listMaxContentWidth: Dp = 640.dp,
+    /** Width cap of a two-pane layout (e.g. Home in landscape) on very wide windows. */
+    public val twoPaneMaxWidth: Dp = 1040.dp,
+    /** Window width from which a landscape window shows two panes (medium width class, DESIGN.md §8). */
+    public val twoPaneMinWindowWidth: Dp = 600.dp,
+    /** Min height of a list row that holds one value (stats rows). */
+    public val listRowMinHeight: Dp = 56.dp,
+    /** Below this height (after the control-bar inset) a single-player tracker panel uses the dense footer. */
+    public val trackerCompactPanelHeight: Dp = 300.dp,
+    /** Max width of the name chip in a tracker panel's dense footer (long names ellipsize). */
+    public val trackerCompactChipMaxWidth: Dp = 96.dp,
 )

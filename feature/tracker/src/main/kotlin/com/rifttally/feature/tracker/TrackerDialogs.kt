@@ -28,6 +28,7 @@ import com.rifttally.core.designsystem.component.RiftTextButton
 import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.model.MIN_TARGET_SCORE
+import com.rifttally.core.ui.rotateLayout
 
 /** Stepper dialog for the target score. The value is a local draft until "Save". */
 @Composable
@@ -117,6 +118,9 @@ private fun ConfirmDialogPreview() {
 /**
  * Adds a counter for [playerName]: one tap on the "XP" preset, or a custom label (trimmed, at most
  * [maxLabelLength] characters).
+ *
+ * The dialog is its own window, so it doesn't inherit the panel's rotation; [quarterTurns] (the asking
+ * player's seat) turns its content to face them instead.
  */
 @Composable
 internal fun AddCounterDialog(
@@ -125,11 +129,12 @@ internal fun AddCounterDialog(
     onAdd: (label: String) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    quarterTurns: Int = 0,
 ) {
     var label by rememberSaveable { mutableStateOf("") }
     val xp = stringResource(R.string.feature_tracker_counter_preset_xp)
     AlertDialog(
-        modifier = modifier,
+        modifier = modifier.rotateLayout(quarterTurns),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.feature_tracker_counter_dialog_title, playerName)) },
         text = {
@@ -163,5 +168,13 @@ internal fun AddCounterDialog(
 private fun AddCounterDialogPreview() {
     RiftTheme {
         AddCounterDialog(playerName = "Ana", maxLabelLength = 12, onAdd = {}, onDismiss = {})
+    }
+}
+
+@PreviewRiftThemes
+@Composable
+private fun AddCounterDialogFarSeatPreview() {
+    RiftTheme {
+        AddCounterDialog(playerName = "Ben", maxLabelLength = 12, onAdd = {}, onDismiss = {}, quarterTurns = 2)
     }
 }

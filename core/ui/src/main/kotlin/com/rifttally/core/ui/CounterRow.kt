@@ -12,13 +12,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -37,11 +37,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
 import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.RiftTheme
+import kotlinx.coroutines.delay
 
 /**
  * A compact extra counter pill shown under a player's points: `−  ★ XP 3  +`. The −/+ buttons are
- * 48dp touch targets and repeat while held. Tapping or long-pressing the label offers "Remove" (also
- * exposed as an accessibility action).
+ * 48dp touch targets and repeat while held. Tapping or long-pressing the label turns it into a "Remove"
+ * button in place (also exposed as an accessibility action); it reverts after a few seconds or on −/+.
+ * It's drawn inside the pill, not in a popup window, so it turns with a rotated panel and faces its
+ * player.
  *
  * @param ownerName the player's name, used in accessibility labels ("Ana, XP, increase").
  * @param dense for small panels: drops the visible label (★ and value stay; the label is still in the
@@ -62,31 +65,73 @@ public fun CounterRow(
     contentColor: Color = RiftTheme.colorScheme.onSurface,
     dense: Boolean = false,
 ) {
-    var menuOpen by rememberSaveable { mutableStateOf(false) }
+    var armed by rememberSaveable { mutableStateOf(false) }
+    if (armed) {
+        LaunchedEffect(Unit) {
+            delay(REMOVE_ARMED_MILLIS)
+            armed = false
+        }
+    }
     val removeLabel = stringResource(R.string.core_ui_counter_remove)
     val description = stringResource(R.string.core_ui_counter_description, ownerName, label, value)
+    val removeDescription = stringResource(R.string.core_ui_counter_remove_description, ownerName, label)
     val touch = RiftTheme.sizes.minTouchTarget
     Surface(modifier = modifier, shape = RiftTheme.shapes.full, color = containerColor, contentColor = contentColor) {
         Row(modifier = Modifier.height(touch), verticalAlignment = Alignment.CenterVertically) {
             RepeatingClickBox(
                 contentDescription = stringResource(R.string.core_ui_counter_decrease, ownerName, label),
-                onClick = { onValueChange(-1) },
+                onClick = {
+                    armed = false
+                    onValueChange(-1)
+                },
                 modifier = Modifier
                     .size(touch)
                     .clip(RiftTheme.shapes.full),
             ) {
                 Icon(imageVector = RiftIcons.Remove, contentDescription = null)
             }
-            Box {
+            if (armed) {
+                Box(
+                    modifier = Modifier
+                        .sizeIn(minHeight = touch)
+                        .clip(RiftTheme.shapes.full)
+                        .combinedClickable(onClick = {
+                            armed = false
+                            onRemove()
+                        })
+                        .semantics { contentDescription = removeDescription }
+                        .padding(horizontal = RiftTheme.spacing.xs),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    // The pill's own content color keeps the contrast the label had (DESIGN.md §3); the
+                    // icon and verb mark the state.
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xxs),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = null,
+                            modifier = Modifier.size(RiftTheme.sizes.iconSmall),
+                        )
+                        Text(
+                            text = removeLabel,
+                            style = RiftTheme.typography.labelLarge,
+                            maxLines = 1,
+                            modifier = Modifier.clearAndSetSemantics {},
+                        )
+                    }
+                }
+            } else {
                 Row(
                     modifier = Modifier
                         .sizeIn(minHeight = touch)
                         .clip(RiftTheme.shapes.full)
-                        // Tap or long-press opens the "Remove" menu (a tap alone would otherwise do nothing).
+                        // Tap or long-press arms "Remove" (a tap alone would otherwise do nothing).
                         .combinedClickable(
                             onClickLabel = removeLabel,
-                            onClick = { menuOpen = true },
-                            onLongClick = { menuOpen = true },
+                            onClick = { armed = true },
+                            onLongClick = { armed = true },
                         )
                         .semantics {
                             contentDescription = description
@@ -124,19 +169,13 @@ public fun CounterRow(
                         modifier = Modifier.clearAndSetSemantics {},
                     )
                 }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    DropdownMenuItem(
-                        text = { Text(removeLabel) },
-                        onClick = {
-                            menuOpen = false
-                            onRemove()
-                        },
-                    )
-                }
             }
             RepeatingClickBox(
                 contentDescription = stringResource(R.string.core_ui_counter_increase, ownerName, label),
-                onClick = { onValueChange(1) },
+                onClick = {
+                    armed = false
+                    onValueChange(1)
+                },
                 modifier = Modifier
                     .size(touch)
                     .clip(RiftTheme.shapes.full),
@@ -163,3 +202,6 @@ private fun CounterRowPreview() {
         }
     }
 }
+
+/** How long the in-place "Remove" button stays armed before the pill reverts. */
+private const val REMOVE_ARMED_MILLIS = 3_000L

@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -145,6 +146,9 @@ private fun TrackerTable(
     val dismiss = { overlay = TrackerOverlay.None }
     // Player whose "+ Counter" dialog is open (id value, saveable), or null.
     var addCounterFor by rememberSaveable { mutableStateOf<String?>(null) }
+
+    // The seat rotation of the player who asked, so the dialog faces them.
+    var addCounterTurns by rememberSaveable { mutableIntStateOf(0) }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -167,7 +171,7 @@ private fun TrackerTable(
                     onEndGameClick = { overlay = TrackerOverlay.EndGame },
                 )
             },
-            panel = { index, panelModifier, stripInset ->
+            panel = { index, panelModifier, stripInset, quarterTurns ->
                 val panel = state.panels[index]
                 SidePanel(
                     panel = panel,
@@ -175,7 +179,10 @@ private fun TrackerTable(
                     onPointsChange = { delta -> onPointsChange(panel.sideId, delta) },
                     onCounterChange = onCounterChange,
                     onCounterRemove = onCounterRemove,
-                    onAddCounterClick = { playerId -> addCounterFor = playerId.value },
+                    onAddCounterClick = { playerId ->
+                        addCounterTurns = quarterTurns
+                        addCounterFor = playerId.value
+                    },
                     modifier = panelModifier,
                     topInset = stripInset,
                 )
@@ -235,6 +242,7 @@ private fun TrackerTable(
         AddCounterDialog(
             playerName = counterOwner.name,
             maxLabelLength = MAX_COUNTER_LABEL_LENGTH,
+            quarterTurns = addCounterTurns,
             onAdd = { label ->
                 onCounterAdd(counterOwner.playerId, label)
                 addCounterFor = null

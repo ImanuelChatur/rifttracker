@@ -42,13 +42,14 @@ import kotlinx.coroutines.delay
  *
  * [panel] draws side `index`; the [Modifier] it receives already sizes, rotates and fades in the slot.
  * `stripInset` is how much of the panel's own top edge the strip covers (0 when it doesn't meet it).
+ * `quarterTurns` is the seat's clockwise rotation, so popups for that seat can face the same way.
  * Panels fade in one after another when the table first appears.
  */
 @Composable
 internal fun TrackerTableLayout(
     panelCount: Int,
     strip: @Composable () -> Unit,
-    panel: @Composable (index: Int, modifier: Modifier, stripInset: Dp) -> Unit,
+    panel: @Composable (index: Int, modifier: Modifier, stripInset: Dp, quarterTurns: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -66,7 +67,7 @@ internal fun TrackerTableLayout(
 private fun LandscapeTable(
     panelCount: Int,
     strip: @Composable () -> Unit,
-    panel: @Composable (index: Int, modifier: Modifier, stripInset: Dp) -> Unit,
+    panel: @Composable (index: Int, modifier: Modifier, stripInset: Dp, quarterTurns: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val gap = RiftTheme.spacing.xs
@@ -75,22 +76,22 @@ private fun LandscapeTable(
         Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(gap)) {
             when (panelCount) {
                 3 -> {
-                    panel(0, Modifier.weight(1f).seat(LEFT).then(rememberEnterFade(0)), 0.dp)
-                    panel(2, Modifier.weight(1f).seat(BOTTOM).then(rememberEnterFade(2)), halfBar * 2)
-                    panel(1, Modifier.weight(1f).seat(RIGHT).then(rememberEnterFade(1)), 0.dp)
+                    panel(0, Modifier.weight(1f).seat(LEFT).then(rememberEnterFade(0)), 0.dp, LEFT)
+                    panel(2, Modifier.weight(1f).seat(BOTTOM).then(rememberEnterFade(2)), halfBar * 2, BOTTOM)
+                    panel(1, Modifier.weight(1f).seat(RIGHT).then(rememberEnterFade(1)), 0.dp, RIGHT)
                 }
 
                 4 -> {
-                    panel(3, Modifier.weight(1f).seat(LEFT).then(rememberEnterFade(3)), 0.dp)
+                    panel(3, Modifier.weight(1f).seat(LEFT).then(rememberEnterFade(3)), 0.dp, LEFT)
                     Column(
                         modifier = Modifier.weight(LANDSCAPE_MIDDLE_WEIGHT),
                         verticalArrangement = Arrangement.spacedBy(gap),
                     ) {
-                        panel(0, Modifier.weight(1f).seat(TOP).then(rememberEnterFade(0)), halfBar)
+                        panel(0, Modifier.weight(1f).seat(TOP).then(rememberEnterFade(0)), halfBar, TOP)
                         FloatingStrip(strip)
-                        panel(2, Modifier.weight(1f).seat(BOTTOM).then(rememberEnterFade(2)), halfBar)
+                        panel(2, Modifier.weight(1f).seat(BOTTOM).then(rememberEnterFade(2)), halfBar, BOTTOM)
                     }
-                    panel(1, Modifier.weight(1f).seat(RIGHT).then(rememberEnterFade(1)), 0.dp)
+                    panel(1, Modifier.weight(1f).seat(RIGHT).then(rememberEnterFade(1)), 0.dp, RIGHT)
                 }
 
                 else -> for (index in 0 until panelCount) {
@@ -98,7 +99,7 @@ private fun LandscapeTable(
                     // panel's own top edge.
                     val turns = if (index == 0) LEFT else RIGHT
                     val inset = if (panelCount == 2) RiftTheme.sizes.minTouchTarget * 2 else 0.dp
-                    panel(index, Modifier.weight(1f).seat(turns).then(rememberEnterFade(index)), inset)
+                    panel(index, Modifier.weight(1f).seat(turns).then(rememberEnterFade(index)), inset, turns)
                 }
             }
         }
@@ -120,7 +121,7 @@ private fun PortraitTable(
     panelCount: Int,
     height: Dp,
     strip: @Composable () -> Unit,
-    panel: @Composable (index: Int, modifier: Modifier, stripInset: Dp) -> Unit,
+    panel: @Composable (index: Int, modifier: Modifier, stripInset: Dp, quarterTurns: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val gap = RiftTheme.spacing.xs
@@ -136,21 +137,21 @@ private fun PortraitTable(
         when (panelCount) {
             3 -> {
                 Row(modifier = Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
-                    panel(0, Modifier.weight(1f).seat(LEFT).then(rememberEnterFade(0)), 0.dp)
-                    panel(1, Modifier.weight(1f).seat(RIGHT).then(rememberEnterFade(1)), 0.dp)
+                    panel(0, Modifier.weight(1f).seat(LEFT).then(rememberEnterFade(0)), 0.dp, LEFT)
+                    panel(1, Modifier.weight(1f).seat(RIGHT).then(rememberEnterFade(1)), 0.dp, RIGHT)
                 }
                 FloatingStrip(strip, insideBelow = true)
-                panel(2, Modifier.weight(bottomWeight).seat(BOTTOM).then(rememberEnterFade(2)), fullBar)
+                panel(2, Modifier.weight(bottomWeight).seat(BOTTOM).then(rememberEnterFade(2)), fullBar, BOTTOM)
             }
 
             4 -> {
-                panel(0, Modifier.weight(1f).seat(TOP).then(rememberEnterFade(0)), 0.dp)
+                panel(0, Modifier.weight(1f).seat(TOP).then(rememberEnterFade(0)), 0.dp, TOP)
                 Row(modifier = Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
-                    panel(3, Modifier.weight(1f).seat(LEFT).then(rememberEnterFade(3)), 0.dp)
-                    panel(1, Modifier.weight(1f).seat(RIGHT).then(rememberEnterFade(1)), 0.dp)
+                    panel(3, Modifier.weight(1f).seat(LEFT).then(rememberEnterFade(3)), 0.dp, LEFT)
+                    panel(1, Modifier.weight(1f).seat(RIGHT).then(rememberEnterFade(1)), 0.dp, RIGHT)
                 }
                 FloatingStrip(strip, insideBelow = true)
-                panel(2, Modifier.weight(bottomWeight).seat(BOTTOM).then(rememberEnterFade(2)), fullBar)
+                panel(2, Modifier.weight(bottomWeight).seat(BOTTOM).then(rememberEnterFade(2)), fullBar, BOTTOM)
             }
 
             else -> {
@@ -159,7 +160,7 @@ private fun PortraitTable(
                     if (index == panelCount / 2) FloatingStrip(strip)
                     val turns = if (panelCount == 2 && index == 0) TOP else BOTTOM
                     val inset = if (panelCount == 2) halfBar else 0.dp
-                    panel(index, Modifier.weight(1f).seat(turns).then(rememberEnterFade(index)), inset)
+                    panel(index, Modifier.weight(1f).seat(turns).then(rememberEnterFade(index)), inset, turns)
                 }
                 if (panelCount < 2) FloatingStrip(strip)
             }

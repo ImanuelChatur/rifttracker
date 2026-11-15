@@ -14,6 +14,7 @@
     <string name="core_ui_counter_increase">%1$s, %2$s, increase</string>
     <string name="core_ui_counter_decrease">%1$s, %2$s, decrease</string>
     <string name="core_ui_counter_remove">Remove</string>
+    <string name="core_ui_counter_remove_description">Remove %2$s from %1$s</string>
 
     <!-- Game log lines (tracker history sheet, game detail). -->
     <!-- %1$s = name, %2$+d = signed change, %3$d = new total. Example: "Ana +1 · 6". -->

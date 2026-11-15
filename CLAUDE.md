@@ -64,5 +64,5 @@ Riftbound points tracker for Android (future Riftbound companion app). The full 
 - No network permission or network code in v1.
 - Legend art comes only from `scripts/fetch_legend_art.py` (Data Dragon) or the developer's `legend-art-inbox/`. Don't bundle other Riot logos/art, and code must still work without any image. Tests use generated placeholder images, never real Riot art.
 - Keep the app free: no ads, paywalls or donations. Keep the "Legal Jibber Jabber" notice in About and the README.
-- Keep the tracker simple: no best-of series, turn tracking or rules enforcement.
+- Keep the tracker simple: no best-of series, turn tracking or rules enforcement. A first-player pick and an optional round timer are fine.
 - Don't build future roadmap features (cards, decks, collection) or add placeholder code for them. Match history and stats (v2, `HANDOFF_V2.md`) are derived from stored games only.

@@ -34,7 +34,8 @@ internal data class PresetUiState(
 
 /**
  * The edit dialog for saved player [id]. [legend] is the chosen Legend (`null` = none). [legendPicker] is
- * set while the Legend sheet is open.
+ * set while the Legend sheet is open. [duplicateName] is the existing saved player whose name "Save" hit
+ * (shown as an inline error), or `null`.
  */
 internal data class PresetEditorUiState(
     val id: String,
@@ -42,6 +43,7 @@ internal data class PresetEditorUiState(
     val colorId: String,
     val legend: Legend?,
     val legendPicker: PresetLegendPickerUiState? = null,
+    val duplicateName: String? = null,
 ) {
     val canSave: Boolean get() = name.isNotBlank()
 }

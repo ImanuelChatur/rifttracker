@@ -116,6 +116,32 @@ class OfflineGameRepositoryTest {
     }
 
     @Test
+    fun restartGame_endsOldGame_andNewOneIsActive() = runTest(dispatcher) {
+        val old = repository.createGame(config)
+        repository.appendEvent(old, points("e1"))
+
+        val new = repository.restartGame(old, GameEvent.GameEnded("end", 30, winner = null), config)
+
+        val oldRecord = assertNotNull(repository.observeGame(old).first())
+        assertEquals(30L, oldRecord.endedAt)
+        assertEquals(listOf("e1", "end"), oldRecord.events.map { it.id })
+        assertEquals(new, repository.activeGame.first()?.id)
+        assertEquals(config, repository.observeGame(new).first()?.config)
+    }
+
+    @Test
+    fun restartGame_onEndedGame_doesNotEndItTwice() = runTest(dispatcher) {
+        val old = repository.createGame(config)
+        repository.appendEvent(old, GameEvent.GameEnded("end1", 20, winner = SIDE_1))
+
+        repository.restartGame(old, GameEvent.GameEnded("end2", 30, winner = null), config)
+
+        val oldRecord = assertNotNull(repository.observeGame(old).first())
+        assertEquals(listOf("end1"), oldRecord.events.map { it.id })
+        assertEquals(20L, oldRecord.endedAt)
+    }
+
+    @Test
     fun activeGame_isMostRecentlyPlayedUnendedGame() = runTest(dispatcher) {
         val first = repository.createGame(config)
         clock.advanceBy(1.seconds)

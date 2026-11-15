@@ -87,4 +87,9 @@ internal class FakeGameEventDao(private val gameDao: FakeGameDao) : GameEventDao
     override suspend fun setGameEnded(gameId: String, updatedAt: Long, endedAt: Long?) {
         gameDao.updateTimestamps(gameId, updatedAt, endedAt)
     }
+
+    override suspend fun insertGame(game: GameEntity) = gameDao.insert(game)
+
+    override suspend fun countActive(gameId: String): Int =
+        if (gameDao.games.value[gameId]?.let { it.endedAt == null } == true) 1 else 0
 }

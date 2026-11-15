@@ -49,6 +49,40 @@ class GameDaoTest {
     }
 
     @Test
+    fun restart_endsOldGame_andInsertsNewOne_inOneTransaction() = runTest {
+        gameDao.insert(game("old", updatedAt = 1))
+
+        eventDao.restart(
+            "old",
+            endEventId = "end",
+            endTimestamp = 7,
+            endPayload = "{}",
+            newGame = game("new", updatedAt = 7),
+        )
+
+        assertEquals(7L, gameDao.observeGame("old").first()?.endedAt)
+        assertEquals(listOf("end"), eventDao.observeEvents("old").first().map { it.id })
+        assertEquals("new", gameDao.observeActiveGame().first()?.id)
+    }
+
+    @Test
+    fun restart_ofEndedGame_doesNotAppendASecondEnd() = runTest {
+        gameDao.insert(game("old", updatedAt = 1, endedAt = 1))
+
+        eventDao.restart(
+            "old",
+            endEventId = "end",
+            endTimestamp = 7,
+            endPayload = "{}",
+            newGame = game("new", updatedAt = 7),
+        )
+
+        assertEquals(1L, gameDao.observeGame("old").first()?.endedAt)
+        assertEquals(emptyList<String>(), eventDao.observeEvents("old").first().map { it.id })
+        assertEquals("new", gameDao.observeActiveGame().first()?.id)
+    }
+
+    @Test
     fun activeGame_isNullWhenAllEnded() = runTest {
         gameDao.insert(game("g", updatedAt = 1, endedAt = 1))
         assertNull(gameDao.observeActiveGame().first())

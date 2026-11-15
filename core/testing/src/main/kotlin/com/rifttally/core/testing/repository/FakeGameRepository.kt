@@ -7,6 +7,7 @@ import com.rifttally.core.model.GameConfig
 import com.rifttally.core.model.GameId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
@@ -17,6 +18,9 @@ import kotlinx.coroutines.flow.update
 public class FakeGameRepository : GameRepository {
     private val games = MutableStateFlow<List<GameRecord>>(emptyList())
     private var created = 0
+
+    /** Stale snapshots [observeGame] emits instead of the real game, until [flush]. */
+    private val stale = MutableStateFlow<Map<GameId, GameRecord>>(emptyMap())
 
     /** Every game, oldest first, most recently touched last. */
     public val allGames: List<GameRecord> get() = games.value
@@ -34,7 +38,32 @@ public class FakeGameRepository : GameRepository {
         all.filter { it.endedAt != null }.sortedByDescending { it.endedAt }
     }
 
-    override fun observeGame(id: GameId): Flow<GameRecord?> = games.map { all -> all.firstOrNull { it.id == id } }
+    override fun observeGame(id: GameId): Flow<GameRecord?> =
+        combine(games, stale) { all, stale -> stale[id] ?: all.firstOrNull { it.id == id } }
+
+    /**
+     * Makes [observeGame] emit the game as it was with only its first [eventCount] events (like a late
+     * Room emission), and keep emitting that, even across writes, until [flush].
+     */
+    public fun emitStale(gameId: GameId, eventCount: Int) {
+        val record = games.value.firstOrNull { it.id == gameId } ?: return
+        emitStale(gameId, record.events.take(eventCount))
+    }
+
+    /** Like [emitStale] with a count, but with an exact older log (e.g. one the game no longer has). */
+    public fun emitStale(gameId: GameId, events: List<GameEvent>) {
+        val record = games.value.firstOrNull { it.id == gameId } ?: return
+        val endedAt = (events.lastOrNull() as? GameEvent.GameEnded)?.timestamp
+        stale.update { it + (gameId to record.copy(events = events, endedAt = endedAt)) }
+    }
+
+    /** Runs before every append/undo; set it to suspend to keep writes in flight. */
+    public var beforeWrite: (suspend () -> Unit)? = null
+
+    /** Ends [emitStale]: [observeGame] emits the real games again. */
+    public fun flush() {
+        stale.value = emptyMap()
+    }
 
     override suspend fun createGame(config: GameConfig): GameId {
         val id = GameId("game${++created}")
@@ -43,6 +72,7 @@ public class FakeGameRepository : GameRepository {
     }
 
     override suspend fun appendEvent(gameId: GameId, event: GameEvent) {
+        beforeWrite?.invoke()
         modify(gameId) { record ->
             record.copy(
                 events = record.events + event,
@@ -52,6 +82,7 @@ public class FakeGameRepository : GameRepository {
     }
 
     override suspend fun undoLastEvent(gameId: GameId) {
+        beforeWrite?.invoke()
         modify(gameId) { record ->
             val last = record.events.lastOrNull() ?: return@modify record
             record.copy(
@@ -59,6 +90,11 @@ public class FakeGameRepository : GameRepository {
                 endedAt = if (last is GameEvent.GameEnded) null else record.endedAt,
             )
         }
+    }
+
+    override suspend fun restartGame(oldGameId: GameId, endEvent: GameEvent.GameEnded, newConfig: GameConfig): GameId {
+        if (games.value.any { it.id == oldGameId && it.endedAt == null }) appendEvent(oldGameId, endEvent)
+        return createGame(newConfig)
     }
 
     override suspend fun deleteGame(id: GameId) {

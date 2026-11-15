@@ -345,4 +345,48 @@ class SetupViewModelTest {
 
         assertEquals(listOf(null, null), games.allGames.single().config.players.map { it.presetId })
     }
+
+    @Test
+    fun savedSeat_isLinkedInConfig_withTheSavedId() = runTest {
+        viewModel.onNameChange(0, "Ana")
+        viewModel.onPlayerSave(0)
+        viewModel.onStartGame(defaultNames, "XP")
+
+        val savedId = presets.current.single().id
+        assertEquals(listOf(savedId, null), games.allGames.single().config.players.map { it.presetId })
+    }
+
+    @Test
+    fun savedSeat_renamedAfterwards_isUnlinked() = runTest {
+        viewModel.onNameChange(0, "Ana")
+        viewModel.onPlayerSave(0)
+        viewModel.onNameChange(0, "Ann")
+        viewModel.onStartGame(defaultNames, "XP")
+
+        assertEquals(listOf(null, null), games.allGames.single().config.players.map { it.presetId })
+    }
+
+    @Test
+    fun savingAnExistingName_reusesThatPreset() = runTest {
+        val presets = FakePlayerPresetRepository(listOf(PlayerPreset("ana", "Ana", "green", "jinx")))
+        val viewModel = SetupViewModel(games, legends, settings, presets)
+        viewModel.onNameChange(0, "ana")
+        viewModel.onColorSelect(0, "pink")
+        viewModel.onPlayerSave(0)
+        viewModel.onStartGame(defaultNames, "XP")
+
+        assertEquals(listOf(PlayerPreset("ana", "Ana", "pink", null)), presets.current)
+        assertEquals("ana", games.allGames.single().config.players[0].presetId)
+    }
+
+    @Test
+    fun blankName_getsPlaceholder_andIsMarkedDefault() = runTest {
+        viewModel.onNameChange(0, "Ana")
+        viewModel.onNameChange(1, "   ")
+        viewModel.onStartGame(defaultNames, "XP")
+
+        val players = games.allGames.single().config.players
+        assertEquals(listOf("Ana", "Player 2"), players.map { it.name })
+        assertEquals(listOf(false, true), players.map { it.hasDefaultName })
+    }
 }

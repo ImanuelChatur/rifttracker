@@ -7,8 +7,13 @@ import com.rifttally.core.model.PlayerId
 import com.rifttally.core.model.Side
 import com.rifttally.core.model.SideId
 
-/** A seat in a test game: [name], optional [legend] and [preset]. */
-internal data class Seat(val name: String, val legend: String? = null, val preset: String? = null)
+/** A seat in a test game: [name], optional [legend] and [preset]; [default] marks a placeholder name. */
+internal data class Seat(
+    val name: String,
+    val legend: String? = null,
+    val preset: String? = null,
+    val default: Boolean = false,
+)
 
 internal fun sideId(index: Int) = SideId("s${index + 1}")
 
@@ -24,7 +29,14 @@ internal fun ffa(
     changes: List<PointChange> = emptyList(),
 ): StatsGame {
     val players = seats.mapIndexed { index, seat ->
-        Player(PlayerId("p${index + 1}"), seat.name, "orange", legendId = seat.legend, presetId = seat.preset)
+        Player(
+            PlayerId("p${index + 1}"),
+            seat.name,
+            "orange",
+            legendId = seat.legend,
+            presetId = seat.preset,
+            hasDefaultName = seat.default,
+        )
     }
     val format = when (seats.size) {
         2 -> GameFormat.TWO_PLAYERS
@@ -53,7 +65,14 @@ internal val TEAM_B = SideId("team_b")
 internal fun teams(teamA: Pair<Seat, Seat>, teamB: Pair<Seat, Seat>, winner: SideId?, ended: Long = 1_000): StatsGame {
     val seats = listOf(teamA.first, teamA.second, teamB.first, teamB.second)
     val players = seats.mapIndexed { index, seat ->
-        Player(PlayerId("p${index + 1}"), seat.name, "orange", legendId = seat.legend, presetId = seat.preset)
+        Player(
+            PlayerId("p${index + 1}"),
+            seat.name,
+            "orange",
+            legendId = seat.legend,
+            presetId = seat.preset,
+            hasDefaultName = seat.default,
+        )
     }
     return StatsGame(
         id = "t$ended",

@@ -16,10 +16,12 @@ import org.junit.Test
 class OfflinePlayerPresetRepositoryTest {
     private val dao = object : PlayerPresetDao {
         val rows = MutableStateFlow<List<PlayerPresetEntity>>(emptyList())
+        var writes = 0
 
         override fun observeAll(): Flow<List<PlayerPresetEntity>> = rows.map { all -> all.sortedBy { it.name } }
 
         override suspend fun upsert(preset: PlayerPresetEntity) {
+            writes++
             rows.update { all -> all.filterNot { it.id == preset.id } + preset }
         }
 
@@ -49,12 +51,30 @@ class OfflinePlayerPresetRepositoryTest {
     }
 
     @Test
-    fun save_samePlayerTwice_keepsOne() = runTest {
-        repository.save("Ana", "orange", "jinx")
-        repository.save("Ana", "orange", "jinx")
-        repository.save("Ana", "sky", "jinx")
+    fun save_returnsId_orNullWhenBlank() = runTest {
+        assertEquals("id1", repository.save("Ana", "orange", "jinx"))
+        assertEquals(null, repository.save("  ", "sky", null))
+    }
 
-        assertEquals(2, repository.presets.first().size)
+    @Test
+    fun save_sameNameAgain_updatesColorAndLegend_andKeepsTheId() = runTest {
+        repository.save("Ana", "orange", "jinx")
+
+        val id = repository.save(" ana ", "sky", "viktor")
+
+        assertEquals("id1", id)
+        assertEquals(listOf(PlayerPreset("id1", "Ana", "sky", "viktor")), repository.presets.first())
+    }
+
+    @Test
+    fun save_unchanged_writesNothing() = runTest {
+        repository.save("Ana", "orange", "jinx")
+        val before = dao.writes
+
+        repository.save("Ana", "orange", "jinx")
+
+        assertEquals(before, dao.writes)
+        assertEquals(1, repository.presets.first().size)
     }
 
     @Test
@@ -74,5 +94,15 @@ class OfflinePlayerPresetRepositoryTest {
         repository.update(PlayerPreset("nope", "Ben", "sky", null))
 
         assertEquals(listOf(PlayerPreset("id1", "Ana", "orange", "jinx")), repository.presets.first())
+    }
+
+    @Test
+    fun update_toAnotherPresetsName_isIgnored() = runTest {
+        repository.save("Ana", "orange", null)
+        repository.save("Ben", "sky", null)
+
+        repository.update(PlayerPreset("id2", " ANA ", "sky", null))
+
+        assertEquals(listOf("Ana", "Ben"), repository.presets.first().map { it.name })
     }
 }

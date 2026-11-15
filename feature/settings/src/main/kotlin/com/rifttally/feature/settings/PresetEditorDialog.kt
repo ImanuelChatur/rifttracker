@@ -52,7 +52,10 @@ internal fun PresetEditorDialog(
                     onValueChange = onNameChange,
                     label = { Text(stringResource(R.string.feature_settings_preset_name)) },
                     singleLine = true,
-                    isError = !editor.canSave,
+                    isError = !editor.canSave || editor.duplicateName != null,
+                    supportingText = editor.duplicateName?.let { existing ->
+                        { Text(stringResource(R.string.feature_settings_preset_duplicate, existing)) }
+                    },
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -134,6 +137,23 @@ private fun PresetEditorDialogPreview() {
         Surface {
             PresetEditorDialog(
                 editor = previewPresetEditor,
+                onNameChange = {},
+                onColorSelect = {},
+                onLegendClick = {},
+                onSave = {},
+                onDismiss = {},
+            )
+        }
+    }
+}
+
+@PreviewRiftThemes
+@Composable
+private fun PresetEditorDialogDuplicatePreview() {
+    RiftTheme {
+        Surface {
+            PresetEditorDialog(
+                editor = previewPresetEditor.copy(name = "Ben", duplicateName = "Ben"),
                 onNameChange = {},
                 onColorSelect = {},
                 onLegendClick = {},

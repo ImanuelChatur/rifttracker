@@ -16,17 +16,23 @@ public class FakePlayerPresetRepository(initial: List<PlayerPreset> = emptyList(
 
     public val current: List<PlayerPreset> get() = state.value
 
-    override suspend fun save(name: String, colorId: String, legendId: String?) {
+    override suspend fun save(name: String, colorId: String, legendId: String?): String? {
         val trimmed = name.trim()
-        if (trimmed.isEmpty()) return
-        if (state.value.any { it.name == trimmed && it.colorId == colorId && it.legendId == legendId }) return
-        state.update { it + PlayerPreset("preset${++created}", trimmed, colorId, legendId) }
+        if (trimmed.isEmpty()) return null
+        val existing = state.value.firstOrNull { it.name.trim().equals(trimmed, ignoreCase = true) }
+        val saved = PlayerPreset(existing?.id ?: "preset${++created}", existing?.name ?: trimmed, colorId, legendId)
+        if (saved == existing) return saved.id
+        state.update { all -> if (existing == null) all + saved else all.map { if (it.id == saved.id) saved else it } }
+        return saved.id
     }
 
     override suspend fun update(preset: PlayerPreset) {
         val trimmed = preset.name.trim()
         if (trimmed.isEmpty()) return
-        state.update { all -> all.map { if (it.id == preset.id) preset.copy(name = trimmed) else it } }
+        val all = state.value
+        if (all.none { it.id == preset.id }) return
+        if (all.any { it.id != preset.id && it.name.trim().equals(trimmed, ignoreCase = true) }) return
+        state.update { list -> list.map { if (it.id == preset.id) preset.copy(name = trimmed) else it } }
     }
 
     override suspend fun delete(id: String) {

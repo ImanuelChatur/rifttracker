@@ -76,17 +76,33 @@ internal class OfflineGameRepository @Inject constructor(
         }.flowOn(ioDispatcher)
 
     override suspend fun createGame(config: GameConfig): GameId {
-        val id = GameId(idGenerator.newId())
+        val game = newGameEntity(config)
+        gameDao.insert(game)
+        return GameId(game.id)
+    }
+
+    override suspend fun restartGame(oldGameId: GameId, endEvent: GameEvent.GameEnded, newConfig: GameConfig): GameId {
+        val game = newGameEntity(newConfig)
+        writeMutex.withLock {
+            eventDao.restart(
+                oldGameId = oldGameId.value,
+                endEventId = endEvent.id,
+                endTimestamp = endEvent.timestamp,
+                endPayload = GameJson.encodeToString(GameEvent.serializer(), endEvent),
+                newGame = game,
+            )
+        }
+        return GameId(game.id)
+    }
+
+    private fun newGameEntity(config: GameConfig): GameEntity {
         val now = clock.now().toEpochMilliseconds()
-        gameDao.insert(
-            GameEntity(
-                id = id.value,
-                createdAt = now,
-                updatedAt = now,
-                configJson = GameJson.encodeToString(GameConfig.serializer(), config),
-            ),
+        return GameEntity(
+            id = idGenerator.newId(),
+            createdAt = now,
+            updatedAt = now,
+            configJson = GameJson.encodeToString(GameConfig.serializer(), config),
         )
-        return id
     }
 
     override suspend fun appendEvent(gameId: GameId, event: GameEvent) {

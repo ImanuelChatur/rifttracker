@@ -27,6 +27,26 @@ class GameJsonTest {
         assertEquals(listOf("Ana", "Ben"), config.players.map { it.name })
         assertEquals("jinx", config.players[0].legendId)
         config.players.forEach { assertNull(it.presetId) }
+        config.players.forEach { assertEquals(false, it.hasDefaultName) }
+    }
+
+    @Test
+    fun hasDefaultName_roundTrips() {
+        val config = GameConfig(
+            format = GameFormat.TWO_PLAYERS,
+            sides = listOf(Side(SideId("s1"), listOf(PlayerId("p1"))), Side(SideId("s2"), listOf(PlayerId("p2")))),
+            players = listOf(
+                Player(PlayerId("p1"), "Ana", "orange"),
+                Player(PlayerId("p2"), "Player 2", "sky", hasDefaultName = true),
+            ),
+        )
+
+        val decoded = GameJson.decodeFromString(
+            GameConfig.serializer(),
+            GameJson.encodeToString(GameConfig.serializer(), config),
+        )
+
+        assertEquals(config, decoded)
     }
 
     @Test

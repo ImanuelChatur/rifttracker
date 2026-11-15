@@ -32,12 +32,16 @@ internal fun StatsGame.sideOfPlayer(): Map<PlayerId, SideId> =
 internal val StatsGame.validWinner: SideId?
     get() = winner?.takeIf { w -> config.sides.any { it.id == w } }
 
-/** Every appearance in [games], newest game first. Players not on any side are ignored. */
+/**
+ * Every appearance in [games], newest game first. Players not on any side are ignored, and so are
+ * placeholder-named ones ([com.rifttally.core.model.Player.hasDefaultName]): they aren't a person, so
+ * they're left out of player stats and head-to-head (their Legend still counts in [legendStats]).
+ */
 internal fun appearances(games: List<StatsGame>): List<Appearance> = games.newestFirst().flatMap { game ->
     val sideOf = game.sideOfPlayer()
     val winner = game.validWinner
     game.config.players
-        .filter { it.id in sideOf }
+        .filter { it.id in sideOf && !it.hasDefaultName }
         .groupBy { PlayerKey.of(it) }
         .map { (key, seats) ->
             val sides = seats.mapNotNull { sideOf[it.id] }.toSet()

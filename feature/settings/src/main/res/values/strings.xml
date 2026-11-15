@@ -42,6 +42,8 @@
     <string name="feature_settings_preset_change">Change</string>
     <string name="feature_settings_preset_choose_legend">Choose Legend</string>
     <string name="feature_settings_preset_save">Save</string>
+    <!-- Inline error when renaming a saved player to a name another one has. %1$s = that name. -->
+    <string name="feature_settings_preset_duplicate">You already have a saved player called %1$s</string>
     <string name="feature_settings_preset_cancel">Cancel</string>
 
     <!-- %1$s = version name, e.g. 0.1.0. -->

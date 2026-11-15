@@ -29,8 +29,10 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.ExperimentalTime
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -136,6 +138,77 @@ class TrackerViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(listOf(1, -1), events().map { (it as GameEvent.PointsAdjusted).delta })
+    }
+
+    @Test
+    fun staleEmission_doesNotUnblockMinusAtZero() = withViewModel { viewModel ->
+        games.emitStale(gameId, eventCount = 0) // hold Room's emissions
+        viewModel.onPointsChange(S1, 1) // A
+        viewModel.onPointsChange(S1, -1) // B: back to 0
+        assertEquals(2, events().size)
+        games.emitStale(gameId, eventCount = 1) // a late emission with only A (1 point)
+        viewModel.onPointsChange(S1, -1) // C: must still be blocked
+        games.flush()
+
+        assertEquals(listOf("e1", "e2"), events().map { it.id })
+        assertEquals(listOf(1, -1), events().map { (it as GameEvent.PointsAdjusted).delta })
+        assertEquals(0, viewModel.success().panels[0].points)
+    }
+
+    @Test
+    fun staleEmission_showsOptimisticScore_thenFollowsDatabaseOnceInSync() = withViewModel { viewModel ->
+        games.emitStale(gameId, eventCount = 0)
+        viewModel.onPointsChange(S1, 1)
+        viewModel.onPointsChange(S1, 1)
+        games.emitStale(gameId, eventCount = 1)
+
+        assertEquals(2, viewModel.success().panels[0].points)
+
+        games.flush()
+        assertEquals(2, viewModel.success().panels[0].points)
+        // In sync again: a change that didn't come from this screen is followed.
+        games.appendEvent(gameId, factory.pointsAdjusted(S2, 1))
+        assertEquals(1, viewModel.success().panels[1].points)
+    }
+
+    @Test
+    fun plusThenUndo_inFlight_oldMatchingEmission_doesNotUnblockMinus() = runTest {
+        val viewModel = viewModel()
+        viewModel.uiState.test {
+            expectMostRecentItem()
+            val gate = CompletableDeferred<Unit>()
+            games.beforeWrite = { gate.await() } // both writes stay in flight
+            viewModel.onPointsChange(S1, 1) // A (e1)
+            viewModel.onUndo()
+            games.emitStale(gameId, events = emptyList()) // from before A: same ids as the optimistic log
+            games.emitStale(gameId, events = listOf(GameEvent.PointsAdjusted("e1", 0, S1, 1))) // stale [A]
+            viewModel.onPointsChange(S1, -1) // must be blocked: the score is 0
+            games.beforeWrite = null
+            gate.complete(Unit)
+            advanceUntilIdle()
+            games.flush()
+            advanceUntilIdle()
+
+            assertEquals(emptyList(), events())
+            assertEquals(0, viewModel.success().panels[0].points)
+            // In sync again: a change that didn't come from this screen is followed.
+            games.appendEvent(gameId, factory.pointsAdjusted(S2, 1))
+            assertEquals(1, viewModel.success().panels[1].points)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun staleEmission_afterUndo_keepsTheUndo() = withViewModel { viewModel ->
+        viewModel.onPointsChange(S1, 1)
+        viewModel.onPointsChange(S1, 1)
+        games.emitStale(gameId, eventCount = 2)
+        viewModel.onUndo()
+
+        assertEquals(1, viewModel.success().panels[0].points)
+        games.flush()
+        assertEquals(1, viewModel.success().panels[0].points)
+        assertEquals(1, events().size)
     }
 
     @Test
@@ -463,6 +536,8 @@ class TrackerViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
         assertIs<GameEvent.GameEnded>(events().last())
+        // One active game: the new one.
+        assertEquals(1, games.allGames.count { it.endedAt == null })
     }
 
     @Test

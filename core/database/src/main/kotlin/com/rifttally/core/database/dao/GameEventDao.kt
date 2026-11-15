@@ -4,12 +4,13 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
+import com.rifttally.core.database.model.GameEntity
 import com.rifttally.core.database.model.GameEventEntity
 import kotlinx.coroutines.flow.Flow
 
 /**
- * The event log. Writes go through [append] and [undoLast], which also keep the owning game's
- * `updated_at` / `ended_at` in sync, atomically.
+ * The event log. Writes go through [append], [undoLast] and [restart], which also keep the owning
+ * game's `updated_at` / `ended_at` in sync, atomically.
  */
 @Dao
 public abstract class GameEventDao {
@@ -33,6 +34,13 @@ public abstract class GameEventDao {
         """,
     )
     public abstract suspend fun deleteLast(gameId: String)
+
+    @Insert
+    protected abstract suspend fun insertGame(game: GameEntity)
+
+    /** 1 if the game exists and hasn't ended, else 0. */
+    @Query("SELECT COUNT(*) FROM game WHERE id = :gameId AND ended_at IS NULL")
+    protected abstract suspend fun countActive(gameId: String): Int
 
     @Query("UPDATE game SET updated_at = :updatedAt WHERE id = :gameId")
     protected abstract suspend fun touchGame(gameId: String, updatedAt: Long)
@@ -65,5 +73,24 @@ public abstract class GameEventDao {
     public open suspend fun undoLast(gameId: String, updatedAt: Long, reopensGame: Boolean) {
         deleteLast(gameId)
         if (reopensGame) setGameEnded(gameId, updatedAt = updatedAt, endedAt = null) else touchGame(gameId, updatedAt)
+    }
+
+    /**
+     * Restart, in one transaction: ends [oldGameId] with the given `GameEnded` event (unless it already
+     * ended or doesn't exist) and inserts [newGame]. A crash can't leave both games open. As in
+     * [append], [endTimestamp] becomes the old game's `ended_at` and `updated_at`.
+     */
+    @Transaction
+    public open suspend fun restart(
+        oldGameId: String,
+        endEventId: String,
+        endTimestamp: Long,
+        endPayload: String,
+        newGame: GameEntity,
+    ) {
+        if (countActive(oldGameId) > 0) {
+            append(oldGameId, endEventId, endTimestamp, endPayload, endsGame = true)
+        }
+        insertGame(newGame)
     }
 }

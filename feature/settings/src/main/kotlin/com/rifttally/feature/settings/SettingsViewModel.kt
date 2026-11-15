@@ -34,12 +34,16 @@ internal class SettingsViewModel @Inject constructor(
 
     private val draft = MutableStateFlow<PresetDraft?>(null)
 
+    /** Saved players as last emitted, for the synchronous duplicate-name check on "Save". */
+    private var latestPresets: List<PlayerPreset> = emptyList()
+
     val uiState: StateFlow<SettingsUiState> = combine(
         settingsRepository.userSettings,
         presetRepository.presets,
         legendRepository.legends,
         draft,
     ) { settings, presets, legends, draft ->
+        latestPresets = presets
         val legendsById = legends.associateBy { it.id }
         SettingsUiState.Success(
             themeMode = settings.themeMode,
@@ -65,6 +69,7 @@ internal class SettingsViewModel @Inject constructor(
                     name = edit.name,
                     colorId = edit.colorId,
                     legend = edit.legendId?.let(legendsById::get),
+                    duplicateName = edit.duplicateName,
                     legendPicker = edit.legendQuery?.let { query ->
                         val trimmed = query.trim()
                         PresetLegendPickerUiState(
@@ -102,7 +107,8 @@ internal class SettingsViewModel @Inject constructor(
         draft.value = PresetDraft(preset.id, preset.name, preset.colorId, preset.legendId)
     }
 
-    fun onPresetNameChange(name: String) = editDraft { it.copy(name = name.take(MAX_PLAYER_NAME_LENGTH)) }
+    fun onPresetNameChange(name: String) =
+        editDraft { it.copy(name = name.take(MAX_PLAYER_NAME_LENGTH), duplicateName = null) }
 
     fun onPresetColorSelect(colorId: String) = editDraft { it.copy(colorId = colorId) }
 
@@ -114,12 +120,22 @@ internal class SettingsViewModel @Inject constructor(
 
     fun onPresetLegendPickerDismiss() = editDraft { it.copy(legendQuery = null) }
 
-    /** Writes the draft (same id, so the player's stats stay linked) and closes the editor. */
+    /**
+     * Writes the draft (same id, so the player's stats stay linked) and closes the editor. A name another
+     * saved player already has (names are unique) is rejected with an inline error instead.
+     */
     fun onPresetEditSave() {
         val edit = draft.value ?: return
-        if (edit.name.isBlank()) return
+        val name = edit.name.trim()
+        if (name.isEmpty()) return
+        // Checked synchronously, against the name as it is now (a later edit can't get a stale error).
+        val clash = latestPresets.firstOrNull { it.id != edit.id && it.name.trim().equals(name, ignoreCase = true) }
+        if (clash != null) {
+            editDraft { it.copy(duplicateName = clash.name) }
+            return
+        }
         draft.value = null
-        launch { presetRepository.update(PlayerPreset(edit.id, edit.name, edit.colorId, edit.legendId)) }
+        launch { presetRepository.update(PlayerPreset(edit.id, name, edit.colorId, edit.legendId)) }
     }
 
     fun onPresetEditDismiss() {
@@ -133,11 +149,15 @@ internal class SettingsViewModel @Inject constructor(
     }
 }
 
-/** The unsaved edit of a saved player. [legendQuery] is non-null while the Legend sheet is open. */
+/**
+ * The unsaved edit of a saved player. [legendQuery] is non-null while the Legend sheet is open;
+ * [duplicateName] is set when "Save" hit another saved player's name, until the name is edited.
+ */
 private data class PresetDraft(
     val id: String,
     val name: String,
     val colorId: String,
     val legendId: String?,
     val legendQuery: String? = null,
+    val duplicateName: String? = null,
 )

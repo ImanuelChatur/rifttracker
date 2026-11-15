@@ -25,6 +25,12 @@ public interface GameRepository {
     /** Appends [event] to the game's log. A [GameEvent.GameEnded] also marks the game ended. */
     public suspend fun appendEvent(gameId: GameId, event: GameEvent)
 
+    /**
+     * Ends [oldGameId] with [endEvent] (unless it already ended) and creates a game with [newConfig], in
+     * one transaction, so a crash can't leave two open games. Returns the new game's id.
+     */
+    public suspend fun restartGame(oldGameId: GameId, endEvent: GameEvent.GameEnded, newConfig: GameConfig): GameId
+
     /** Removes the newest event (undo). Undoing a [GameEvent.GameEnded] makes the game active again. */
     public suspend fun undoLastEvent(gameId: GameId)
 

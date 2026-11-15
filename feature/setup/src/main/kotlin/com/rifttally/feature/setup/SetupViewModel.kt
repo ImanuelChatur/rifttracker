@@ -72,18 +72,38 @@ internal class SetupViewModel @Inject constructor(
             form.value.toUiState(emptyList(), false, emptyList()),
         )
 
-    /** Remembers player [index] (name, color, Legend) as a saved player. Blank names are ignored. */
+    /**
+     * Remembers player [index] (name, color, Legend) as a saved player (updating the one with that name,
+     * if any) and links the seat to it, so this game already counts for that saved player in stats.
+     * Blank names are ignored.
+     */
     fun onPlayerSave(index: Int) {
         val player = form.value.players.getOrNull(index) ?: return
         if (player.name.isBlank()) return
-        viewModelScope.launch { presetRepository.save(player.name, player.colorId, player.legendId) }
+        viewModelScope.launch {
+            val presetId = presetRepository.save(player.name, player.colorId, player.legendId) ?: return@launch
+            // The form may have changed meanwhile (e.g. another format); link only the same player.
+            updatePlayer(index) { seat ->
+                if (seat.name.trim() == player.name.trim()) {
+                    seat.copy(presetId = presetId, presetName = player.name.trim())
+                } else {
+                    seat
+                }
+            }
+        }
     }
 
     /** Fills player [index] from saved player [presetId] and links the seat to it (for stats). */
     fun onPresetApply(index: Int, presetId: String) {
         val preset = latestPresets.firstOrNull { it.id == presetId } ?: return
         updatePlayer(index) {
-            it.copy(name = preset.name, colorId = preset.colorId, legendId = preset.legendId, presetId = preset.id)
+            it.copy(
+                name = preset.name,
+                colorId = preset.colorId,
+                legendId = preset.legendId,
+                presetId = preset.id,
+                presetName = preset.name,
+            )
         }
     }
 
@@ -100,7 +120,7 @@ internal class SetupViewModel @Inject constructor(
         applyFormat(format)
     }
 
-    /** Renaming a seat to a different name unlinks it from a loaded saved player (checked in toConfig). */
+    /** Renaming a seat to a different name unlinks it from its saved player (checked in toConfig). */
     fun onNameChange(index: Int, name: String) =
         updatePlayer(index) { it.copy(name = name.take(MAX_PLAYER_NAME_LENGTH)) }
 
@@ -197,18 +217,16 @@ internal class SetupViewModel @Inject constructor(
     private fun SetupForm.canStart(): Boolean =
         !format.isTeams || Team.entries.all { team -> players.count { it.team == team } == TEAM_SIZE }
 
-    /** True if [name] is still saved player [presetId]'s name (trimmed, ignoring case), so stats stay linked. */
-    private fun presetNameMatches(presetId: String, name: String): Boolean =
-        latestPresets.firstOrNull { it.id == presetId }?.name?.trim().equals(name.trim(), ignoreCase = true)
-
     private fun SetupForm.toConfig(defaultNames: List<String>, xpLabel: String?): GameConfig {
         val gamePlayers = players.mapIndexed { index, player ->
+            val typed = player.name.trim()
             Player(
                 id = PlayerId("p${index + 1}"),
-                name = player.name.trim().ifEmpty { defaultNames.getOrElse(index) { "${index + 1}" } },
+                name = typed.ifEmpty { defaultNames.getOrElse(index) { "${index + 1}" } },
                 colorId = player.colorId,
                 legendId = player.legendId,
-                presetId = player.presetId?.takeIf { id -> presetNameMatches(id, player.name) },
+                presetId = player.presetId?.takeIf { player.presetName.equals(typed, ignoreCase = true) },
+                hasDefaultName = typed.isEmpty(),
             )
         }
         val sides = if (format.isTeams) {
@@ -234,12 +252,18 @@ internal class SetupViewModel @Inject constructor(
         )
     }
 
+    /**
+     * One seat. [presetId] links it to a saved player (for stats) while the typed [name] still equals
+     * [presetName], the saved player's name when it was loaded or saved (trimmed, ignoring case); renaming
+     * the seat unlinks it. Kept here rather than looked up, so a just-saved player is linked at once.
+     */
     private data class PlayerForm(
         val name: String,
         val colorId: String,
         val legendId: String?,
         val team: Team,
         val presetId: String? = null,
+        val presetName: String? = null,
     )
 
     private data class SetupForm(

@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
@@ -59,6 +60,25 @@ internal class TrackerViewModel @Inject constructor(
      */
     private var latest: Snapshot? = null
 
+    /**
+     * True from every write (append, undo, restart) until all of them have finished and Room has emitted
+     * a log with exactly [latest]'s event ids. Meanwhile [latest] is the truth: an older emission that
+     * lacks events still in flight must not roll it back, or a blocked "−" at 0 could slip through. Safe
+     * because the repository applies writes in order, so the database converges to exactly this log, and
+     * only this screen writes to the game.
+     *
+     * Ids alone aren't enough: after "+" then Undo, an emission from before the "+" has the same ids.
+     * Requiring [pendingWrites] == 0 rules that out: a Room query flow emits in order, so once every
+     * write has committed, an emission matching the log can't be followed by an older one.
+     */
+    private var awaitingSync = false
+
+    /** Writes sent to the repository that haven't returned yet. */
+    private var pendingWrites = 0
+
+    /** Bumped when [pendingWrites] drops to 0, to re-check the last emission against [latest]. */
+    private val writesSettled = MutableStateFlow(0)
+
     /** Sides whose "Winner?" banner was dismissed with "Keep playing". Pruned to sides still at target. */
     private val dismissedBanner = MutableStateFlow<Set<SideId>>(emptySet())
 
@@ -75,19 +95,26 @@ internal class TrackerViewModel @Inject constructor(
         legendRepository.legends,
         userSettingsRepository.userSettings,
         dismissedBanner,
-    ) { record, legends, settings, dismissed ->
+        writesSettled,
+    ) { record, legends, settings, dismissed, _ ->
         if (record == null) {
             latest = null
+            awaitingSync = false
             TrackerUiState.NotFound
         } else {
-            val entries = history(record.config, record.events)
-            val initial = reduce(record.config, emptyList())
+            val pending = latest
+            val inSync = pending != null && record.events.map { it.id } == pending.record.events.map { it.id }
+            if (pendingWrites == 0 && inSync) awaitingSync = false
+            // While writes are in flight, show the optimistic log (with the emitted config/timestamps).
+            val source = if (awaitingSync && pending != null) record.copy(events = pending.record.events) else record
+            val entries = history(source.config, source.events)
+            val initial = reduce(source.config, emptyList())
             val state = entries.lastOrNull()?.stateAfter ?: initial
-            latest = Snapshot(record, state)
+            if (!awaitingSync || pending == null) latest = Snapshot(source, state)
             // A side that left the target (by points, undo or a target change) can trigger the banner again.
             val stillDismissed = dismissed intersect sidesAtTarget(state).toSet()
             if (stillDismissed != dismissed) dismissedBanner.value = stillDismissed
-            buildUiState(record, initial, entries, state, legends, settings, stillDismissed)
+            buildUiState(source, initial, entries, state, legends, settings, stillDismissed)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TrackerUiState.Loading)
 
@@ -103,7 +130,8 @@ internal class TrackerViewModel @Inject constructor(
         if (snapshot.record.events.isEmpty()) return
         val events = snapshot.record.events.dropLast(1)
         latest = Snapshot(snapshot.record.copy(events = events), reduce(snapshot.record.config, events))
-        viewModelScope.launch { gameRepository.undoLastEvent(gameId) }
+        awaitingSync = true
+        write { gameRepository.undoLastEvent(gameId) }
     }
 
     fun onTargetScoreChange(newScore: Int) {
@@ -147,32 +175,57 @@ internal class TrackerViewModel @Inject constructor(
         if (state.isEnded || isLeaving) return
         isLeaving = true
         val winner = sidesAtTarget(state).singleOrNull()
-        viewModelScope.launch {
-            gameRepository.appendEvent(gameId, eventFactory.gameEnded(winner))
-            navigation.send(TrackerNavigationEvent.Exit)
-        }
+        append(eventFactory.gameEnded(winner)) { navigation.send(TrackerNavigationEvent.Exit) }
     }
 
-    /** Ends this game without a winner and starts a new one with the same players and current target. */
+    /**
+     * Ends this game without a winner and starts a new one with the same players and current target, in
+     * one transaction (a crash can't leave two open games).
+     */
     fun onRestart() {
         val snapshot = latest ?: return
         if (isLeaving) return
         isLeaving = true
-        viewModelScope.launch {
-            val config = snapshot.record.config.copy(targetScore = snapshot.state.targetScore)
-            val newGameId = gameRepository.createGame(config)
-            if (!snapshot.state.isEnded) gameRepository.appendEvent(gameId, eventFactory.gameEnded(winner = null))
+        val config = snapshot.record.config.copy(targetScore = snapshot.state.targetScore)
+        val end = eventFactory.gameEnded(winner = null)
+        if (!snapshot.state.isEnded) applyOptimistically(end)
+        write {
+            val newGameId = gameRepository.restartGame(gameId, end, config)
             navigation.send(TrackerNavigationEvent.OpenGame(newGameId))
         }
     }
 
-    /** Applies [event] to [latest] right away, then persists it. Room's re-emission confirms it. */
-    private fun append(event: GameEvent) {
+    /**
+     * Applies [event] to [latest] right away, then persists it and runs [afterWrite]. Room's re-emission
+     * confirms it (see [awaitingSync]).
+     */
+    private fun append(event: GameEvent, afterWrite: suspend () -> Unit = {}) {
+        applyOptimistically(event)
+        write {
+            gameRepository.appendEvent(gameId, event)
+            afterWrite()
+        }
+    }
+
+    /** Runs [block] (a repository write), counted in [pendingWrites]. */
+    private fun write(block: suspend () -> Unit) {
+        pendingWrites++
+        viewModelScope.launch {
+            try {
+                block()
+            } finally {
+                pendingWrites--
+                if (pendingWrites == 0) writesSettled.update { it + 1 }
+            }
+        }
+    }
+
+    private fun applyOptimistically(event: GameEvent) {
         latest?.let { snapshot ->
             val events = snapshot.record.events + event
             latest = Snapshot(snapshot.record.copy(events = events), reduce(snapshot.record.config, events))
         }
-        viewModelScope.launch { gameRepository.appendEvent(gameId, event) }
+        awaitingSync = true
     }
 
     private data class Snapshot(val record: GameRecord, val state: GameState)

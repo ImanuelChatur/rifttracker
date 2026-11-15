@@ -136,4 +136,21 @@ class SettingsViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    @Test
+    fun presetEdit_renameToAnotherPresetsName_showsError_andDoesNotSave() = runTest {
+        viewModel.uiState.test {
+            viewModel.onPresetEdit("1")
+            viewModel.onPresetNameChange(" ana ")
+            viewModel.onPresetEditSave()
+
+            val editing = assertIs<SettingsUiState.Success>(expectMostRecentItem()).presetEditor
+            assertEquals("Ana", editing?.duplicateName)
+            assertEquals("Ben", presets.current.single { it.id == "1" }.name)
+
+            viewModel.onPresetNameChange("Benny")
+            assertNull(assertIs<SettingsUiState.Success>(expectMostRecentItem()).presetEditor?.duplicateName)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }

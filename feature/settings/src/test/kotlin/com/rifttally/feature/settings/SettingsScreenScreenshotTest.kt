@@ -54,11 +54,27 @@ class SettingsScreenScreenshotTest {
     fun presetEditor_fontScale200_dark() =
         captureEditor(darkTheme = true, name = "settings_preset_editor_font200_dark.png")
 
-    private fun captureEditor(darkTheme: Boolean, name: String) {
+    @Test
+    @Config(qualifiers = PHONE)
+    fun presetEditor_duplicate_dark() = captureEditor(
+        darkTheme = true,
+        name = "settings_preset_editor_duplicate_dark.png",
+        editor = previewPresetEditor.copy(name = "Ben", duplicateName = "Ben"),
+    )
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun presetEditor_duplicate_light() = captureEditor(
+        darkTheme = false,
+        name = "settings_preset_editor_duplicate_light.png",
+        editor = previewPresetEditor.copy(name = "Ben", duplicateName = "Ben"),
+    )
+
+    private fun captureEditor(darkTheme: Boolean, name: String, editor: PresetEditorUiState = previewPresetEditor) {
         composeRule.setContent {
             RiftTheme(darkTheme = darkTheme) {
                 SettingsScreen(
-                    uiState = previewSettingsState.copy(presetEditor = previewPresetEditor),
+                    uiState = previewSettingsState.copy(presetEditor = editor),
                     versionName = "2.0.0",
                     actions = SettingsActions(),
                     onBackClick = {},

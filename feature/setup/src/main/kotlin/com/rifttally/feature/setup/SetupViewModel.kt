@@ -7,6 +7,8 @@ import com.rifttally.core.data.game.GameRepository
 import com.rifttally.core.data.legend.LegendRepository
 import com.rifttally.core.data.preset.PlayerPresetRepository
 import com.rifttally.core.data.repository.UserSettingsRepository
+import com.rifttally.core.data.timer.RoundTimerChoice
+import com.rifttally.core.data.timer.RoundTimerRepository
 import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.model.Counter
 import com.rifttally.core.model.CounterId
@@ -42,7 +44,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Game setup: format (2/3/4 players or 2v2), players in seat order (name, color, Legend, team in 2v2),
- * the target score, and the remembered "XP counter for all" toggle.
+ * the target score, and the remembered "XP counter for all" toggle and "Round timer" choice.
  */
 @HiltViewModel
 internal class SetupViewModel @Inject constructor(
@@ -51,6 +53,7 @@ internal class SetupViewModel @Inject constructor(
     private val userSettingsRepository: UserSettingsRepository,
     private val presetRepository: PlayerPresetRepository,
     private val firstPlayerPicker: FirstPlayerPicker,
+    private val timerRepository: RoundTimerRepository,
 ) : ViewModel() {
 
     private val form = MutableStateFlow(SetupForm(format = GameFormat.TWO_PLAYERS).resizedTo(GameFormat.TWO_PLAYERS))
@@ -78,20 +81,25 @@ internal class SetupViewModel @Inject constructor(
     /** One-off navigation requests (e.g. open the tracker for a new game). */
     val navigationEvents: Flow<SetupNavigationEvent> = navigation.receiveAsFlow()
 
+    /** The remembered options: "XP counter for all" and the round timer. */
+    private val options = combine(userSettingsRepository.userSettings, timerRepository.choice) { settings, timer ->
+        RememberedOptions(addXpCounter = settings.addXpCounterByDefault, roundTimer = timer)
+    }
+
     val uiState: StateFlow<SetupUiState> = combine(
         form,
         legendRepository.legends,
-        userSettingsRepository.userSettings,
+        options,
         presetRepository.presets,
         lineups,
-    ) { form, legends, settings, presets, lineups ->
+    ) { form, legends, options, presets, lineups ->
         latestLineups = lineups
-        form.toUiState(legends, settings.addXpCounterByDefault, presets, lineups)
+        form.toUiState(legends, options, presets, lineups)
     }
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),
-            form.value.toUiState(emptyList(), false, emptyList(), emptyList()),
+            form.value.toUiState(emptyList(), RememberedOptions(), emptyList(), emptyList()),
         )
 
     /**
@@ -207,6 +215,21 @@ internal class SetupViewModel @Inject constructor(
         viewModelScope.launch { userSettingsRepository.setAddXpCounterByDefault(enabled) }
     }
 
+    /** "Round timer" on or off. Remembered for next time, with the last length. */
+    fun onRoundTimerToggle(enabled: Boolean) {
+        viewModelScope.launch { timerRepository.setChoiceEnabled(enabled) }
+    }
+
+    /** Round timer length +5 minutes (up to 120). Remembered. */
+    fun onRoundTimerIncrease() {
+        viewModelScope.launch { timerRepository.adjustChoiceMinutes(RoundTimerChoice.STEP_MINUTES) }
+    }
+
+    /** Round timer length −5 minutes (down to 5). Remembered. */
+    fun onRoundTimerDecrease() {
+        viewModelScope.launch { timerRepository.adjustChoiceMinutes(-RoundTimerChoice.STEP_MINUTES) }
+    }
+
     /**
      * Creates the game and asks to open the tracker. [defaultNames] are the localized "Player N" names
      * used for players left blank (index-aligned); [xpLabel] is the localized "XP" for the optional counter.
@@ -219,6 +242,9 @@ internal class SetupViewModel @Inject constructor(
             val addXp = userSettingsRepository.userSettings.first().addXpCounterByDefault
             val config = current.toConfig(defaultNames, xpLabel.takeIf { addXp })
             val gameId = gameRepository.createGame(config, firstPlayerPicker.openingEvents(config))
+            // A new game from Setup always starts a fresh timer (full length, paused), before it opens.
+            val timer = timerRepository.choice.first()
+            if (timer.enabled) timerRepository.createTimer(gameId, timer.minutes)
             navigation.send(SetupNavigationEvent.OpenTracker(gameId))
         }
     }
@@ -234,7 +260,7 @@ internal class SetupViewModel @Inject constructor(
 
     private fun SetupForm.toUiState(
         legends: List<Legend>,
-        addXpCounter: Boolean,
+        options: RememberedOptions,
         presets: List<PlayerPreset>,
         lineups: List<GameConfig>,
     ): SetupUiState {
@@ -264,7 +290,13 @@ internal class SetupViewModel @Inject constructor(
                     selectedLegendId = players.getOrNull(index)?.legendId,
                 )
             },
-            addXpCounter = addXpCounter,
+            addXpCounter = options.addXpCounter,
+            roundTimer = RoundTimerSetupUiState(
+                enabled = options.roundTimer.enabled,
+                minutes = options.roundTimer.minutes,
+                canDecrease = options.roundTimer.minutes > RoundTimerChoice.MIN_MINUTES,
+                canIncrease = options.roundTimer.minutes < RoundTimerChoice.MAX_MINUTES,
+            ),
             presets = presets.map { SavedPlayerUiState(id = it.id, name = it.name) }.toImmutableList(),
             recentLineups = lineups.mapIndexed { index, config ->
                 RecentLineupUiState(
@@ -367,6 +399,11 @@ internal class SetupViewModel @Inject constructor(
             )
         }
     }
+
+    private data class RememberedOptions(
+        val addXpCounter: Boolean = false,
+        val roundTimer: RoundTimerChoice = RoundTimerChoice(),
+    )
 
     private companion object {
         const val TEAM_SIZE = 2

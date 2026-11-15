@@ -1,7 +1,9 @@
 package com.rifttally.feature.setup
 
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.performScrollTo
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.model.GameFormat
@@ -73,6 +75,18 @@ class SetupScreenScreenshotTest {
     @Test
     fun recentLineups_light() = captureForm(withLineups(), darkTheme = false, name = "setup_lineups_light.png")
 
+    @Test
+    fun roundTimerOn_dark() =
+        captureForm(withTimer(), darkTheme = true, name = "setup_timer_dark.png", scrollToBottom = true)
+
+    @Test
+    fun roundTimerOn_light() =
+        captureForm(withTimer(), darkTheme = false, name = "setup_timer_light.png", scrollToBottom = true)
+
+    private fun withTimer(): SetupUiState = twoPlayers().copy(
+        roundTimer = RoundTimerSetupUiState(enabled = true, minutes = 50),
+    )
+
     private fun withLineups(): SetupUiState = twoPlayers().copy(
         recentLineups = persistentListOf(
             RecentLineupUiState(
@@ -116,7 +130,7 @@ class SetupScreenScreenshotTest {
         canStart = false,
     )
 
-    private fun captureForm(state: SetupUiState, darkTheme: Boolean, name: String) {
+    private fun captureForm(state: SetupUiState, darkTheme: Boolean, name: String, scrollToBottom: Boolean = false) {
         composeRule.setContent {
             RiftTheme(darkTheme = darkTheme) {
                 SetupScreen(
@@ -141,6 +155,8 @@ class SetupScreenScreenshotTest {
             composeRule.onAllNodesWithTag(LEGEND_ART_TEST_TAG, useUnmergedTree = true)
                 .fetchSemanticsNodes().size >= expected
         }
+        // The game options sit below the players: scroll to the last one (the XP toggle).
+        if (scrollToBottom) composeRule.onNode(hasText("Add XP counter to all players")).performScrollTo()
         composeRule.waitForIdle()
         captureScreenRoboImage(name)
     }

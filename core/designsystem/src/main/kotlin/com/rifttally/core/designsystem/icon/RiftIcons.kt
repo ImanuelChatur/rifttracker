@@ -69,4 +69,14 @@ public object RiftIcons {
             )
         }
     }
+
+    /** Two vertical bars (Material "Pause"): pause the round timer. */
+    public val Pause: ImageVector by lazy {
+        materialIcon(name = "Rift.Pause") {
+            addPath(
+                pathData = addPathNodes("M6,19h4L10,5L6,5v14zM14,5v14h4L18,5h-4z"),
+                fill = SolidColor(Color.Black),
+            )
+        }
+    }
 }

@@ -3,6 +3,7 @@ package com.rifttally.feature.tracker
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.rifttally.core.data.game.FirstPlayerPicker
+import com.rifttally.core.data.timer.RoundTimer
 import com.rifttally.core.game.GameEvent
 import com.rifttally.core.game.GameEventFactory
 import com.rifttally.core.game.GameLogLine
@@ -22,6 +23,7 @@ import com.rifttally.core.testing.MainDispatcherRule
 import com.rifttally.core.testing.TestClock
 import com.rifttally.core.testing.repository.FakeGameRepository
 import com.rifttally.core.testing.repository.FakeLegendRepository
+import com.rifttally.core.testing.repository.FakeRoundTimerRepository
 import com.rifttally.core.testing.repository.FakeUserSettingsRepository
 import com.rifttally.feature.tracker.navigation.TrackerRoute
 import kotlin.test.assertEquals
@@ -29,12 +31,17 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -64,6 +71,10 @@ class TrackerViewModelTest {
     private var pickIndex = 1
     private val picker = FirstPlayerPicker(settings, { pickIndex }, factory)
 
+    /** Wall clock of the round timer (the event factory has its own). */
+    private val timerClock = TestClock()
+    private val timers = FakeRoundTimerRepository(timerClock)
+
     private val config = GameConfig(
         format = GameFormat.TWO_PLAYERS,
         sides = listOf(Side(S1, listOf(P1)), Side(S2, listOf(P2))),
@@ -83,6 +94,8 @@ class TrackerViewModelTest {
             userSettingsRepository = settings,
             eventFactory = factory,
             firstPlayerPicker = picker,
+            timerRepository = timers,
+            clock = timerClock,
         )
     }
 
@@ -356,6 +369,8 @@ class TrackerViewModelTest {
             userSettingsRepository = settings,
             eventFactory = factory,
             firstPlayerPicker = picker,
+            timerRepository = timers,
+            clock = timerClock,
         )
         viewModel.uiState.test {
             val panel = assertIs<TrackerUiState.Success>(expectMostRecentItem()).panels[1]
@@ -389,6 +404,8 @@ class TrackerViewModelTest {
             userSettingsRepository = settings,
             eventFactory = factory,
             firstPlayerPicker = picker,
+            timerRepository = timers,
+            clock = timerClock,
         )
     }
 
@@ -652,6 +669,211 @@ class TrackerViewModelTest {
         }
     }
 
+    // region Round timer
+
+    /** Runs [block] while the timer state is collected (as the visible screen does). */
+    private fun withTimer(minutes: Int?, block: suspend TestScope.(TrackerViewModel) -> Unit) = runTest {
+        val viewModel = viewModel()
+        if (minutes != null) timers.createTimer(gameId, minutes)
+        backgroundScope.launch { viewModel.timerState.collect {} }
+        runCurrent()
+        block(viewModel)
+    }
+
+    private fun TrackerViewModel.timer(): RoundTimerUiState = assertNotNull(timerState.value)
+
+    @Test
+    fun noTimer_showsNoTimer() = withTimer(minutes = null) { viewModel ->
+        assertNull(viewModel.timerState.value)
+    }
+
+    @Test
+    fun freshTimer_isFullLengthAndPaused_andDoesNotMove() = withTimer(minutes = 50) { viewModel ->
+        assertEquals(
+            RoundTimerUiState(isRunning = false, seconds = 3_000, phase = RoundTimerPhase.Normal),
+            viewModel.timer(),
+        )
+
+        timerClock.advanceBy(10.minutes)
+        advanceTimeBy(10.minutes)
+        runCurrent()
+
+        assertEquals(3_000, viewModel.timer().seconds)
+    }
+
+    @Test
+    fun running_ticksOncePerSecond_fromTheInjectedClock() = withTimer(minutes = 50) { viewModel ->
+        viewModel.onTimerToggle()
+        runCurrent()
+        assertEquals(
+            RoundTimerUiState(isRunning = true, seconds = 3_000, phase = RoundTimerPhase.Normal),
+            viewModel.timer(),
+        )
+
+        timerClock.advanceBy(1.seconds)
+        advanceTimeBy(1.seconds)
+        runCurrent()
+        assertEquals(2_999, viewModel.timer().seconds)
+
+        // 12:30 left.
+        timerClock.advanceBy(37.minutes + 29.seconds)
+        advanceTimeBy(1.seconds)
+        runCurrent()
+        assertEquals(12L to 30L, viewModel.timer().let { it.minutesPart to it.secondsPart })
+    }
+
+    @Test
+    fun lastFiveMinutes_isWarning_thenOvertimeCountsUp() = withTimer(minutes = 10) { viewModel ->
+        viewModel.onTimerToggle()
+        runCurrent()
+
+        timerClock.advanceBy(4.minutes + 59.seconds)
+        advanceTimeBy(1.seconds)
+        runCurrent()
+        assertEquals(RoundTimerPhase.Normal, viewModel.timer().phase) // 5:01 left
+
+        timerClock.advanceBy(1.seconds)
+        advanceTimeBy(1.seconds)
+        runCurrent()
+        assertEquals(
+            RoundTimerUiState(isRunning = true, seconds = 300, phase = RoundTimerPhase.Warning),
+            viewModel.timer(),
+        )
+
+        timerClock.advanceBy(5.minutes)
+        advanceTimeBy(1.seconds)
+        runCurrent()
+        assertEquals(
+            RoundTimerUiState(isRunning = true, seconds = 0, phase = RoundTimerPhase.Overtime),
+            viewModel.timer(),
+        )
+
+        timerClock.advanceBy(2.minutes + 13.seconds)
+        advanceTimeBy(1.seconds)
+        runCurrent()
+        assertEquals(
+            RoundTimerUiState(isRunning = true, seconds = 133, phase = RoundTimerPhase.Overtime),
+            viewModel.timer(),
+        )
+    }
+
+    @Test
+    fun pause_stopsTheCountdown_andResetGoesBackToFullPaused() = withTimer(minutes = 50) { viewModel ->
+        viewModel.onTimerToggle()
+        timerClock.advanceBy(90.seconds)
+        viewModel.onTimerToggle()
+        runCurrent()
+        assertEquals(
+            RoundTimerUiState(isRunning = false, seconds = 2_910, phase = RoundTimerPhase.Normal),
+            viewModel.timer(),
+        )
+
+        timerClock.advanceBy(10.minutes)
+        advanceTimeBy(2.seconds)
+        runCurrent()
+        assertEquals(2_910, viewModel.timer().seconds)
+
+        viewModel.onTimerToggle()
+        timerClock.advanceBy(5.seconds)
+        viewModel.onTimerReset()
+        runCurrent()
+        assertEquals(
+            RoundTimerUiState(isRunning = false, seconds = 3_000, phase = RoundTimerPhase.Normal),
+            viewModel.timer(),
+        )
+    }
+
+    @Test
+    fun undo_neverTouchesTheTimer() = withTimer(minutes = 50) { viewModel ->
+        viewModel.uiState.test {
+            viewModel.onPointsChange(S1, 1)
+            viewModel.onTimerToggle()
+            runCurrent()
+            val before = timers.allTimers.getValue(gameId)
+            viewModel.onUndo()
+            viewModel.onUndo()
+            runCurrent()
+            assertEquals(before, timers.allTimers.getValue(gameId))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun timer_survivesViewModelRecreation() = runTest {
+        val first = viewModel()
+        timers.createTimer(gameId, 50)
+        first.onTimerToggle()
+        timerClock.advanceBy(10.minutes)
+
+        // A new ViewModel (e.g. after process death) reads the stored timer: still running, 40:00 left.
+        val second = TrackerViewModel(
+            savedStateHandle = SavedStateHandle(mapOf(TrackerRoute::gameId.name to gameId.value)),
+            gameRepository = games,
+            legendRepository = legends,
+            userSettingsRepository = settings,
+            eventFactory = factory,
+            firstPlayerPicker = picker,
+            timerRepository = timers,
+            clock = timerClock,
+        )
+        backgroundScope.launch { second.timerState.collect {} }
+        runCurrent()
+        assertEquals(
+            RoundTimerUiState(isRunning = true, seconds = 2_400, phase = RoundTimerPhase.Normal),
+            second.timer(),
+        )
+    }
+
+    @Test
+    fun rematch_carriesTheTimerOverUnchanged() = withTimer(minutes = 50) { viewModel ->
+        viewModel.uiState.test {
+            viewModel.onTimerToggle()
+            timerClock.advanceBy(7.minutes)
+            viewModel.onEndGame()
+            viewModel.navigationEvents.test {
+                viewModel.onRematch()
+                val event = assertIs<TrackerNavigationEvent.OpenGame>(awaitItem())
+                // Same length, same start, still running: the round goes on.
+                assertEquals(timers.allTimers.getValue(gameId), timers.allTimers.getValue(event.gameId))
+                assertTrue(timers.allTimers.getValue(event.gameId).isRunning)
+            }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun restart_carriesTheTimerOverUnchanged() = withTimer(minutes = 30) { viewModel ->
+        viewModel.uiState.test {
+            viewModel.onTimerToggle()
+            timerClock.advanceBy(3.minutes)
+            viewModel.onTimerToggle() // paused at 27:00
+            viewModel.navigationEvents.test {
+                viewModel.onRestart()
+                val event = assertIs<TrackerNavigationEvent.OpenGame>(awaitItem())
+                assertEquals(
+                    RoundTimer(durationMs = 30 * 60_000L, elapsedBeforeMs = 3 * 60_000L),
+                    timers.allTimers[event.gameId],
+                )
+            }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun rematch_withoutTimer_createsNoTimer() = withTimer(minutes = null) { viewModel ->
+        viewModel.uiState.test {
+            viewModel.onEndGame()
+            viewModel.navigationEvents.test {
+                viewModel.onRematch()
+                awaitItem()
+            }
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(emptyMap(), timers.allTimers)
+    }
+
+    // endregion
+
     // region First player
 
     /** A tracker on a game that opened with a pick of [P2] (as Setup creates it), sharing [handle]. */
@@ -662,6 +884,8 @@ class TrackerViewModelTest {
         userSettingsRepository = settings,
         eventFactory = factory,
         firstPlayerPicker = picker,
+        timerRepository = timers,
+        clock = timerClock,
     )
 
     private suspend fun createPickedGame(): GameEvent.FirstPlayerChosen {
@@ -851,6 +1075,8 @@ class TrackerViewModelTest {
             userSettingsRepository = settings,
             eventFactory = factory,
             firstPlayerPicker = picker,
+            timerRepository = timers,
+            clock = timerClock,
         )
         viewModel.uiState.test {
             assertEquals(TrackerUiState.NotFound, expectMostRecentItem())

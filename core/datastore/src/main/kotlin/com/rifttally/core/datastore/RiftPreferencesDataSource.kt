@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.ThemeMode
@@ -55,6 +56,32 @@ public class RiftPreferencesDataSource @Inject constructor(private val dataStore
 
     public suspend fun setPickFirstPlayer(enabled: Boolean): Unit = update { it[Keys.PICK_FIRST_PLAYER] = enabled }
 
+    /** Setup's remembered round timer choice. */
+    public val roundTimerChoice: Flow<StoredRoundTimerChoice> = dataStore.data
+        .catch { error -> if (error is IOException) emit(emptyPreferences()) else throw error }
+        .map { prefs ->
+            StoredRoundTimerChoice(
+                enabled = prefs[Keys.ROUND_TIMER_ENABLED] ?: false,
+                minutes = prefs[Keys.ROUND_TIMER_MINUTES],
+            )
+        }
+
+    /**
+     * Replaces the stored round timer choice with [transform] of the current one, atomically (a
+     * read-modify-write inside one DataStore edit, so fast stepper taps aren't lost).
+     */
+    public suspend fun updateRoundTimerChoice(transform: (StoredRoundTimerChoice) -> StoredRoundTimerChoice): Unit =
+        update { prefs ->
+            val current = StoredRoundTimerChoice(
+                enabled = prefs[Keys.ROUND_TIMER_ENABLED] ?: false,
+                minutes = prefs[Keys.ROUND_TIMER_MINUTES],
+            )
+            val next = transform(current)
+            prefs[Keys.ROUND_TIMER_ENABLED] = next.enabled
+            val minutes = next.minutes
+            if (minutes == null) prefs.remove(Keys.ROUND_TIMER_MINUTES) else prefs[Keys.ROUND_TIMER_MINUTES] = minutes
+        }
+
     private suspend fun update(block: (MutablePreferences) -> Unit) {
         dataStore.edit { block(it) }
     }
@@ -71,5 +98,7 @@ public class RiftPreferencesDataSource @Inject constructor(private val dataStore
         val DEFAULT_GAME_FORMAT = stringPreferencesKey("default_game_format")
         val XP_BY_DEFAULT = booleanPreferencesKey("xp_counter_by_default")
         val PICK_FIRST_PLAYER = booleanPreferencesKey("pick_first_player")
+        val ROUND_TIMER_ENABLED = booleanPreferencesKey("round_timer_enabled")
+        val ROUND_TIMER_MINUTES = intPreferencesKey("round_timer_minutes")
     }
 }

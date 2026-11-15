@@ -16,6 +16,8 @@ internal data class SetupUiState(
     val legendPicker: LegendPickerUiState? = null,
     /** "Add XP counter to all players" (remembered across games). */
     val addXpCounter: Boolean = false,
+    /** "Round timer" (remembered across games). */
+    val roundTimer: RoundTimerSetupUiState = RoundTimerSetupUiState(),
     /** Saved players that can fill a player row. */
     val presets: ImmutableList<SavedPlayerUiState> = persistentListOf(),
     /** Lineups of the most recent games, newest first; tapping one fills the form. Empty hides the row. */
@@ -62,3 +64,11 @@ internal data class RecentLineupUiState(
 
 /** A saved player offered in "Load saved player". */
 internal data class SavedPlayerUiState(val id: String, val name: String)
+
+/** The "Round timer" row: off, or [minutes] long (5–120, in steps of 5). */
+internal data class RoundTimerSetupUiState(
+    val enabled: Boolean = false,
+    val minutes: Int = 50,
+    val canDecrease: Boolean = true,
+    val canIncrease: Boolean = true,
+)

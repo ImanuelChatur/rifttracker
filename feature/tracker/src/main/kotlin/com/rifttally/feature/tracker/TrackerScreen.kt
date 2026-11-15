@@ -54,6 +54,8 @@ internal fun TrackerRoute(
     viewModel: TrackerViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // Collected separately so the once-a-second tick only recomposes the timer, and stops when hidden.
+    val timer by viewModel.timerState.collectAsStateWithLifecycle()
     val currentOnOpenGame by rememberUpdatedState(onOpenGame)
     LaunchedEffect(viewModel) {
         viewModel.navigationEvents.collect { event ->
@@ -85,6 +87,9 @@ internal fun TrackerRoute(
         onCounterAdd = viewModel::onCounterAdd,
         onCounterChange = viewModel::onCounterChange,
         onCounterRemove = viewModel::onCounterRemove,
+        timer = timer,
+        onTimerToggle = viewModel::onTimerToggle,
+        onTimerReset = viewModel::onTimerReset,
         // Ref-counted by Compose, so overlapping trackers (restart transition) don't release it early.
         modifier = if (keepScreenOn) modifier.keepScreenOn() else modifier,
     )
@@ -112,6 +117,9 @@ internal fun TrackerScreen(
     onHome: () -> Unit = {},
     onFirstPlayerRevealStart: (pickId: String) -> Unit = {},
     onFirstPlayerRevealDismiss: (pickId: String) -> Unit = {},
+    timer: RoundTimerUiState? = null,
+    onTimerToggle: () -> Unit = {},
+    onTimerReset: () -> Unit = {},
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = RiftTheme.colorScheme.background) {
         when (uiState) {
@@ -135,6 +143,9 @@ internal fun TrackerScreen(
                 onCounterAdd = onCounterAdd,
                 onCounterChange = onCounterChange,
                 onCounterRemove = onCounterRemove,
+                timer = timer,
+                onTimerToggle = onTimerToggle,
+                onTimerReset = onTimerReset,
             )
         }
     }
@@ -157,6 +168,9 @@ private fun TrackerTable(
     onCounterAdd: (PlayerId, String) -> Unit,
     onCounterChange: (PlayerId, CounterId, Int) -> Unit,
     onCounterRemove: (PlayerId, CounterId) -> Unit,
+    timer: RoundTimerUiState?,
+    onTimerToggle: () -> Unit,
+    onTimerReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var overlay by rememberSaveable { mutableStateOf(TrackerOverlay.None) }
@@ -205,6 +219,13 @@ private fun TrackerTable(
                     },
                     onRestartClick = { overlay = TrackerOverlay.Restart },
                     onEndGameClick = { overlay = TrackerOverlay.EndGame },
+                    timer = timer,
+                    hapticsEnabled = state.hapticsEnabled,
+                    onTimerToggle = onTimerToggle,
+                    onResetTimerClick = {
+                        dismiss()
+                        onTimerReset()
+                    },
                 )
             },
             panel = { index, panelModifier, stripInset, quarterTurns ->

@@ -72,4 +72,19 @@ class RiftPreferencesDataSourceTest {
         assertEquals(UserSettings().themeMode, settings.themeMode)
         assertEquals(UserSettings().defaultGameFormat, settings.defaultGameFormat)
     }
+
+    @Test
+    fun roundTimerChoice_defaultsToOff_andIsPersisted() = testScope.runTest {
+        assertEquals(StoredRoundTimerChoice(enabled = false, minutes = null), dataSource.roundTimerChoice.first())
+
+        dataSource.updateRoundTimerChoice { it.copy(enabled = true, minutes = 30) }
+        assertEquals(StoredRoundTimerChoice(enabled = true, minutes = 30), dataSource.roundTimerChoice.first())
+
+        dataSource.updateRoundTimerChoice { it.copy(minutes = (it.minutes ?: 0) + 5) }
+        dataSource.updateRoundTimerChoice { it.copy(enabled = false) }
+        assertEquals(StoredRoundTimerChoice(enabled = false, minutes = 35), dataSource.roundTimerChoice.first())
+
+        // The timer choice doesn't disturb the other settings.
+        assertEquals(UserSettings(), dataSource.userSettings.first())
+    }
 }

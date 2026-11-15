@@ -19,6 +19,7 @@ import com.rifttally.core.testing.TestClock
 import com.rifttally.core.testing.repository.FakeGameRepository
 import com.rifttally.core.testing.repository.FakeLegendRepository
 import com.rifttally.core.testing.repository.FakePlayerPresetRepository
+import com.rifttally.core.testing.repository.FakeRoundTimerRepository
 import com.rifttally.core.testing.repository.FakeUserSettingsRepository
 import kotlin.test.assertEquals
 import kotlin.time.ExperimentalTime
@@ -38,7 +39,14 @@ class RecentLineupsTest {
     )
     private val picker = FirstPlayerPicker(settings, { 0 }, GameEventFactory(TestClock(), IdGenerator { "pick" }))
     private val viewModel by lazy {
-        SetupViewModel(games, FakeLegendRepository(emptyList()), settings, presets, picker)
+        SetupViewModel(
+            games,
+            FakeLegendRepository(emptyList()),
+            settings,
+            presets,
+            picker,
+            FakeRoundTimerRepository(TestClock()),
+        )
     }
 
     private fun duel(

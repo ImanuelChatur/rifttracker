@@ -2,6 +2,8 @@ package com.rifttally.feature.setup
 
 import app.cash.turbine.test
 import com.rifttally.core.data.game.FirstPlayerPicker
+import com.rifttally.core.data.timer.RoundTimer
+import com.rifttally.core.data.timer.RoundTimerChoice
 import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.game.GameEvent
 import com.rifttally.core.game.GameEventFactory
@@ -17,8 +19,10 @@ import com.rifttally.core.testing.TestClock
 import com.rifttally.core.testing.repository.FakeGameRepository
 import com.rifttally.core.testing.repository.FakeLegendRepository
 import com.rifttally.core.testing.repository.FakePlayerPresetRepository
+import com.rifttally.core.testing.repository.FakeRoundTimerRepository
 import com.rifttally.core.testing.repository.FakeUserSettingsRepository
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -35,6 +39,7 @@ class SetupViewModelTest {
     private val games = FakeGameRepository()
     private val settings = FakeUserSettingsRepository()
     private val presets = FakePlayerPresetRepository()
+    private val timers = FakeRoundTimerRepository(TestClock())
     private val legends = FakeLegendRepository(
         listOf(Legend("jinx", "Jinx", null), Legend("viktor", "Viktor", null), Legend("lee_sin", "Lee Sin", null)),
     )
@@ -43,7 +48,7 @@ class SetupViewModelTest {
     private val picker = FirstPlayerPicker(settings, { 1 }, GameEventFactory(TestClock(), IdGenerator { "pick" }))
 
     // Lazy: created inside each test, after MainDispatcherRule has installed the test Main dispatcher.
-    private val viewModel by lazy { SetupViewModel(games, legends, settings, presets, picker) }
+    private val viewModel by lazy { SetupViewModel(games, legends, settings, presets, picker, timers) }
 
     private val defaultNames = listOf("Player 1", "Player 2")
 
@@ -349,7 +354,7 @@ class SetupViewModelTest {
     @Test
     fun loadedPreset_isLinkedInConfig_unlessTheNameChanges() = runTest {
         val presets = FakePlayerPresetRepository(listOf(PlayerPreset("ana", "Ana", "green", "jinx")))
-        val viewModel = SetupViewModel(games, legends, settings, presets, picker)
+        val viewModel = SetupViewModel(games, legends, settings, presets, picker, timers)
         viewModel.uiState.test {
             @Suppress("ControlFlowWithEmptyBody")
             while (awaitItem().presets.isEmpty()) {}
@@ -399,7 +404,7 @@ class SetupViewModelTest {
     @Test
     fun savingAnExistingName_reusesThatPreset() = runTest {
         val presets = FakePlayerPresetRepository(listOf(PlayerPreset("ana", "Ana", "green", "jinx")))
-        val viewModel = SetupViewModel(games, legends, settings, presets, picker)
+        val viewModel = SetupViewModel(games, legends, settings, presets, picker, timers)
         viewModel.onNameChange(0, "ana")
         viewModel.onColorSelect(0, "pink")
         viewModel.onPlayerSave(0)
@@ -407,6 +412,63 @@ class SetupViewModelTest {
 
         assertEquals(listOf(PlayerPreset("ana", "Ana", "pink", null)), presets.current)
         assertEquals("ana", games.allGames.single().config.players[0].presetId)
+    }
+
+    @Test
+    fun roundTimer_defaultsToOff50() = runTest {
+        viewModel.uiState.test {
+            assertEquals(RoundTimerSetupUiState(enabled = false, minutes = 50), awaitItem().roundTimer)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun roundTimer_toggleAndStepper_areRemembered_andClamped() = runTest {
+        viewModel.uiState.test {
+            awaitItem()
+            viewModel.onRoundTimerToggle(true)
+            viewModel.onRoundTimerDecrease()
+            assertEquals(RoundTimerSetupUiState(enabled = true, minutes = 45), expectMostRecentItem().roundTimer)
+            assertEquals(RoundTimerChoice(enabled = true, minutes = 45), timers.currentChoice)
+
+            repeat(20) { viewModel.onRoundTimerDecrease() }
+            val atMin = expectMostRecentItem().roundTimer
+            assertEquals(5, atMin.minutes)
+            assertFalse(atMin.canDecrease)
+            assertTrue(atMin.canIncrease)
+
+            repeat(30) { viewModel.onRoundTimerIncrease() }
+            val atMax = expectMostRecentItem().roundTimer
+            assertEquals(120, atMax.minutes)
+            assertFalse(atMax.canIncrease)
+
+            // Off keeps the length for next time.
+            viewModel.onRoundTimerToggle(false)
+            assertEquals(
+                RoundTimerSetupUiState(enabled = false, minutes = 120, canIncrease = false),
+                expectMostRecentItem().roundTimer,
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun startGame_withRoundTimer_createsAFreshPausedTimer_beforeOpening() = runTest {
+        timers.setChoiceEnabled(true)
+        timers.adjustChoiceMinutes(-20) // 30 minutes
+        viewModel.navigationEvents.test {
+            viewModel.onStartGame(defaultNames, "XP")
+            val gameId = (awaitItem() as SetupNavigationEvent.OpenTracker).gameId
+            assertEquals(RoundTimer(durationMs = 30 * 60_000L), timers.allTimers[gameId])
+        }
+    }
+
+    @Test
+    fun startGame_withRoundTimerOff_createsNoTimer() = runTest {
+        viewModel.onStartGame(defaultNames, "XP")
+
+        assertEquals(1, games.allGames.size)
+        assertTrue(timers.allTimers.isEmpty())
     }
 
     @Test

@@ -32,16 +32,23 @@ public data class RiftTableColors(
     public val onPanelBase: Color,
     /** Translucent pill behind counters on the color fallback. */
     public val panelPill: Color,
+    /**
+     * Round timer text in its last 5 minutes, on the control bar (surfaceContainer): amber, distinct from
+     * the error color used for overtime. Dark ≈ 10:1, light ≈ 5.6:1 on the bar (DESIGN.md §3).
+     */
+    public val timerWarning: Color,
 )
 
 internal val DarkTableColors: RiftTableColors = RiftTableColors(
     panelBase = DarkSurfaceContainerLow,
     onPanelBase = DarkOnSurface,
     panelPill = Color(0x66000000),
+    timerWarning = Color(0xFFFFB74D),
 )
 
 internal val LightTableColors: RiftTableColors = RiftTableColors(
     panelBase = LightSurfaceContainerLowest,
     onPanelBase = LightOnSurface,
     panelPill = Color(0x14000000),
+    timerWarning = Color(0xFF8A4B00),
 )

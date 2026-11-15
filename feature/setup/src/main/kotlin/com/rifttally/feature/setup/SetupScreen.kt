@@ -109,6 +109,9 @@ internal fun SetupRoute(
         onTargetIncrease = viewModel::onTargetScoreIncrease,
         onTargetDecrease = viewModel::onTargetScoreDecrease,
         onAddXpCounterToggle = viewModel::onAddXpCounterToggle,
+        onRoundTimerToggle = viewModel::onRoundTimerToggle,
+        onRoundTimerIncrease = viewModel::onRoundTimerIncrease,
+        onRoundTimerDecrease = viewModel::onRoundTimerDecrease,
         onStartClick = { viewModel.onStartGame(defaultNames, xpLabel) },
         modifier = modifier,
     )
@@ -150,6 +153,9 @@ internal fun SetupScreen(
     onStartClick: () -> Unit,
     modifier: Modifier = Modifier,
     onLineupApply: (index: Int) -> Unit = {},
+    onRoundTimerToggle: (Boolean) -> Unit = {},
+    onRoundTimerIncrease: () -> Unit = {},
+    onRoundTimerDecrease: () -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier,
@@ -241,10 +247,17 @@ internal fun SetupScreen(
                         onDecrease = onTargetDecrease,
                         shape = RiftTheme.shapes.segment(0, GAME_OPTIONS),
                     )
+                    RoundTimerTile(
+                        roundTimer = uiState.roundTimer,
+                        onToggle = onRoundTimerToggle,
+                        onIncrease = onRoundTimerIncrease,
+                        onDecrease = onRoundTimerDecrease,
+                        shape = RiftTheme.shapes.segment(1, GAME_OPTIONS),
+                    )
                     XpCounterToggleTile(
                         checked = uiState.addXpCounter,
                         onCheckedChange = onAddXpCounterToggle,
-                        shape = RiftTheme.shapes.segment(1, GAME_OPTIONS),
+                        shape = RiftTheme.shapes.segment(2, GAME_OPTIONS),
                     )
                 }
             }
@@ -420,7 +433,7 @@ private fun TargetScoreTile(
 
 /** A round tonal −/+ (48dp), labeled for accessibility. */
 @Composable
-private fun StepButton(
+internal fun StepButton(
     icon: @Composable () -> Unit,
     description: String,
     onClick: () -> Unit,
@@ -465,7 +478,7 @@ private fun XpCounterToggleTile(
     }
 }
 
-private const val GAME_OPTIONS = 2
+private const val GAME_OPTIONS = 3
 
 internal val previewSetupState = SetupUiState(
     players = persistentListOf(
@@ -491,6 +504,7 @@ internal val previewSetupFourPlayersState = SetupUiState(
     targetScore = 8,
     canDecreaseTarget = true,
     addXpCounter = true,
+    roundTimer = RoundTimerSetupUiState(enabled = true, minutes = 50),
     presets = persistentListOf(SavedPlayerUiState("1", "Ana")),
 )
 

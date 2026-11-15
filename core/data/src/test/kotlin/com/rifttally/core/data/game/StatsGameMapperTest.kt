@@ -57,6 +57,36 @@ class StatsGameMapperTest {
     }
 
     @Test
+    fun firstPlayer_isTheLatestValidPickBeforeTheEnd() {
+        val p1 = twoPlayers.players[0].id
+        val p2 = twoPlayers.players[1].id
+        val record = GameRecord(
+            id = GameId("g"),
+            config = twoPlayers,
+            events = listOf(
+                GameEvent.FirstPlayerChosen("e1", 1, p1),
+                GameEvent.FirstPlayerChosen("e2", 2, p2),
+                // Unknown player: ignored.
+                GameEvent.FirstPlayerChosen("e3", 3, PlayerId("ghost")),
+                GameEvent.GameEnded("e4", 4, S1),
+                // After the end: ignored.
+                GameEvent.FirstPlayerChosen("e5", 5, p1),
+            ),
+            createdAt = 0,
+            endedAt = 4,
+        )
+
+        assertEquals(p2, record.toStatsGame().firstPlayer)
+    }
+
+    @Test
+    fun noPick_hasNoFirstPlayer() {
+        val record = GameRecord(GameId("g"), twoPlayers, listOf(GameEvent.GameEnded("e", 1, S1)), 0, 1)
+
+        assertNull(record.toStatsGame().firstPlayer)
+    }
+
+    @Test
     fun noWinner_andMissingEndedAt_fallsBackToCreatedAt() {
         val record = GameRecord(GameId("g"), twoPlayers, emptyList(), createdAt = 7, endedAt = null)
 

@@ -100,14 +100,41 @@ private fun RankBadge(rank: Int, modifier: Modifier = Modifier) {
     }
 }
 
-/** A Legend's line inside a list tile: portrait (or fallback), name, games and win rate. */
+/**
+ * A Legend's line inside a list tile: portrait (or fallback), name, games and win rate. With [onClick]
+ * the row opens the Legend's stats and shows a chevron; [trailing] (e.g. a matchup score) sits at the end.
+ */
 @Composable
-internal fun LegendStatRow(legend: LegendRowUiState, modifier: Modifier = Modifier) {
+internal fun LegendStatRow(
+    legend: LegendRowUiState,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    val openLabel = stringResource(R.string.feature_stats_open_legend, legend.name)
+    val clickModifier = if (onClick != null) {
+        Modifier
+            .heightIn(min = RiftTheme.sizes.listRowMinHeight)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics(mergeDescendants = true) { onClick(label = openLabel, action = null) }
+    } else {
+        Modifier.semantics(mergeDescendants = true) {}
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .semantics(mergeDescendants = true) {}
-            .padding(horizontal = RiftTheme.spacing.lg, vertical = RiftTheme.spacing.md),
+            .then(clickModifier)
+            .padding(
+                start = RiftTheme.spacing.lg,
+                end = if (onClick !=
+                    null
+                ) {
+                    RiftTheme.spacing.sm
+                } else {
+                    RiftTheme.spacing.lg
+                },
+            )
+            .padding(vertical = RiftTheme.spacing.md),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.md),
     ) {
@@ -120,11 +147,24 @@ internal fun LegendStatRow(legend: LegendRowUiState, modifier: Modifier = Modifi
             contentDescription = null,
         )
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = legend.name, style = RiftTheme.typography.bodyLarge)
+            Text(
+                text = legend.name,
+                style = RiftTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             Text(
                 text = gamesAndRateText(legend.games, legend.winRatePercent),
                 style = RiftTheme.typography.bodyMedium,
                 color = RiftTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        trailing?.invoke()
+        if (onClick != null) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = RiftTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -140,7 +180,7 @@ private fun StatRowsPreview() {
         ) {
             SegmentedTile(index = 0, count = 3) { PlayerStatRow(player = previewPlayers[0], onClick = {}, rank = 1) }
             SegmentedTile(index = 1, count = 3) { PlayerStatRow(player = previewPlayers[1], onClick = {}) }
-            SegmentedTile(index = 2, count = 3) { LegendStatRow(legend = previewLegends[0]) }
+            SegmentedTile(index = 2, count = 3) { LegendStatRow(legend = previewLegends[0], onClick = {}) }
         }
     }
 }

@@ -2,6 +2,7 @@ package com.rifttally.feature.history
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -13,12 +14,14 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,19 +33,23 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
 import com.rifttally.core.designsystem.component.RiftButton
 import com.rifttally.core.designsystem.component.RiftIconButton
+import com.rifttally.core.designsystem.component.RiftTextButton
 import com.rifttally.core.designsystem.component.RiftTopAppBar
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.designsystem.theme.headlineMediumEmphasized
 import com.rifttally.core.game.GameLogLine
 import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.GameId
+import com.rifttally.core.ui.ResultCardState
 import com.rifttally.core.ui.list.CenteredList
 import com.rifttally.core.ui.list.EmptyState
 import com.rifttally.core.ui.list.ListSectionHeader
 import com.rifttally.core.ui.list.SegmentedTile
 import com.rifttally.core.ui.list.skeletonTiles
+import com.rifttally.core.ui.rememberResultCardSharer
 import com.rifttally.core.ui.text
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun GameDetailRoute(
@@ -60,10 +67,15 @@ internal fun GameDetailRoute(
             }
         }
     }
+    val sharer = rememberResultCardSharer(viewModel.shareDispatcher)
+    val scope = rememberCoroutineScope()
     GameDetailScreen(
         uiState = uiState,
         onBackClick = onBackClick,
         onPlayAgainClick = viewModel::onPlayAgain,
+        onShareClick = {
+            (uiState as? GameDetailUiState.Success)?.let { state -> scope.launch { sharer.share(state.resultCard) } }
+        },
         modifier = modifier,
     )
 }
@@ -78,6 +90,7 @@ internal fun GameDetailScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
     onPlayAgainClick: () -> Unit = {},
+    onShareClick: () -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier,
@@ -107,7 +120,9 @@ internal fun GameDetailScreen(
             )
 
             is GameDetailUiState.Success -> CenteredList(scaffoldPadding = padding) {
-                item(key = "result") { FinalResultCard(state = uiState, onPlayAgainClick = onPlayAgainClick) }
+                item(key = "result") {
+                    FinalResultCard(state = uiState, onPlayAgainClick = onPlayAgainClick, onShareClick = onShareClick)
+                }
                 item(key = "facts") { GameFacts(state = uiState) }
                 item(key = "chart_header") {
                     ListSectionHeader(stringResource(R.string.feature_history_section_chart))
@@ -139,13 +154,14 @@ internal fun GameDetailScreen(
 }
 
 /**
- * The hero: date and format, "Ana won" (emphasized display type), each side's final score, and "Play
- * again" (the screen's one filled button).
+ * The hero: date and format, "Ana won" (emphasized display type), each side's final score, then "Share"
+ * (a quiet text button) and "Play again" (the screen's one filled button).
  */
 @Composable
 private fun FinalResultCard(
     state: GameDetailUiState.Success,
     onPlayAgainClick: () -> Unit,
+    onShareClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -177,11 +193,19 @@ private fun FinalResultCard(
             state.sides.forEach { side ->
                 SideResultRow(side = side)
             }
-            RiftButton(
-                text = stringResource(R.string.feature_history_play_again),
-                onClick = onPlayAgainClick,
+            // Wraps onto two lines at large font scales instead of squeezing the labels.
+            FlowRow(
                 modifier = Modifier.align(Alignment.End),
-            )
+                horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.sm, Alignment.End),
+                verticalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xs),
+            ) {
+                RiftTextButton(
+                    text = stringResource(R.string.feature_history_share),
+                    onClick = onShareClick,
+                    icon = Icons.Filled.Share,
+                )
+                RiftButton(text = stringResource(R.string.feature_history_play_again), onClick = onPlayAgainClick)
+            }
         }
     }
 }
@@ -251,6 +275,7 @@ internal val previewDetailState = GameDetailUiState.Success(
         GameLogLine.TargetChanged("e4", 8),
         GameLogLine.GameEnded("e5", "Ana"),
     ),
+    resultCard = ResultCardState(GameFormat.TWO_PLAYERS, endedAt = 1_763_150_400_000, sides = persistentListOf()),
 )
 
 @PreviewRiftThemes

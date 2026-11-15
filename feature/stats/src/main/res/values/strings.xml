@@ -5,6 +5,15 @@
     <string name="feature_stats_empty">No stats yet. Finish a game and your stats show up here.</string>
     <string name="feature_stats_empty_action">Go back</string>
 
+    <!-- Date range chips. -->
+    <string name="feature_stats_period_all_time">All time</string>
+    <string name="feature_stats_period_last_30_days">Last 30 days</string>
+    <string name="feature_stats_period_this_year">This year</string>
+    <string name="feature_stats_period_empty">No games in this period</string>
+    <string name="feature_stats_period_empty_action">Show all time</string>
+    <!-- Hero label with the date range. %1$s = label (e.g. "Win rate"), %2$s = range (e.g. "This year"). -->
+    <string name="feature_stats_label_with_period">%1$s · %2$s</string>
+
     <string name="feature_stats_tab_overview">Overview</string>
     <string name="feature_stats_tab_legends">Legends</string>
 
@@ -20,6 +29,12 @@
     </plurals>
     <string name="feature_stats_top_players_empty">Nobody has played enough games yet.</string>
     <string name="feature_stats_all_players">All players</string>
+    <string name="feature_stats_going_first_label">First player</string>
+    <!-- %1$d = win rate in percent, %2$d = number of games. -->
+    <plurals name="feature_stats_going_first_wins">
+        <item quantity="one">Going first wins %1$d%% (%2$d game)</item>
+        <item quantity="other">Going first wins %1$d%% (%2$d games)</item>
+    </plurals>
 
     <!-- Rows. -->
     <plurals name="feature_stats_games">
@@ -55,4 +70,19 @@
     <string name="feature_stats_head_to_head_score">%1$d – %2$d</string>
     <!-- Accessibility. %1$s = player name, %2$d = their wins, %3$s = opponent, %4$d = opponent wins, %5$s = games. -->
     <string name="feature_stats_head_to_head_description">%1$s %2$d, %3$s %4$d, %5$s</string>
+    <string name="feature_stats_going_first">Going first</string>
+    <string name="feature_stats_not_first">Not first</string>
+    <string name="feature_stats_no_games">No games</string>
+
+    <!-- Legend detail. -->
+    <string name="feature_stats_legend_title">Legend stats</string>
+    <string name="feature_stats_legend_not_found">No stats for this Legend.</string>
+    <string name="feature_stats_matchups">Matchups</string>
+    <string name="feature_stats_matchups_empty">No opposing Legends yet.</string>
+    <!-- %1$s = Legend name. -->
+    <string name="feature_stats_open_legend">Open stats for %1$s</string>
+    <!-- %1$d = wins, %2$d = losses. Example: "3 – 1". -->
+    <string name="feature_stats_matchup_score">%1$d – %2$d</string>
+    <!-- Accessibility. %1$s = opponent Legend, %2$s = games (e.g. "4 games"), %3$d = wins, %4$d = losses, %5$s = win rate (e.g. "60% wins"). -->
+    <string name="feature_stats_matchup_description">Against %1$s, %2$s, %3$d won, %4$d lost, %5$s</string>
 </resources>

@@ -4,10 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rifttally.core.common.dispatchers.DefaultDispatcher
 import com.rifttally.core.data.game.GameRepository
-import com.rifttally.core.data.game.toStatsGame
 import com.rifttally.core.data.legend.LegendRepository
 import com.rifttally.core.stats.LegendStats
 import com.rifttally.core.stats.MIN_GAMES_FOR_RANKING
+import com.rifttally.core.stats.StatsPeriod
+import com.rifttally.core.stats.firstPlayerRecord
 import com.rifttally.core.stats.legendStats
 import com.rifttally.core.stats.statsOverview
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,25 +22,29 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 
-/** Stats overview and the Legend tab, derived from every ended game. */
+/** Stats overview and the Legend tab, derived from the ended games in the selected date range. */
 @HiltViewModel
 internal class StatsViewModel @Inject constructor(
     gameRepository: GameRepository,
     legendRepository: LegendRepository,
+    gamesFilter: StatsGamesFilter,
     @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     private val selectedTab = MutableStateFlow(StatsTab.OVERVIEW)
     private val legendSort = MutableStateFlow(LegendSort.GAMES)
+    private val period = MutableStateFlow(StatsPeriod.ALL_TIME)
 
     val uiState: StateFlow<StatsUiState> = combine(
         gameRepository.endedGames(),
         legendRepository.legends,
         selectedTab,
         legendSort,
-    ) { records, legends, tab, sort ->
+        period,
+    ) { records, legends, tab, sort, period ->
         if (records.isEmpty()) return@combine StatsUiState.Empty
-        val games = records.map { it.toStatsGame() }
+        val games = gamesFilter.gamesIn(records, period)
+        if (games.isEmpty()) return@combine StatsUiState.EmptyPeriod(period)
         val legendsById = legends.associateBy { it.id }
         val overview = statsOverview(games)
         StatsUiState.Success(
@@ -54,6 +59,8 @@ internal class StatsViewModel @Inject constructor(
             legendSort = sort,
             selectedTab = tab,
             minGamesForRanking = MIN_GAMES_FOR_RANKING,
+            period = period,
+            firstPlayer = firstPlayerRecord(games).toUiStateOrNull(),
         )
     }.flowOn(defaultDispatcher)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StatsUiState.Loading)
@@ -64,6 +71,10 @@ internal class StatsViewModel @Inject constructor(
 
     fun onLegendSortSelect(sort: LegendSort) {
         legendSort.value = sort
+    }
+
+    fun onPeriodSelect(period: StatsPeriod) {
+        this.period.value = period
     }
 
     private fun LegendSort.comparator(): Comparator<Pair<LegendRowUiState, LegendStats>> = when (this) {

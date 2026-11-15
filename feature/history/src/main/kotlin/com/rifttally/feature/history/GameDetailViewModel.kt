@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rifttally.core.common.dispatchers.DefaultDispatcher
+import com.rifttally.core.common.dispatchers.IoDispatcher
 import com.rifttally.core.data.game.FirstPlayerPicker
 import com.rifttally.core.data.game.GameRecord
 import com.rifttally.core.data.game.GameRepository
@@ -14,6 +15,7 @@ import com.rifttally.core.game.gameLog
 import com.rifttally.core.game.history
 import com.rifttally.core.model.GameId
 import com.rifttally.core.stats.summarize
+import com.rifttally.core.ui.ResultCardState
 import com.rifttally.feature.history.navigation.GameDetailRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -41,6 +43,8 @@ internal class GameDetailViewModel @Inject constructor(
     // Stats replay every game's log: keep that work off the main thread.
     @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
     private val firstPlayerPicker: FirstPlayerPicker,
+    /** Writes the shared result picture (see `rememberResultCardSharer`). */
+    @IoDispatcher val shareDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     // Navigation stores route arguments under their property names (same approach as the tracker).
@@ -65,7 +69,8 @@ internal class GameDetailViewModel @Inject constructor(
         latestRecord = record
         if (record == null) return@combine GameDetailUiState.NotFound
         val summary = summarize(record.toStatsGame())
-        val sides = summary.sideUiStates(legends.associateBy { it.id })
+        val legendsById = legends.associateBy { it.id }
+        val sides = summary.sideUiStates(legendsById)
         GameDetailUiState.Success(
             format = summary.format,
             endedAt = summary.endedAt,
@@ -85,6 +90,13 @@ internal class GameDetailViewModel @Inject constructor(
                 entries = history(record.config, record.events),
                 sideNames = summary.sides.mapIndexed { index, side -> side.sideId to sides[index].name }.toMap(),
             ).toImmutableList(),
+            resultCard = ResultCardState.of(
+                config = record.config,
+                scores = summary.sides.associate { it.sideId to it.finalScore },
+                winner = summary.winner,
+                endedAt = summary.endedAt,
+                legendsById = legendsById,
+            ),
         )
     }.flowOn(defaultDispatcher)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GameDetailUiState.Loading)

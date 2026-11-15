@@ -1,8 +1,20 @@
 # Rift Tally
 
 A fast, offline, table-side **points tracker** for *Riftbound*, the League of Legends trading card game.
-Each player's score sits on their Legend's portrait. See `HANDOFF.md` for the full spec, `CLAUDE.md` for
-conventions and `AGENT_WORKFLOW.md` for how the work is run.
+Each player's score sits on their Legend's portrait. See `HANDOFF.md`, `HANDOFF_V2.md` and `HANDOFF_V3.md`
+for the spec, `CLAUDE.md` for conventions, `AGENT_WORKFLOW.md` for how the work is run and `AGENTS.md` for
+the subagents' names.
+
+## Features
+
+- 2, 3 or 4 players, or 2v2 teams, each panel turned toward its seat; big score with tap zones (hold to
+  repeat), unlimited undo, extra counters (e.g. XP), adjustable target and a "Winner?" banner.
+- Legends with their art from Riot's Data Dragon (bundled at build time), saved players and recent lineups.
+- Random first-player pick with a short reveal on the table, and an optional round timer.
+- Game over screen with Rematch; every game is stored, so a crash or restart never loses the score.
+- Match history (score chart, full log, Play again) and stats: players, head-to-head, Legends and
+  matchups, first-player win rate, date filters and a shareable result card.
+- Offline only: no network permission, no account, no ads.
 
 > *Rift Tally was created under Riot Games' "Legal Jibber Jabber" policy using assets owned by Riot Games.
 > Riot Games does not endorse or sponsor this project.*
@@ -38,9 +50,11 @@ build-logic/convention  Convention plugins (rifttally.android.application/librar
 :core:data              Repositories: the only module features use for data
 :core:designsystem      Theme, tokens, player palette, base components
 :core:ui                Shared composables
+:core:stats             Pure Kotlin match history and stats, derived from stored games
 :core:testing           Test rules, test clock, fakes
 
 :feature:home | :feature:setup | :feature:tracker | :feature:settings
+:feature:history | :feature:stats
 ```
 
 Dependency rules: features depend on `:core:*` only, never on each other, and `:app` wires navigation.

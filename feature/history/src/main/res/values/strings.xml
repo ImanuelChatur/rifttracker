@@ -58,4 +58,5 @@
 
     <!-- Game detail: a new game with the same players. -->
     <string name="feature_history_play_again">Play again</string>
+    <string name="feature_history_share">Share</string>
 </resources>

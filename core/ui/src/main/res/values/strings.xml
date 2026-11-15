@@ -37,4 +37,20 @@
     <string name="core_ui_log_ended">Game ended</string>
     <!-- %1$s = player name. -->
     <string name="core_ui_log_first_player">%1$s goes first</string>
+
+    <!-- Shareable result card (an image, so these are rendered into the picture). -->
+    <!-- %1$s = date, %2$s = format (e.g. "2 players"). -->
+    <string name="core_ui_result_header">%1$s · %2$s</string>
+    <!-- %1$s = winner's name(s), e.g. "Ana" or "Ana &amp; Ben". -->
+    <string name="core_ui_result_won">%1$s won</string>
+    <string name="core_ui_result_no_winner">No winner</string>
+    <string name="core_ui_result_format_teams">2v2</string>
+    <plurals name="core_ui_result_format_players">
+        <item quantity="one">%1$d player</item>
+        <item quantity="other">%1$d players</item>
+    </plurals>
+    <string name="core_ui_result_winner_icon">Winner</string>
+    <string name="core_ui_result_footer">Rift Tally · unofficial fan app</string>
+    <!-- Title of the Android share sheet. -->
+    <string name="core_ui_result_share_title">Share result</string>
 </resources>

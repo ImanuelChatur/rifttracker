@@ -36,6 +36,7 @@ class GameDetailViewModelTest {
         legendRepository = legends,
         defaultDispatcher = mainDispatcherRule.testDispatcher,
         firstPlayerPicker = FirstPlayerPicker(settings, { 0 }, GameEventFactory(TestClock(), IdGenerator { "pick" })),
+        shareDispatcher = mainDispatcherRule.testDispatcher,
     )
 
     @Test
@@ -69,6 +70,10 @@ class GameDetailViewModelTest {
                 ),
                 state.log,
             )
+            val card = state.resultCard
+            assertEquals(listOf(8, 2), card.sides.map { it.score })
+            assertEquals("Ana", card.winner?.name)
+            assertEquals(25 * 60_000L + 30_000, card.endedAt)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -82,6 +87,10 @@ class GameDetailViewModelTest {
             assertEquals("Ben & Dan", state.winnerName)
             assertEquals(GameLogLine.Points("t-e0", "Ben & Dan", 1, 1), state.log.first())
             assertEquals(11, state.targetScore)
+            // The share card has every teammate with their own color, and the winning team.
+            assertEquals(listOf("Ana & Cleo", "Ben & Dan"), state.resultCard.sides.map { it.name })
+            assertEquals("Ben & Dan", state.resultCard.winner?.name)
+            assertEquals(listOf(0, 1), state.resultCard.sides.map { it.score })
             cancelAndIgnoreRemainingEvents()
         }
     }

@@ -1,5 +1,6 @@
 package com.rifttally.feature.stats
 
+import com.rifttally.core.stats.StatsPeriod
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
@@ -9,11 +10,16 @@ internal sealed interface StatsUiState {
     /** No game has ended yet. */
     data object Empty : StatsUiState
 
+    /** Games have ended, but none in [period]: the range chips stay so it can be changed back. */
+    data class EmptyPeriod(val period: StatsPeriod) : StatsUiState
+
     /**
+     * @property period the date range everything below covers.
      * @property mostPlayedLegend `null` when nobody ever picked a Legend.
+     * @property firstPlayer how often the first player won, or `null` when no game had a pick and a winner.
      * @property topPlayers players with at least [minGamesForRanking] games, best win rate first.
      * @property players everyone, most games first (each opens their stats).
-     * @property legends every picked Legend, ordered by [legendSort].
+     * @property legends every picked Legend, ordered by [legendSort] (each opens its stats).
      */
     data class Success(
         val totalGames: Int,
@@ -24,6 +30,8 @@ internal sealed interface StatsUiState {
         val legendSort: LegendSort = LegendSort.GAMES,
         val selectedTab: StatsTab = StatsTab.OVERVIEW,
         val minGamesForRanking: Int = 0,
+        val period: StatsPeriod = StatsPeriod.ALL_TIME,
+        val firstPlayer: WinRateUiState? = null,
     ) : StatsUiState
 }
 
@@ -44,6 +52,9 @@ internal data class LegendRowUiState(
     val games: Int,
     val winRatePercent: Int,
 )
+
+/** [winRatePercent] of [games] (e.g. going first). */
+internal data class WinRateUiState(val games: Int, val winRatePercent: Int)
 
 internal enum class StatsTab {
     OVERVIEW,

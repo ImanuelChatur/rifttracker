@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.rifttally.core.designsystem.theme.RiftTheme
+import com.rifttally.core.stats.StatsPeriod
 import com.rifttally.core.ui.LEGEND_ART_TEST_TAG
 import kotlinx.collections.immutable.persistentListOf
 import org.junit.Rule
@@ -39,6 +40,18 @@ class StatsScreenshotTest {
     }
 
     @Test
+    @Config(qualifiers = PHONE)
+    fun emptyPeriod_dark() = capture(darkTheme = true, name = "stats_empty_period_dark.png", artCount = 0) {
+        StatsScreen(uiState = StatsUiState.EmptyPeriod(StatsPeriod.LAST_30_DAYS), actions = StatsActions())
+    }
+
+    @Test
+    fun legend_dark() = captureLegend(darkTheme = true, name = "stats_legend_dark.png")
+
+    @Test
+    fun legend_light() = captureLegend(darkTheme = false, name = "stats_legend_light.png")
+
+    @Test
     fun player_dark() = capturePlayer(darkTheme = true, name = "stats_player_dark.png")
 
     @Test
@@ -69,6 +82,25 @@ class StatsScreenshotTest {
         capture(darkTheme, name, artCount = 1) {
             PlayerStatsScreen(uiState = state, onBackClick = {}, onPlayerClick = {})
         }
+    }
+
+    private fun captureLegend(darkTheme: Boolean, name: String) {
+        val state = previewLegendState.copy(
+            legend = jinx,
+            matchups = persistentListOf(
+                MatchupUiState(
+                    LegendRowUiState("viktor", "Viktor", null, games = 4, winRatePercent = 75),
+                    wins = 3,
+                    losses = 1,
+                ),
+                MatchupUiState(
+                    LegendRowUiState("ahri", "Ahri", TestArt.Bright.uri(128, 128), games = 2, winRatePercent = 0),
+                    wins = 0,
+                    losses = 1,
+                ),
+            ),
+        )
+        capture(darkTheme, name, artCount = 2) { LegendStatsScreen(uiState = state, onBackClick = {}) }
     }
 
     private fun capture(darkTheme: Boolean, name: String, artCount: Int, content: @Composable () -> Unit) {

@@ -15,9 +15,16 @@ fun NavController.navigateToStats(navOptions: NavOptions? = null) {
     navigate(route = StatsRoute, navOptions = navOptions)
 }
 
-/** [onPlayerClick] opens a player's stats (wire it to [navigateToPlayerStats]). */
-fun NavGraphBuilder.statsScreen(onBackClick: () -> Unit, onPlayerClick: (playerKey: String) -> Unit) {
+/**
+ * [onPlayerClick] opens a player's stats (wire it to [navigateToPlayerStats]) and [onLegendClick] a
+ * Legend's (wire it to [navigateToLegendStats]); both routes carry the selected date range.
+ */
+fun NavGraphBuilder.statsScreen(
+    onBackClick: () -> Unit,
+    onPlayerClick: (PlayerStatsRoute) -> Unit,
+    onLegendClick: (LegendStatsRoute) -> Unit,
+) {
     composable<StatsRoute> {
-        StatsRouteContent(onBackClick = onBackClick, onPlayerClick = onPlayerClick)
+        StatsRouteContent(onBackClick = onBackClick, onPlayerClick = onPlayerClick, onLegendClick = onLegendClick)
     }
 }

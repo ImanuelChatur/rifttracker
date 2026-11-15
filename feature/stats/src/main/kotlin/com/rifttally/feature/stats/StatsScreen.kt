@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.PrimaryTabRow
@@ -39,29 +40,37 @@ import com.rifttally.core.designsystem.component.RiftTopAppBar
 import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.designsystem.theme.displayLargeEmphasized
+import com.rifttally.core.stats.StatsPeriod
 import com.rifttally.core.ui.LegendAvatar
 import com.rifttally.core.ui.list.CenteredList
 import com.rifttally.core.ui.list.EmptyState
 import com.rifttally.core.ui.list.ListSectionHeader
 import com.rifttally.core.ui.list.SegmentedTile
 import com.rifttally.core.ui.list.skeletonTiles
+import com.rifttally.feature.stats.navigation.LegendStatsRoute
+import com.rifttally.feature.stats.navigation.PlayerStatsRoute
 import kotlinx.collections.immutable.persistentListOf
 
 @Composable
 internal fun StatsRoute(
     onBackClick: () -> Unit,
-    onPlayerClick: (playerKey: String) -> Unit,
+    onPlayerClick: (PlayerStatsRoute) -> Unit,
+    onLegendClick: (LegendStatsRoute) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: StatsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // Detail screens open with the range shown here (rows only exist in Success).
+    val period = (uiState as? StatsUiState.Success)?.period ?: StatsPeriod.ALL_TIME
     StatsScreen(
         uiState = uiState,
         actions = StatsActions(
             onBackClick = onBackClick,
-            onPlayerClick = onPlayerClick,
+            onPlayerClick = { key -> onPlayerClick(PlayerStatsRoute(playerKey = key, period = period.name)) },
+            onLegendClick = { id -> onLegendClick(LegendStatsRoute(legendId = id, period = period.name)) },
             onTabSelect = viewModel::onTabSelect,
             onLegendSortSelect = viewModel::onLegendSortSelect,
+            onPeriodSelect = viewModel::onPeriodSelect,
         ),
         modifier = modifier,
     )
@@ -71,8 +80,10 @@ internal fun StatsRoute(
 internal data class StatsActions(
     val onBackClick: () -> Unit = {},
     val onPlayerClick: (playerKey: String) -> Unit = {},
+    val onLegendClick: (legendId: String) -> Unit = {},
     val onTabSelect: (StatsTab) -> Unit = {},
     val onLegendSortSelect: (LegendSort) -> Unit = {},
+    val onPeriodSelect: (StatsPeriod) -> Unit = {},
 )
 
 /**
@@ -108,6 +119,26 @@ internal fun StatsScreen(uiState: StatsUiState, actions: StatsActions, modifier:
                 modifier = Modifier.padding(padding),
             )
 
+            is StatsUiState.EmptyPeriod -> Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+            ) {
+                StatsPeriodChips(
+                    selected = uiState.period,
+                    onSelect = actions.onPeriodSelect,
+                    modifier = Modifier.padding(vertical = RiftTheme.spacing.sm),
+                )
+                // The chips stay, so the range can be changed back without leaving.
+                EmptyState(
+                    icon = Icons.Filled.DateRange,
+                    text = stringResource(R.string.feature_stats_period_empty),
+                    actionLabel = stringResource(R.string.feature_stats_period_empty_action),
+                    onAction = { actions.onPeriodSelect(StatsPeriod.ALL_TIME) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
             is StatsUiState.Success -> {
                 val layoutDirection = LocalLayoutDirection.current
                 Column(
@@ -115,8 +146,18 @@ internal fun StatsScreen(uiState: StatsUiState, actions: StatsActions, modifier:
                         .fillMaxSize()
                         .padding(top = padding.calculateTopPadding()),
                 ) {
+                    StatsPeriodChips(
+                        selected = uiState.period,
+                        onSelect = actions.onPeriodSelect,
+                        modifier = Modifier
+                            .padding(
+                                start = padding.calculateStartPadding(layoutDirection),
+                                end = padding.calculateEndPadding(layoutDirection),
+                            )
+                            .padding(vertical = RiftTheme.spacing.sm),
+                    )
                     StatsTabs(selected = uiState.selectedTab, onSelect = actions.onTabSelect)
-                    // The tab row consumes the top inset; the list keeps the side and bottom ones.
+                    // The chips and tab row consume the top inset; the list keeps the side and bottom ones.
                     val listPadding = PaddingValues(
                         start = padding.calculateStartPadding(layoutDirection),
                         end = padding.calculateEndPadding(layoutDirection),
@@ -124,7 +165,13 @@ internal fun StatsScreen(uiState: StatsUiState, actions: StatsActions, modifier:
                     )
                     when (uiState.selectedTab) {
                         StatsTab.OVERVIEW -> OverviewTab(uiState, listPadding, onPlayerClick = actions.onPlayerClick)
-                        StatsTab.LEGENDS -> LegendsTab(uiState, listPadding, onSortSelect = actions.onLegendSortSelect)
+
+                        StatsTab.LEGENDS -> LegendsTab(
+                            state = uiState,
+                            listPadding = listPadding,
+                            onSortSelect = actions.onLegendSortSelect,
+                            onLegendClick = actions.onLegendClick,
+                        )
                     }
                 }
             }
@@ -161,12 +208,17 @@ private fun OverviewTab(
     modifier: Modifier = Modifier,
 ) {
     CenteredList(scaffoldPadding = listPadding, modifier = modifier) {
-        item(key = "hero") { TotalGamesHero(totalGames = state.totalGames) }
+        item(key = "hero") { TotalGamesHero(totalGames = state.totalGames, period = state.period) }
         item(key = "legend") {
             MostPlayedLegendTile(
                 legend = state.mostPlayedLegend,
                 modifier = Modifier.padding(top = RiftTheme.spacing.sm),
             )
+        }
+        state.firstPlayer?.let { firstPlayer ->
+            item(key = "first_player") {
+                FirstPlayerTile(firstPlayer = firstPlayer, modifier = Modifier.padding(top = RiftTheme.spacing.xxs))
+            }
         }
 
         item(key = "top_header") {
@@ -216,6 +268,7 @@ private fun LegendsTab(
     state: StatsUiState.Success,
     listPadding: PaddingValues,
     onSortSelect: (LegendSort) -> Unit,
+    onLegendClick: (legendId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     CenteredList(scaffoldPadding = listPadding, modifier = modifier) {
@@ -250,7 +303,9 @@ private fun LegendsTab(
             }
         } else {
             itemsIndexed(state.legends, key = { _, legend -> legend.legendId }) { index, legend ->
-                SegmentedTile(index = index, count = state.legends.size) { LegendStatRow(legend = legend) }
+                SegmentedTile(index = index, count = state.legends.size) {
+                    LegendStatRow(legend = legend, onClick = { onLegendClick(legend.legendId) })
+                }
             }
         }
     }
@@ -258,7 +313,7 @@ private fun LegendsTab(
 
 /** The Overview's hero: total games in emphasized display type on an emphasized container. */
 @Composable
-private fun TotalGamesHero(totalGames: Int, modifier: Modifier = Modifier) {
+private fun TotalGamesHero(totalGames: Int, period: StatsPeriod, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RiftTheme.shapes.extraLarge,
@@ -271,7 +326,7 @@ private fun TotalGamesHero(totalGames: Int, modifier: Modifier = Modifier) {
                 .padding(RiftTheme.spacing.xl),
         ) {
             Text(
-                text = stringResource(R.string.feature_stats_total_games_label),
+                text = labelWithPeriod(stringResource(R.string.feature_stats_total_games_label), period),
                 style = RiftTheme.typography.labelLarge,
             )
             Text(
@@ -325,6 +380,34 @@ private fun MostPlayedLegendTile(legend: LegendRowUiState?, modifier: Modifier =
     }
 }
 
+/** "Going first wins 60% (5 games)" on a quiet tile. */
+@Composable
+private fun FirstPlayerTile(firstPlayer: WinRateUiState, modifier: Modifier = Modifier) {
+    SegmentedTile(index = 0, count = 1, modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics(mergeDescendants = true) {}
+                .padding(horizontal = RiftTheme.spacing.lg, vertical = RiftTheme.spacing.md),
+        ) {
+            Text(
+                text = stringResource(R.string.feature_stats_going_first_label),
+                style = RiftTheme.typography.labelLarge,
+                color = RiftTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = pluralStringResource(
+                    R.plurals.feature_stats_going_first_wins,
+                    firstPlayer.games,
+                    firstPlayer.winRatePercent,
+                    firstPlayer.games,
+                ),
+                style = RiftTheme.typography.bodyLarge,
+            )
+        }
+    }
+}
+
 /** One sentence inside a tile (inline empty state of a section). */
 @Composable
 internal fun TileMessage(text: String, modifier: Modifier = Modifier) {
@@ -367,6 +450,7 @@ internal val previewStatsState = StatsUiState.Success(
     players = previewPlayers,
     legends = previewLegends,
     minGamesForRanking = 3,
+    firstPlayer = WinRateUiState(games = 5, winRatePercent = 60),
 )
 
 @PreviewRiftThemes
@@ -390,5 +474,13 @@ private fun StatsScreenLegendsPreview() {
 private fun StatsScreenEmptyPreview() {
     RiftTheme {
         StatsScreen(uiState = StatsUiState.Empty, actions = StatsActions())
+    }
+}
+
+@PreviewRiftThemes
+@Composable
+private fun StatsScreenEmptyPeriodPreview() {
+    RiftTheme {
+        StatsScreen(uiState = StatsUiState.EmptyPeriod(StatsPeriod.LAST_30_DAYS), actions = StatsActions())
     }
 }

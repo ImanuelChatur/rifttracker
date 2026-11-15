@@ -25,5 +25,7 @@ public fun GameRecord.toStatsGame(): StatsGame {
         winner = state.winner,
         pointChanges = played.filterIsInstance<GameEvent.PointsAdjusted>()
             .map { PointChange(timestamp = it.timestamp, sideId = it.sideId, delta = it.delta) },
+        // The reducer keeps the latest valid pick before the end and ignores picks of unknown players.
+        firstPlayer = state.firstPlayer,
     )
 }

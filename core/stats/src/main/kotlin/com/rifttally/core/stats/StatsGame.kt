@@ -1,6 +1,7 @@
 package com.rifttally.core.stats
 
 import com.rifttally.core.model.GameConfig
+import com.rifttally.core.model.PlayerId
 import com.rifttally.core.model.SideId
 
 /**
@@ -16,6 +17,8 @@ import com.rifttally.core.model.SideId
  *   counts as played, not won, for everyone.
  * @property pointChanges every point change before the game ended, in log order. Other events
  *   (counters, target changes) don't affect stats and are left out.
+ * @property firstPlayer the player picked to go first, or `null` when nobody was picked. A pick that
+ *   isn't a seated player of [config] counts as no pick.
  */
 public data class StatsGame(
     val id: String,
@@ -25,4 +28,5 @@ public data class StatsGame(
     val targetScore: Int,
     val winner: SideId?,
     val pointChanges: List<PointChange>,
+    val firstPlayer: PlayerId? = null,
 )

@@ -17,6 +17,9 @@ internal data class Seat(
 
 internal fun sideId(index: Int) = SideId("s${index + 1}")
 
+/** The id of seat [index] (0-based) in [ffa] and [teams] games. */
+internal fun playerId(index: Int) = PlayerId("p${index + 1}")
+
 /**
  * A free-for-all game where seat N owns side N. [winner] is a seat index (or `null`). [ended] orders
  * games in time.
@@ -27,10 +30,11 @@ internal fun ffa(
     ended: Long = 1_000,
     id: String = "g$ended",
     changes: List<PointChange> = emptyList(),
+    first: Int? = null,
 ): StatsGame {
     val players = seats.mapIndexed { index, seat ->
         Player(
-            PlayerId("p${index + 1}"),
+            playerId(index),
             seat.name,
             "orange",
             legendId = seat.legend,
@@ -55,6 +59,7 @@ internal fun ffa(
         targetScore = format.defaultTargetScore,
         winner = winner?.let(::sideId),
         pointChanges = changes,
+        firstPlayer = first?.let(::playerId),
     )
 }
 
@@ -62,11 +67,17 @@ internal val TEAM_A = SideId("team_a")
 internal val TEAM_B = SideId("team_b")
 
 /** A 2v2 game: [teamA] vs [teamB]; [winner] is [TEAM_A], [TEAM_B] or `null`. */
-internal fun teams(teamA: Pair<Seat, Seat>, teamB: Pair<Seat, Seat>, winner: SideId?, ended: Long = 1_000): StatsGame {
+internal fun teams(
+    teamA: Pair<Seat, Seat>,
+    teamB: Pair<Seat, Seat>,
+    winner: SideId?,
+    ended: Long = 1_000,
+    first: Int? = null,
+): StatsGame {
     val seats = listOf(teamA.first, teamA.second, teamB.first, teamB.second)
     val players = seats.mapIndexed { index, seat ->
         Player(
-            PlayerId("p${index + 1}"),
+            playerId(index),
             seat.name,
             "orange",
             legendId = seat.legend,
@@ -89,6 +100,7 @@ internal fun teams(teamA: Pair<Seat, Seat>, teamB: Pair<Seat, Seat>, winner: Sid
         targetScore = GameFormat.TEAMS_2V2.defaultTargetScore,
         winner = winner,
         pointChanges = emptyList(),
+        firstPlayer = first?.let(::playerId),
     )
 }
 

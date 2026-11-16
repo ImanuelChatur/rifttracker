@@ -1,13 +1,13 @@
 package com.rifttally.core.stats
 
 /**
- * How [legendId] did against [opponentLegendId], see [legendMatchups]. Counted per pair of picks on
- * different sides, so a game where both opponents picked the same Legend counts twice for it.
+ * How [legendId] did against [opponentLegendId], see [legendMatchups]. Counted per game, however many
+ * times either Legend was picked in it.
  *
- * @property games pairs of picks that met.
- * @property wins of those, pairs where [legendId]'s side won.
- * @property losses of those, pairs where [opponentLegendId]'s side won. In 3–4 player games someone else
- *   may have won (or nobody did), so `wins + losses` can be less than [games].
+ * @property games games where the two Legends were on different sides.
+ * @property wins of those, games a side with [legendId] won.
+ * @property losses of those, games a side with [opponentLegendId] (and without [legendId]) won. In 3–4
+ *   player games someone else may have won (or nobody did), so `wins + losses` can be less than [games].
  */
 public data class LegendMatchup(
     val legendId: String,

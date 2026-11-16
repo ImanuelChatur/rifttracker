@@ -39,8 +39,15 @@ class LegendMatchupsTest {
     fun mirrorInAFourPlayerGame_onlyDropsTheMirrorPair() {
         val game = ffa(Seat("Ana", jinx), Seat("Ben", jinx), Seat("Cleo", viktor), DAN, winner = 1)
 
-        // Both Jinx picks meet Viktor; Ben's Jinx won, Ana's didn't (someone else won, not Viktor).
-        assertEquals(listOf(matchup(viktor, games = 2, wins = 1, losses = 0)), legendMatchups(listOf(game), jinx))
+        // Both Jinx picks meet Viktor, in one game; Ben's Jinx won it.
+        assertEquals(listOf(matchup(viktor, games = 1, wins = 1, losses = 0)), legendMatchups(listOf(game), jinx))
+    }
+
+    @Test
+    fun mirrorInAFourPlayerGame_wonByTheOpponent_isOneLoss() {
+        val game = ffa(Seat("Ana", jinx), Seat("Ben", jinx), Seat("Cleo", viktor), DAN, winner = 2)
+
+        assertEquals(listOf(matchup(viktor, games = 1, wins = 0, losses = 1)), legendMatchups(listOf(game), jinx))
     }
 
     @Test
@@ -54,17 +61,25 @@ class LegendMatchupsTest {
     }
 
     @Test
-    fun sameLegendTwiceOnOneTeam_countsEachPair() {
+    fun sameLegendTwiceOnOneTeam_countsOneGame() {
         val game = teams(Seat("Ana", jinx) to Seat("Ben", jinx), Seat("Cleo", viktor) to DAN, TEAM_A)
 
-        assertEquals(listOf(matchup(viktor, games = 2, wins = 2, losses = 0)), legendMatchups(listOf(game), jinx))
+        assertEquals(listOf(matchup(viktor, games = 1, wins = 1, losses = 0)), legendMatchups(listOf(game), jinx))
     }
 
     @Test
-    fun opponentPickedTwiceOnTheOtherTeam_countsEachPair() {
+    fun opponentPickedTwiceOnTheOtherTeam_countsOneGame() {
         val game = teams(Seat("Ana", jinx) to BEN, Seat("Cleo", viktor) to Seat("Dan", viktor), TEAM_B)
 
-        assertEquals(listOf(matchup(viktor, games = 2, wins = 0, losses = 2)), legendMatchups(listOf(game), jinx))
+        assertEquals(listOf(matchup(viktor, games = 1, wins = 0, losses = 1)), legendMatchups(listOf(game), jinx))
+    }
+
+    @Test
+    fun opponentAlsoOnMyTeam_stillCountsOnce_andMyTeamsWinIsAWin() {
+        // Viktor is both Jinx's teammate and an opponent: it still met Jinx across the table, once.
+        val game = teams(Seat("Ana", jinx) to Seat("Ben", viktor), Seat("Cleo", viktor) to DAN, TEAM_A)
+
+        assertEquals(listOf(matchup(viktor, games = 1, wins = 1, losses = 0)), legendMatchups(listOf(game), jinx))
     }
 
     @Test

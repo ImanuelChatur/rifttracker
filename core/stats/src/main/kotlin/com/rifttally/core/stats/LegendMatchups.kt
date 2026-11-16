@@ -1,10 +1,12 @@
 package com.rifttally.core.stats
 
 /**
- * [legendId]'s record against every other Legend it met in [games]. Every pick of [legendId] is paired
- * with every pick on a **different** side of the same game (2v2 teammates aren't opponents). Mirror
- * matches (the same Legend on the other side) and players without a Legend are skipped; placeholder-named
- * players count, as in [legendStats]. Most games first, then most wins, then opponent id.
+ * [legendId]'s record against every other Legend it met in [games], counted **once per game**: a game
+ * counts for an opponent Legend when it was picked on a side **different** from one of [legendId]'s
+ * (2v2 teammates aren't opponents), however many times either Legend was picked. It's a win when a side
+ * with [legendId] won, a loss when a side with the opponent Legend won instead. Mirror matches (the same
+ * Legend on the other side) and players without a Legend are skipped; placeholder-named players count, as
+ * in [legendStats]. Most games first, then most wins, then opponent id.
  */
 public fun legendMatchups(games: List<StatsGame>, legendId: String): List<LegendMatchup> {
     val played = LinkedHashMap<String, Int>()
@@ -18,11 +20,18 @@ public fun legendMatchups(games: List<StatsGame>, legendId: String): List<Legend
             val side = sideOf[player.id] ?: return@mapNotNull null
             legend to side
         }
-        picks.filter { it.first == legendId }.forEach { (_, mySide) ->
-            picks.filter { (legend, side) -> side != mySide && legend != legendId }.forEach { (other, otherSide) ->
-                played[other] = (played[other] ?: 0) + 1
-                if (winner == mySide) wins[other] = (wins[other] ?: 0) + 1
-                if (winner == otherSide) losses[other] = (losses[other] ?: 0) + 1
+        val mySides = picks.filter { it.first == legendId }.map { it.second }.toSet()
+        if (mySides.isEmpty()) return@forEach
+        // Each opponent Legend once, with the sides it was picked on that face one of legendId's.
+        val opponents = picks
+            .filter { (legend, side) -> legend != legendId && mySides.any { it != side } }
+            .groupBy({ it.first }, { it.second })
+        opponents.forEach { (other, otherSides) ->
+            played[other] = (played[other] ?: 0) + 1
+            when (winner) {
+                in mySides -> wins[other] = (wins[other] ?: 0) + 1
+                in otherSides -> losses[other] = (losses[other] ?: 0) + 1
+                else -> Unit
             }
         }
     }

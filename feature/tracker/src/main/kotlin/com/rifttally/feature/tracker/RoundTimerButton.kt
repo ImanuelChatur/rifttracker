@@ -202,8 +202,8 @@ internal const val ROUND_TIMER_ANNOUNCEMENT_TEST_TAG = "round_timer_announcement
 /** The time-up haptic fires only within this many seconds after 0. */
 private const val TIME_UP_HAPTIC_WINDOW_SECONDS = 2
 
-/** Seconds left when the warning phase starts (5:00). */
-private const val WARNING_SECONDS = 300
+/** Seconds left when the warning phase starts (5:00), from the same threshold as [RoundTimerPhase.Warning]. */
+private const val WARNING_SECONDS = WARNING_MS / 1_000
 
 /** 5:00 and time up are announced only within this many seconds of the crossing. */
 private const val ANNOUNCE_WINDOW_SECONDS = 2

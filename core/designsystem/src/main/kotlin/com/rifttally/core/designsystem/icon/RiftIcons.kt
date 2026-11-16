@@ -1,6 +1,21 @@
 package com.rifttally.core.designsystem.icon
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.materialIcon
 import androidx.compose.material.icons.materialPath
 import androidx.compose.ui.graphics.Color
@@ -10,9 +25,27 @@ import androidx.compose.ui.graphics.vector.addPathNodes
 
 /**
  * Icons the app needs beyond `material-icons-core`, drawn from the Material paths so the (large)
- * extended icon artifact isn't needed. Everything else comes from [Icons.Filled].
+ * extended icon artifact isn't needed, plus the `material-icons-core` ones the app uses. Feature and UI
+ * code takes every icon from here, never from [Icons] directly.
  */
 public object RiftIcons {
+    // Material core icons, re-exported so every screen takes its icons from RiftIcons.
+    public val Add: ImageVector get() = Icons.Filled.Add
+    public val ArrowBack: ImageVector get() = Icons.AutoMirrored.Filled.ArrowBack
+    public val Check: ImageVector get() = Icons.Filled.Check
+    public val Close: ImageVector get() = Icons.Filled.Close
+    public val DateRange: ImageVector get() = Icons.Filled.DateRange
+    public val Delete: ImageVector get() = Icons.Filled.Delete
+    public val KeyboardArrowRight: ImageVector get() = Icons.AutoMirrored.Filled.KeyboardArrowRight
+    public val List: ImageVector get() = Icons.AutoMirrored.Filled.List
+    public val MoreVert: ImageVector get() = Icons.Filled.MoreVert
+    public val Person: ImageVector get() = Icons.Filled.Person
+    public val PlayArrow: ImageVector get() = Icons.Filled.PlayArrow
+    public val Search: ImageVector get() = Icons.Filled.Search
+    public val Settings: ImageVector get() = Icons.Filled.Settings
+    public val Share: ImageVector get() = Icons.Filled.Share
+    public val Star: ImageVector get() = Icons.Filled.Star
+
     /** Minus sign (Material "Remove"). */
     public val Remove: ImageVector by lazy {
         materialIcon(name = "Rift.Remove") {

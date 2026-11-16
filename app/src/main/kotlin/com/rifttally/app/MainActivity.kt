@@ -7,23 +7,32 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rifttally.app.navigation.RiftTallyApp
+import com.rifttally.core.common.dispatchers.IoDispatcher
 import com.rifttally.core.data.repository.UserSettingsRepository
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.model.ThemeMode
 import com.rifttally.core.model.UserSettings
+import com.rifttally.core.ui.LocalIoDispatcher
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineDispatcher
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var userSettingsRepository: UserSettingsRepository
+
+    /** Handed to the UI through [LocalIoDispatcher] (writing shared result pictures). */
+    @Inject
+    @IoDispatcher
+    lateinit var ioDispatcher: CoroutineDispatcher
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -49,7 +58,9 @@ class MainActivity : ComponentActivity() {
                 darkTheme = darkTheme,
                 dynamicColor = settings?.useDynamicColor ?: false,
             ) {
-                RiftTallyApp()
+                CompositionLocalProvider(LocalIoDispatcher provides ioDispatcher) {
+                    RiftTallyApp()
+                }
             }
         }
     }

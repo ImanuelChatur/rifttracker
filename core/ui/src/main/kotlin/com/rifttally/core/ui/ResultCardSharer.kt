@@ -91,9 +91,9 @@ public class ResultCardSharer internal constructor(
     }
 }
 
-/** A [ResultCardSharer] for the current screen; [ioDispatcher] writes the PNG (inject `@IoDispatcher`). */
+/** A [ResultCardSharer] for the current screen; [ioDispatcher] writes the PNG (the app's, via [LocalIoDispatcher]). */
 @Composable
-public fun rememberResultCardSharer(ioDispatcher: CoroutineDispatcher): ResultCardSharer {
+public fun rememberResultCardSharer(ioDispatcher: CoroutineDispatcher = LocalIoDispatcher.current): ResultCardSharer {
     val context = LocalContext.current
     return remember(context, ioDispatcher) { ResultCardSharer(context, ioDispatcher) }
 }

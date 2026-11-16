@@ -11,10 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -35,6 +31,7 @@ import com.rifttally.core.designsystem.component.RiftButton
 import com.rifttally.core.designsystem.component.RiftIconButton
 import com.rifttally.core.designsystem.component.RiftTextButton
 import com.rifttally.core.designsystem.component.RiftTopAppBar
+import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.designsystem.theme.headlineMediumEmphasized
 import com.rifttally.core.game.GameLogLine
@@ -67,7 +64,7 @@ internal fun GameDetailRoute(
             }
         }
     }
-    val sharer = rememberResultCardSharer(viewModel.shareDispatcher)
+    val sharer = rememberResultCardSharer()
     val scope = rememberCoroutineScope()
     GameDetailScreen(
         uiState = uiState,
@@ -99,7 +96,7 @@ internal fun GameDetailScreen(
                 title = stringResource(R.string.feature_history_detail_title),
                 navigationIcon = {
                     RiftIconButton(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = RiftIcons.ArrowBack,
                         contentDescription = stringResource(R.string.feature_history_back),
                         onClick = onBackClick,
                     )
@@ -112,7 +109,7 @@ internal fun GameDetailScreen(
             GameDetailUiState.Loading -> CenteredList(scaffoldPadding = padding) { skeletonTiles() }
 
             GameDetailUiState.NotFound -> EmptyState(
-                icon = Icons.Filled.Search,
+                icon = RiftIcons.Search,
                 text = stringResource(R.string.feature_history_not_found),
                 actionLabel = stringResource(R.string.feature_history_empty_action),
                 onAction = onBackClick,
@@ -202,7 +199,7 @@ private fun FinalResultCard(
                 RiftTextButton(
                     text = stringResource(R.string.feature_history_share),
                     onClick = onShareClick,
-                    icon = Icons.Filled.Share,
+                    icon = RiftIcons.Share,
                 )
                 RiftButton(text = stringResource(R.string.feature_history_play_again), onClick = onPlayAgainClick)
             }

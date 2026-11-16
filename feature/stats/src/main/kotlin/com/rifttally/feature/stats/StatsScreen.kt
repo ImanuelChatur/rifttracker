@@ -14,10 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
@@ -37,6 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
 import com.rifttally.core.designsystem.component.RiftIconButton
 import com.rifttally.core.designsystem.component.RiftTopAppBar
+import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.designsystem.theme.displayLargeEmphasized
@@ -99,7 +96,7 @@ internal fun StatsScreen(uiState: StatsUiState, actions: StatsActions, modifier:
                 title = stringResource(R.string.feature_stats_title),
                 navigationIcon = {
                     RiftIconButton(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = RiftIcons.ArrowBack,
                         contentDescription = stringResource(R.string.feature_stats_back),
                         onClick = actions.onBackClick,
                     )
@@ -112,7 +109,7 @@ internal fun StatsScreen(uiState: StatsUiState, actions: StatsActions, modifier:
             StatsUiState.Loading -> CenteredList(scaffoldPadding = padding) { skeletonTiles() }
 
             StatsUiState.Empty -> EmptyState(
-                icon = Icons.Filled.Star,
+                icon = RiftIcons.Star,
                 text = stringResource(R.string.feature_stats_empty),
                 actionLabel = stringResource(R.string.feature_stats_empty_action),
                 onAction = actions.onBackClick,
@@ -131,7 +128,7 @@ internal fun StatsScreen(uiState: StatsUiState, actions: StatsActions, modifier:
                 )
                 // The chips stay, so the range can be changed back without leaving.
                 EmptyState(
-                    icon = Icons.Filled.DateRange,
+                    icon = RiftIcons.DateRange,
                     text = stringResource(R.string.feature_stats_period_empty),
                     actionLabel = stringResource(R.string.feature_stats_period_empty_action),
                     onAction = { actions.onPeriodSelect(StatsPeriod.ALL_TIME) },

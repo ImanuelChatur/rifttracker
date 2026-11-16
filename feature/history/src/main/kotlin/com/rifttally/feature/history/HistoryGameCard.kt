@@ -5,9 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -22,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
 import com.rifttally.core.designsystem.component.RiftIconButton
+import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.model.GameFormat
 import com.rifttally.core.model.GameId
@@ -97,7 +95,7 @@ private fun GameMenu(names: String, onDelete: () -> Unit, modifier: Modifier = M
     var expanded by rememberSaveable { mutableStateOf(false) }
     Box(modifier = modifier) {
         RiftIconButton(
-            imageVector = Icons.Filled.MoreVert,
+            imageVector = RiftIcons.MoreVert,
             contentDescription = stringResource(R.string.feature_history_row_menu, names),
             onClick = { expanded = true },
         )
@@ -109,7 +107,7 @@ private fun GameMenu(names: String, onDelete: () -> Unit, modifier: Modifier = M
         ) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.feature_history_delete)) },
-                leadingIcon = { Icon(imageVector = Icons.Filled.Delete, contentDescription = null) },
+                leadingIcon = { Icon(imageVector = RiftIcons.Delete, contentDescription = null) },
                 onClick = {
                     expanded = false
                     onDelete()

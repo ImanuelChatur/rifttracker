@@ -2,9 +2,6 @@ package com.rifttally.feature.stats
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +16,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
 import com.rifttally.core.designsystem.component.RiftIconButton
 import com.rifttally.core.designsystem.component.RiftTopAppBar
+import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.stats.StatsPeriod
@@ -54,7 +52,7 @@ internal fun LegendStatsScreen(uiState: LegendStatsUiState, onBackClick: () -> U
                     ?: stringResource(R.string.feature_stats_legend_title),
                 navigationIcon = {
                     RiftIconButton(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = RiftIcons.ArrowBack,
                         contentDescription = stringResource(R.string.feature_stats_back),
                         onClick = onBackClick,
                     )
@@ -67,7 +65,7 @@ internal fun LegendStatsScreen(uiState: LegendStatsUiState, onBackClick: () -> U
             LegendStatsUiState.Loading -> CenteredList(scaffoldPadding = padding) { skeletonTiles() }
 
             is LegendStatsUiState.NotFound -> EmptyState(
-                icon = Icons.Filled.Search,
+                icon = RiftIcons.Search,
                 text = if (uiState.period == StatsPeriod.ALL_TIME) {
                     stringResource(R.string.feature_stats_legend_not_found)
                 } else {

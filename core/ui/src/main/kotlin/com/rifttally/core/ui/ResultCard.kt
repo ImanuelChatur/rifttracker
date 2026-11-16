@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,6 +34,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
+import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.designsystem.theme.headlineMediumEmphasized
@@ -154,7 +153,7 @@ private fun ResultCardSideRow(side: ResultCardSide, portraits: ImmutableMap<Stri
             }
             if (side.isWinner) {
                 Icon(
-                    imageVector = Icons.Filled.Star,
+                    imageVector = RiftIcons.Star,
                     contentDescription = stringResource(R.string.core_ui_result_winner_icon),
                     tint = RiftTheme.colorScheme.primary,
                     modifier = Modifier.size(RiftTheme.sizes.iconSmall),

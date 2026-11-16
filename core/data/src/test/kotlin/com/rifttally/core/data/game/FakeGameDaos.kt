@@ -4,6 +4,7 @@ import com.rifttally.core.database.dao.GameDao
 import com.rifttally.core.database.dao.GameEventDao
 import com.rifttally.core.database.model.GameEntity
 import com.rifttally.core.database.model.GameEventEntity
+import com.rifttally.core.database.model.GameTimerEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -16,6 +17,19 @@ internal class FakeGameDao : GameDao {
 
     /** Both tables live here so the game DAO can delete and re-insert event logs. */
     val events = MutableStateFlow<List<GameEventEntity>>(emptyList())
+
+    /** The `game_timer` table, by game id. */
+    val timers = MutableStateFlow<Map<String, GameTimerEntity>>(emptyMap())
+
+    override suspend fun upsertTimer(timer: GameTimerEntity) {
+        check(timer.gameId in games.value) { "no game ${timer.gameId}" }
+        timers.update { it + (timer.gameId to timer) }
+    }
+
+    override suspend fun copyTimer(fromGameId: String, toGameId: String) {
+        val from = timers.value[fromGameId] ?: return
+        upsertTimer(from.copy(gameId = toGameId))
+    }
 
     override suspend fun insert(game: GameEntity) {
         check(game.id !in games.value) { "duplicate game ${game.id}" }
@@ -51,6 +65,7 @@ internal class FakeGameDao : GameDao {
 
     override suspend fun deleteGameRow(id: String) {
         games.update { it - id }
+        timers.update { it - id } // ON DELETE CASCADE
     }
 
     override suspend fun insertEvents(events: List<GameEventEntity>) {
@@ -91,6 +106,8 @@ internal class FakeGameEventDao(private val gameDao: FakeGameDao) : GameEventDao
     override suspend fun insertGame(game: GameEntity) = gameDao.insert(game)
 
     override suspend fun insertAll(events: List<GameEventEntity>) = gameDao.insertEvents(events)
+
+    override suspend fun copyTimer(fromGameId: String, toGameId: String) = gameDao.copyTimer(fromGameId, toGameId)
 
     override suspend fun countActive(gameId: String): Int =
         if (gameDao.games.value[gameId]?.let { it.endedAt == null } == true) 1 else 0

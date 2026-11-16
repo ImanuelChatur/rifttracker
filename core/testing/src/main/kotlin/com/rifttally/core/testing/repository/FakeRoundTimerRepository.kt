@@ -1,5 +1,6 @@
 package com.rifttally.core.testing.repository
 
+import com.rifttally.core.data.timer.NewGameTimer
 import com.rifttally.core.data.timer.RoundTimer
 import com.rifttally.core.data.timer.RoundTimerChoice
 import com.rifttally.core.data.timer.RoundTimerRepository
@@ -31,9 +32,9 @@ public class FakeRoundTimerRepository(private val clock: Clock, initialChoice: R
 
     override fun observeTimer(gameId: GameId): Flow<RoundTimer?> = timers.map { it[gameId] }.distinctUntilChanged()
 
-    override suspend fun createTimer(gameId: GameId, minutes: Int) {
-        val clamped = minutes.coerceIn(RoundTimerChoice.MIN_MINUTES, RoundTimerChoice.MAX_MINUTES)
-        setTimer(gameId, RoundTimer.ofMinutes(clamped))
+    /** Gives [gameId] a fresh, paused timer of [minutes] (clamped), as a new game from Setup gets. */
+    public fun createTimer(gameId: GameId, minutes: Int) {
+        setTimer(gameId, NewGameTimer.Fresh(minutes).timer)
     }
 
     override suspend fun toggle(gameId: GameId): Unit = modify(gameId) { timer ->
@@ -42,10 +43,6 @@ public class FakeRoundTimerRepository(private val clock: Clock, initialChoice: R
     }
 
     override suspend fun reset(gameId: GameId): Unit = modify(gameId) { it.reset() }
-
-    override suspend fun copyTimer(fromGameId: GameId, toGameId: GameId) {
-        timers.update { all -> all[fromGameId]?.let { all + (toGameId to it) } ?: all }
-    }
 
     override val choice: Flow<RoundTimerChoice> = choiceState
 

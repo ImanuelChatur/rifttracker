@@ -45,6 +45,14 @@ public abstract class GameEventDao {
     @Query("SELECT COUNT(*) FROM game WHERE id = :gameId AND ended_at IS NULL")
     protected abstract suspend fun countActive(gameId: String): Int
 
+    @Query(
+        """
+        INSERT OR REPLACE INTO game_timer (game_id, duration_ms, elapsed_before_ms, running_since)
+        SELECT :toGameId, duration_ms, elapsed_before_ms, running_since FROM game_timer WHERE game_id = :fromGameId
+        """,
+    )
+    protected abstract suspend fun copyTimer(fromGameId: String, toGameId: String)
+
     @Query("UPDATE game SET updated_at = :updatedAt WHERE id = :gameId")
     protected abstract suspend fun touchGame(gameId: String, updatedAt: Long)
 
@@ -81,7 +89,8 @@ public abstract class GameEventDao {
     /**
      * Restart, in one transaction: ends [oldGameId] with the given `GameEnded` event (unless it already
      * ended or doesn't exist) and inserts [newGame] with its opening [newEvents] (e.g. the first-player
-     * pick). A crash can't leave both games open. As in [append], [endTimestamp] becomes the old game's
+     * pick) and, if [copyTimerFrom] is set, a copy of that game's round timer. A crash can't leave both
+     * games open, or the new one without its timer. As in [append], [endTimestamp] becomes the old game's
      * `ended_at` and `updated_at`.
      */
     @Transaction
@@ -92,11 +101,13 @@ public abstract class GameEventDao {
         endPayload: String,
         newGame: GameEntity,
         newEvents: List<GameEventEntity> = emptyList(),
+        copyTimerFrom: String? = null,
     ) {
         if (countActive(oldGameId) > 0) {
             append(oldGameId, endEventId, endTimestamp, endPayload, endsGame = true)
         }
         insertGame(newGame)
         insertAll(newEvents)
+        copyTimerFrom?.let { copyTimer(fromGameId = it, toGameId = newGame.id) }
     }
 }

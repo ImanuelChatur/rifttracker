@@ -5,26 +5,18 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * Round timers of games (stored per game, survive process death) and Setup's remembered timer choice.
- * Start and pause read "now" from the injected clock.
+ * Start and pause read "now" from the injected clock. A game's timer is created with the game, in the
+ * same transaction (see [NewGameTimer] and [com.rifttally.core.data.game.GameRepository.createGame]).
  */
 public interface RoundTimerRepository {
     /** [gameId]'s timer, or `null` if the game has none. */
     public fun observeTimer(gameId: GameId): Flow<RoundTimer?>
-
-    /** Gives [gameId] a fresh timer of [minutes]: full length, paused. Replaces any timer it had. */
-    public suspend fun createTimer(gameId: GameId, minutes: Int)
 
     /** Starts [gameId]'s timer if paused, pauses it if running. Does nothing without a timer. */
     public suspend fun toggle(gameId: GameId)
 
     /** Back to the full length, paused. Does nothing without a timer. */
     public suspend fun reset(gameId: GameId)
-
-    /**
-     * Carries [fromGameId]'s timer over to [toGameId] unchanged (same length and elapsed time, still
-     * running if it was), for Rematch and Restart. Does nothing if [fromGameId] has no timer.
-     */
-    public suspend fun copyTimer(fromGameId: GameId, toGameId: GameId)
 
     /** Setup's remembered choice (default: off, 50 minutes). */
     public val choice: Flow<RoundTimerChoice>

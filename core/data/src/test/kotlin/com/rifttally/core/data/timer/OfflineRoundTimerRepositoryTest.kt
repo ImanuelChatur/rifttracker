@@ -43,17 +43,8 @@ class OfflineRoundTimerRepositoryTest {
     private val game = GameId("g1")
 
     @Test
-    fun createTimer_isFullLengthAndPaused_clampedToLimits() = testScope.runTest {
-        repository.createTimer(game, 50)
-        assertEquals(RoundTimer(durationMs = 3_000_000), repository.observeTimer(game).first())
-
-        repository.createTimer(game, 500)
-        assertEquals(120 * 60_000L, repository.observeTimer(game).first()?.durationMs)
-    }
-
-    @Test
     fun toggle_usesTheInjectedClock() = testScope.runTest {
-        repository.createTimer(game, 5)
+        dao.upsert(GameTimerEntity(game.value, durationMs = 300_000))
         clock.advanceBy(10.seconds)
         repository.toggle(game)
         assertEquals(10_000L, repository.observeTimer(game).first()?.runningSinceMs)
@@ -67,9 +58,7 @@ class OfflineRoundTimerRepositoryTest {
     fun noTimer_isNull_andChangesDoNothing() = testScope.runTest {
         repository.toggle(game)
         repository.reset(game)
-        repository.copyTimer(game, GameId("g2"))
         assertNull(repository.observeTimer(game).first())
-        assertNull(repository.observeTimer(GameId("g2")).first())
     }
 
     @Test
@@ -113,10 +102,6 @@ class OfflineRoundTimerRepositoryTest {
         }
 
         override suspend fun reset(gameId: String) = edit(gameId) { it.copy(elapsedBeforeMs = 0, runningSince = null) }
-
-        override suspend fun copy(fromGameId: String, toGameId: String) = rows.update { all ->
-            all[fromGameId]?.let { all + (toGameId to it.copy(gameId = toGameId)) } ?: all
-        }
 
         private fun edit(gameId: String, transform: (GameTimerEntity) -> GameTimerEntity) = rows.update { all ->
             all[gameId]?.let { all + (gameId to transform(it)) } ?: all

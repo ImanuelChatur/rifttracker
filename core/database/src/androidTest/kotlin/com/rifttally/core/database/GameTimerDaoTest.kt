@@ -90,7 +90,7 @@ class GameTimerDaoTest {
         timerDao.upsert(GameTimerEntity("old", 60_000, elapsedBeforeMs = 1_234, runningSince = 777))
         timerDao.upsert(GameTimerEntity("new", 5_000))
 
-        timerDao.copy(fromGameId = "old", toGameId = "new")
+        gameDao.copyTimer(fromGameId = "old", toGameId = "new")
 
         assertEquals(GameTimerEntity("new", 60_000, elapsedBeforeMs = 1_234, runningSince = 777), timerDao.get("new"))
         assertEquals(GameTimerEntity("old", 60_000, elapsedBeforeMs = 1_234, runningSince = 777), timerDao.get("old"))
@@ -101,7 +101,7 @@ class GameTimerDaoTest {
         gameDao.insert(game("old"))
         gameDao.insert(game("new"))
 
-        timerDao.copy(fromGameId = "old", toGameId = "new")
+        gameDao.copyTimer(fromGameId = "old", toGameId = "new")
 
         assertNull(timerDao.get("new"))
     }

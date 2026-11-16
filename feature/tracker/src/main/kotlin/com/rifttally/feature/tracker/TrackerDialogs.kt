@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -56,7 +54,7 @@ internal fun TargetScoreDialog(
                 )
                 Text(text = draft.toString(), style = RiftTheme.scoreTypography.scoreSmall)
                 RiftIconButton(
-                    imageVector = Icons.Filled.Add,
+                    imageVector = RiftIcons.Add,
                     contentDescription = stringResource(R.string.feature_tracker_target_increase),
                     onClick = { draft += 1 },
                 )

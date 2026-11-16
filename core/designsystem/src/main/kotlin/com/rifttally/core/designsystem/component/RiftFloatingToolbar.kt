@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -45,7 +43,7 @@ private fun RiftFloatingToolbarPreview() {
     RiftTheme {
         RiftFloatingToolbar(modifier = Modifier.padding(RiftTheme.spacing.lg)) {
             RiftIconButton(imageVector = RiftIcons.Undo, contentDescription = "Undo", onClick = {})
-            RiftIconButton(imageVector = Icons.Filled.MoreVert, contentDescription = "Menu", onClick = {})
+            RiftIconButton(imageVector = RiftIcons.MoreVert, contentDescription = "Menu", onClick = {})
         }
     }
 }

@@ -3,14 +3,12 @@ package com.rifttally.core.designsystem.component
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.RiftTheme
 
 /** Icon button with a required [contentDescription] and a 48dp minimum touch target. */
@@ -37,8 +35,8 @@ public fun RiftIconButton(
 private fun RiftIconButtonPreview() {
     RiftTheme {
         Row(modifier = Modifier.padding(RiftTheme.spacing.sm)) {
-            RiftIconButton(imageVector = Icons.Filled.Settings, contentDescription = "Settings", onClick = {})
-            RiftIconButton(imageVector = Icons.Filled.Add, contentDescription = "Add", onClick = {}, enabled = false)
+            RiftIconButton(imageVector = RiftIcons.Settings, contentDescription = "Settings", onClick = {})
+            RiftIconButton(imageVector = RiftIcons.Add, contentDescription = "Add", onClick = {}, enabled = false)
         }
     }
 }

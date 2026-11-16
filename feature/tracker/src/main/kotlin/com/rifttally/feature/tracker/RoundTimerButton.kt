@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,8 +42,9 @@ import com.rifttally.core.designsystem.theme.RiftTheme
  * The round timer on the control bar: "mm:ss" left (tabular digits), amber in the last 5 minutes, then
  * "+mm:ss" overtime in the error color. Tap to start or pause; a play/pause glyph shows which a tap does.
  *
- * Crossing 0 while on screen gives one strong haptic (if [hapticsEnabled]); reaching 5 minutes and 0 are
- * announced politely to screen readers, nothing else (not every second).
+ * Crossing 0 while on screen gives one strong haptic (if [hapticsEnabled]); reaching 5 minutes and 0 while
+ * on screen are announced politely to screen readers, nothing else (not every second, and not when a game
+ * that's already under 5:00 is opened or rotated).
  */
 @Composable
 internal fun RoundTimerButton(
@@ -72,8 +71,8 @@ internal fun RoundTimerButton(
     val actionLabel = stringResource(
         if (timer.isRunning) R.string.feature_tracker_timer_pause else R.string.feature_tracker_timer_start,
     )
-    val announcement = when (timer.phase) {
-        RoundTimerPhase.Normal -> null
+    val announcement = when (rememberPhaseReachedLive(timer.phase)) {
+        null, RoundTimerPhase.Normal -> null
         RoundTimerPhase.Warning -> stringResource(R.string.feature_tracker_timer_five_minutes_left)
         RoundTimerPhase.Overtime -> stringResource(R.string.feature_tracker_timer_up)
     }
@@ -83,6 +82,7 @@ internal fun RoundTimerButton(
         Box(
             modifier = Modifier
                 .matchParentSize()
+                .testTag(ROUND_TIMER_ANNOUNCEMENT_TEST_TAG)
                 .clearAndSetSemantics {
                     liveRegion = LiveRegionMode.Polite
                     if (announcement != null) contentDescription = announcement
@@ -109,7 +109,7 @@ internal fun RoundTimerButton(
             horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xxs),
         ) {
             Icon(
-                imageVector = if (timer.isRunning) RiftIcons.Pause else Icons.Filled.PlayArrow,
+                imageVector = if (timer.isRunning) RiftIcons.Pause else RiftIcons.PlayArrow,
                 contentDescription = null,
                 tint = if (color == Color.Unspecified) RiftTheme.colorScheme.onSurfaceVariant else color,
                 modifier = Modifier.size(RiftTheme.sizes.iconSmall),
@@ -139,6 +139,20 @@ private fun timerDescription(timer: RoundTimerUiState): String {
 }
 
 /**
+ * The phase the timer moved into while this composition watched it, or `null` until it changes. The
+ * phase it opens with (e.g. a game reopened at 3:00, or after rotation) isn't "reached", so it isn't
+ * announced again.
+ */
+@Composable
+private fun rememberPhaseReachedLive(phase: RoundTimerPhase): RoundTimerPhase? {
+    val initial = remember { phase }
+    // Once it has changed, every later phase was reached live (even one equal to the initial phase).
+    var changed by remember { mutableStateOf(false) }
+    LaunchedEffect(phase) { if (phase != initial) changed = true }
+    return phase.takeIf { changed || it != initial }
+}
+
+/**
  * One strong haptic when a running timer crosses 0 while on screen. Remembered per composition, so
  * opening a game that is already in overtime (or rotating) doesn't buzz again.
  */
@@ -157,6 +171,9 @@ private fun TimeUpHaptic(timer: RoundTimerUiState, enabled: Boolean) {
 }
 
 internal const val ROUND_TIMER_TEST_TAG = "round_timer"
+
+/** The (invisible) live region that announces 5:00 and time up. */
+internal const val ROUND_TIMER_ANNOUNCEMENT_TEST_TAG = "round_timer_announcement"
 
 /** The time-up haptic fires only within this many seconds after 0. */
 private const val TIME_UP_HAPTIC_WINDOW_SECONDS = 2

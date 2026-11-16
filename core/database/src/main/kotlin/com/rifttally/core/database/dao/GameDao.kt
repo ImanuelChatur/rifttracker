@@ -4,8 +4,10 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Upsert
 import com.rifttally.core.database.model.GameEntity
 import com.rifttally.core.database.model.GameEventEntity
+import com.rifttally.core.database.model.GameTimerEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -57,10 +59,32 @@ public interface GameDao {
         deleteGameRow(id)
     }
 
-    /** Re-inserts a game together with its event log, atomically (undo of [delete]). */
+    @Upsert
+    public suspend fun upsertTimer(timer: GameTimerEntity)
+
+    /** Copies [fromGameId]'s timer, as it is, to [toGameId]. Does nothing if [fromGameId] has no timer. */
+    @Query(
+        """
+        INSERT OR REPLACE INTO game_timer (game_id, duration_ms, elapsed_before_ms, running_since)
+        SELECT :toGameId, duration_ms, elapsed_before_ms, running_since FROM game_timer WHERE game_id = :fromGameId
+        """,
+    )
+    public suspend fun copyTimer(fromGameId: String, toGameId: String)
+
+    /**
+     * Inserts a game together with its event log and, optionally, its round timer ([timer], or a copy of
+     * [copyTimerFrom]'s), atomically. Also undoes [delete].
+     */
     @Transaction
-    public suspend fun insertWithEvents(game: GameEntity, events: List<GameEventEntity>) {
+    public suspend fun insertWithEvents(
+        game: GameEntity,
+        events: List<GameEventEntity>,
+        timer: GameTimerEntity? = null,
+        copyTimerFrom: String? = null,
+    ) {
         insert(game)
         insertEvents(events)
+        timer?.let { upsertTimer(it) }
+        copyTimerFrom?.let { copyTimer(fromGameId = it, toGameId = game.id) }
     }
 }

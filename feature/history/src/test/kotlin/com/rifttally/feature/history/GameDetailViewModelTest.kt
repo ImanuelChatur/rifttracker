@@ -36,7 +36,6 @@ class GameDetailViewModelTest {
         legendRepository = legends,
         defaultDispatcher = mainDispatcherRule.testDispatcher,
         firstPlayerPicker = FirstPlayerPicker(settings, { 0 }, GameEventFactory(TestClock(), IdGenerator { "pick" })),
-        shareDispatcher = mainDispatcherRule.testDispatcher,
     )
 
     @Test

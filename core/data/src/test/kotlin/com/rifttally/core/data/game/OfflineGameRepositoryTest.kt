@@ -1,7 +1,9 @@
 package com.rifttally.core.data.game
 
 import app.cash.turbine.test
+import com.rifttally.core.data.timer.NewGameTimer
 import com.rifttally.core.database.model.GameEventEntity
+import com.rifttally.core.database.model.GameTimerEntity
 import com.rifttally.core.game.GameEvent
 import com.rifttally.core.game.IdGenerator
 import com.rifttally.core.model.GameConfig
@@ -151,6 +153,43 @@ class OfflineGameRepositoryTest {
 
         assertEquals(listOf(pick), repository.observeGame(new).first()?.events)
         assertEquals(listOf("end"), repository.observeGame(old).first()?.events?.map { it.id })
+    }
+
+    @Test
+    fun createGame_withFreshTimer_storesItWithTheGame_fullLengthPausedAndClamped() = runTest(dispatcher) {
+        val id = repository.createGame(config, emptyList(), NewGameTimer.Fresh(50))
+        val long = repository.createGame(config, emptyList(), NewGameTimer.Fresh(500))
+        val none = repository.createGame(config, emptyList())
+
+        assertEquals(GameTimerEntity(id.value, durationMs = 3_000_000), gameDao.timers.value[id.value])
+        assertEquals(120 * 60_000L, gameDao.timers.value[long.value]?.durationMs)
+        assertNull(gameDao.timers.value[none.value])
+    }
+
+    @Test
+    fun createGame_copyOf_carriesTheTimerOverUnchanged() = runTest(dispatcher) {
+        val old = repository.createGame(config, emptyList(), NewGameTimer.Fresh(50))
+        val running = GameTimerEntity(old.value, durationMs = 3_000_000, elapsedBeforeMs = 1_234, runningSince = 777)
+        gameDao.upsertTimer(running)
+        val withoutTimer = repository.createGame(config, emptyList())
+
+        val new = repository.createGame(config, emptyList(), NewGameTimer.CopyOf(old))
+        val fromNone = repository.createGame(config, emptyList(), NewGameTimer.CopyOf(withoutTimer))
+
+        assertEquals(running.copy(gameId = new.value), gameDao.timers.value[new.value])
+        assertNull(gameDao.timers.value[fromNone.value])
+    }
+
+    @Test
+    fun restartGame_carryOverTimer_copiesIt_otherwiseNot() = runTest(dispatcher) {
+        val old = repository.createGame(config, emptyList(), NewGameTimer.Fresh(30))
+        val end = GameEvent.GameEnded("end", 30, winner = null)
+
+        val carried = repository.restartGame(old, end, config, emptyList(), carryOverTimer = true)
+        val plain = repository.restartGame(carried, end.copy(id = "end2"), config, emptyList())
+
+        assertEquals(1_800_000L, gameDao.timers.value[carried.value]?.durationMs)
+        assertNull(gameDao.timers.value[plain.value])
     }
 
     @Test

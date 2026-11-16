@@ -33,17 +33,9 @@ internal class OfflineRoundTimerRepository @Inject constructor(
         .distinctUntilChanged()
         .flowOn(ioDispatcher)
 
-    override suspend fun createTimer(gameId: GameId, minutes: Int) {
-        val timer = RoundTimer.ofMinutes(minutes.coerceIn(RoundTimerChoice.MIN_MINUTES, RoundTimerChoice.MAX_MINUTES))
-        timerDao.upsert(GameTimerEntity(gameId = gameId.value, durationMs = timer.durationMs))
-    }
-
     override suspend fun toggle(gameId: GameId): Unit = timerDao.toggle(gameId.value, now())
 
     override suspend fun reset(gameId: GameId): Unit = timerDao.reset(gameId.value)
-
-    override suspend fun copyTimer(fromGameId: GameId, toGameId: GameId): Unit =
-        timerDao.copy(fromGameId = fromGameId.value, toGameId = toGameId.value)
 
     override val choice: Flow<RoundTimerChoice> = preferences.roundTimerChoice
         .map { it.toChoice() }

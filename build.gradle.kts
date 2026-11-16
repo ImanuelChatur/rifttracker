@@ -23,8 +23,10 @@ spotless {
             .customRuleSets(listOf(composeRules))
             .editorConfigOverride(
                 mapOf(
-                    // Design-token locals provided by RiftTheme.
-                    "compose_allowed_composition_locals" to "LocalRiftSpacing,LocalRiftSizes,LocalRiftScoreTypography",
+                    // Design-token locals provided by RiftTheme, and the app's IO dispatcher (provided by :app's
+                    // MainActivity, so ViewModels don't hand a dispatcher to the result-card sharer).
+                    "compose_allowed_composition_locals" to
+                        "LocalRiftSpacing,LocalRiftSizes,LocalRiftScoreTypography,LocalIoDispatcher",
                 ),
             )
     }

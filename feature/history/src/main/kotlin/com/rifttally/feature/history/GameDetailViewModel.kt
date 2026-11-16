@@ -4,7 +4,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rifttally.core.common.dispatchers.DefaultDispatcher
-import com.rifttally.core.common.dispatchers.IoDispatcher
 import com.rifttally.core.data.game.FirstPlayerPicker
 import com.rifttally.core.data.game.GameRecord
 import com.rifttally.core.data.game.GameRepository
@@ -43,8 +42,6 @@ internal class GameDetailViewModel @Inject constructor(
     // Stats replay every game's log: keep that work off the main thread.
     @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
     private val firstPlayerPicker: FirstPlayerPicker,
-    /** Writes the shared result picture (see `rememberResultCardSharer`). */
-    @IoDispatcher val shareDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     // Navigation stores route arguments under their property names (same approach as the tracker).

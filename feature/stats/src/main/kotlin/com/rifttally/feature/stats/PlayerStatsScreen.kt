@@ -9,9 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
 import com.rifttally.core.designsystem.component.RiftIconButton
 import com.rifttally.core.designsystem.component.RiftTopAppBar
+import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.stats.StatsPeriod
 import com.rifttally.core.ui.list.CenteredList
@@ -78,7 +76,7 @@ internal fun PlayerStatsScreen(
                     ?: stringResource(R.string.feature_stats_player_title),
                 navigationIcon = {
                     RiftIconButton(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = RiftIcons.ArrowBack,
                         contentDescription = stringResource(R.string.feature_stats_back),
                         onClick = onBackClick,
                     )
@@ -91,7 +89,7 @@ internal fun PlayerStatsScreen(
             PlayerStatsUiState.Loading -> CenteredList(scaffoldPadding = padding) { skeletonTiles() }
 
             is PlayerStatsUiState.NotFound -> EmptyState(
-                icon = Icons.Filled.Search,
+                icon = RiftIcons.Search,
                 text = if (uiState.period == StatsPeriod.ALL_TIME) {
                     stringResource(R.string.feature_stats_not_found)
                 } else {

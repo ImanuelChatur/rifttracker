@@ -15,9 +15,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -36,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
+import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.PlayerColor
 import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.designsystem.theme.RiftTheme
@@ -98,7 +96,7 @@ public fun LegendPickerContent(
             value = query,
             onValueChange = onQueryChange,
             label = { Text(stringResource(R.string.core_ui_legend_search)) },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            leadingIcon = { Icon(RiftIcons.Search, contentDescription = null) },
             shape = RiftTheme.shapes.medium,
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -189,7 +187,7 @@ private fun LegendCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Close,
+                        imageVector = RiftIcons.Close,
                         contentDescription = null,
                         tint = RiftTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(RiftTheme.sizes.minTouchTarget),

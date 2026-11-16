@@ -36,10 +36,10 @@ class SetupViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val games = FakeGameRepository()
+    private val timers = FakeRoundTimerRepository(TestClock())
+    private val games = FakeGameRepository(timers)
     private val settings = FakeUserSettingsRepository()
     private val presets = FakePlayerPresetRepository()
-    private val timers = FakeRoundTimerRepository(TestClock())
     private val legends = FakeLegendRepository(
         listOf(Legend("jinx", "Jinx", null), Legend("viktor", "Viktor", null), Legend("lee_sin", "Lee Sin", null)),
     )

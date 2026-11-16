@@ -14,10 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -43,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
 import com.rifttally.core.designsystem.component.RiftIconButton
 import com.rifttally.core.designsystem.component.RiftTopAppBar
+import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.PlayerColors
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.model.GameFormat
@@ -134,7 +131,7 @@ internal fun SettingsScreen(
                 title = stringResource(R.string.feature_settings_title),
                 navigationIcon = {
                     RiftIconButton(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = RiftIcons.ArrowBack,
                         contentDescription = stringResource(R.string.feature_settings_back),
                         onClick = onBackClick,
                     )
@@ -431,7 +428,7 @@ private fun PresetRow(preset: PresetUiState, onEdit: () -> Unit, onDelete: () ->
             )
         }
         RiftIconButton(
-            imageVector = Icons.Filled.Delete,
+            imageVector = RiftIcons.Delete,
             contentDescription = stringResource(R.string.feature_settings_preset_delete, preset.name),
             onClick = onDelete,
         )
@@ -449,7 +446,7 @@ private fun PresetsEmpty(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.md),
     ) {
         Icon(
-            imageVector = Icons.Filled.Person,
+            imageVector = RiftIcons.Person,
             contentDescription = null,
             tint = RiftTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(RiftTheme.sizes.icon),

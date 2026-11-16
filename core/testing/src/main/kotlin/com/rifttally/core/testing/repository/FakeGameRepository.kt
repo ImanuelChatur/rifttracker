@@ -2,6 +2,7 @@ package com.rifttally.core.testing.repository
 
 import com.rifttally.core.data.game.GameRecord
 import com.rifttally.core.data.game.GameRepository
+import com.rifttally.core.data.timer.NewGameTimer
 import com.rifttally.core.game.GameEvent
 import com.rifttally.core.model.GameConfig
 import com.rifttally.core.model.GameId
@@ -13,9 +14,10 @@ import kotlinx.coroutines.flow.update
 
 /**
  * In-memory [GameRepository] for ViewModel tests. Games get ids `game1`, `game2`, … The active game is
- * the most recently created or modified one that hasn't ended.
+ * the most recently created or modified one that hasn't ended. A new game's [NewGameTimer] is stored in
+ * [timers] when given.
  */
-public class FakeGameRepository : GameRepository {
+public class FakeGameRepository(private val timers: FakeRoundTimerRepository? = null) : GameRepository {
     private val games = MutableStateFlow<List<GameRecord>>(emptyList())
     private var created = 0
 
@@ -68,10 +70,15 @@ public class FakeGameRepository : GameRepository {
         stale.value = emptyMap()
     }
 
-    override suspend fun createGame(config: GameConfig, openingEvents: List<GameEvent>): GameId {
+    override suspend fun createGame(config: GameConfig, openingEvents: List<GameEvent>, timer: NewGameTimer): GameId {
         beforeCreate?.invoke()
         val id = GameId("game${++created}")
         games.update { it + GameRecord(id = id, config = config, events = openingEvents, createdAt = 0) }
+        when (timer) {
+            NewGameTimer.None -> Unit
+            is NewGameTimer.Fresh -> timers?.setTimer(id, timer.timer)
+            is NewGameTimer.CopyOf -> timers?.allTimers?.get(timer.gameId)?.let { timers.setTimer(id, it) }
+        }
         return id
     }
 
@@ -101,9 +108,11 @@ public class FakeGameRepository : GameRepository {
         endEvent: GameEvent.GameEnded,
         newConfig: GameConfig,
         openingEvents: List<GameEvent>,
+        carryOverTimer: Boolean,
     ): GameId {
         if (games.value.any { it.id == oldGameId && it.endedAt == null }) appendEvent(oldGameId, endEvent)
-        return createGame(newConfig, openingEvents)
+        val timer = if (carryOverTimer) NewGameTimer.CopyOf(oldGameId) else NewGameTimer.None
+        return createGame(newConfig, openingEvents, timer)
     }
 
     override suspend fun deleteGame(id: GameId) {

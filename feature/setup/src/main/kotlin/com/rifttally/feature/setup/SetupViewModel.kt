@@ -7,6 +7,7 @@ import com.rifttally.core.data.game.GameRepository
 import com.rifttally.core.data.legend.LegendRepository
 import com.rifttally.core.data.preset.PlayerPresetRepository
 import com.rifttally.core.data.repository.UserSettingsRepository
+import com.rifttally.core.data.timer.NewGameTimer
 import com.rifttally.core.data.timer.RoundTimerChoice
 import com.rifttally.core.data.timer.RoundTimerRepository
 import com.rifttally.core.designsystem.theme.PlayerColors
@@ -241,11 +242,10 @@ internal class SetupViewModel @Inject constructor(
         viewModelScope.launch {
             val addXp = userSettingsRepository.userSettings.first().addXpCounterByDefault
             val config = current.toConfig(defaultNames, xpLabel.takeIf { addXp })
-            val gameId = gameRepository.createGame(config, firstPlayerPicker.openingEvents(config))
-            // A new game from Setup always starts a fresh timer (full length, paused), before it opens. A
-            // separate write from createGame: a process death in between leaves the game without a timer.
-            val timer = timerRepository.choice.first()
-            if (timer.enabled) timerRepository.createTimer(gameId, timer.minutes)
+            // A new game from Setup always starts a fresh timer (full length, paused), stored with the game.
+            val timerChoice = timerRepository.choice.first()
+            val timer = if (timerChoice.enabled) NewGameTimer.Fresh(timerChoice.minutes) else NewGameTimer.None
+            val gameId = gameRepository.createGame(config, firstPlayerPicker.openingEvents(config), timer)
             navigation.send(SetupNavigationEvent.OpenTracker(gameId))
         }
     }

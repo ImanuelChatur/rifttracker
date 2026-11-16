@@ -8,10 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -31,6 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
 import com.rifttally.core.designsystem.component.RiftIconButton
 import com.rifttally.core.designsystem.component.RiftTopAppBar
+import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.designsystem.theme.reduceMotionEnabled
 import com.rifttally.core.model.GameFormat
@@ -93,7 +90,7 @@ internal fun HistoryScreen(uiState: HistoryUiState, actions: HistoryActions, mod
                 title = stringResource(R.string.feature_history_title),
                 navigationIcon = {
                     RiftIconButton(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = RiftIcons.ArrowBack,
                         contentDescription = stringResource(R.string.feature_history_back),
                         onClick = actions.onBackClick,
                     )
@@ -106,7 +103,7 @@ internal fun HistoryScreen(uiState: HistoryUiState, actions: HistoryActions, mod
     ) { padding ->
         if (uiState is HistoryUiState.Success && !uiState.hasAnyGames) {
             EmptyState(
-                icon = Icons.Filled.DateRange,
+                icon = RiftIcons.DateRange,
                 text = stringResource(R.string.feature_history_empty),
                 actionLabel = stringResource(R.string.feature_history_empty_action),
                 onAction = actions.onBackClick,
@@ -125,7 +122,7 @@ internal fun HistoryScreen(uiState: HistoryUiState, actions: HistoryActions, mod
                     if (uiState.games.isEmpty()) {
                         item(key = EMPTY_FILTER_KEY) {
                             EmptyStateContent(
-                                icon = Icons.AutoMirrored.Filled.List,
+                                icon = RiftIcons.List,
                                 text = stringResource(R.string.feature_history_empty_filter),
                                 actionLabel = stringResource(R.string.feature_history_empty_filter_action),
                                 onAction = { actions.onFormatSelect(null) },

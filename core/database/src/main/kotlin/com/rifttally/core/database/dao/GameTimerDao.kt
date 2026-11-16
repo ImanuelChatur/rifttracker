@@ -49,16 +49,4 @@ public interface GameTimerDao {
     /** Back to the full duration, paused. */
     @Query("UPDATE game_timer SET elapsed_before_ms = 0, running_since = NULL WHERE game_id = :gameId")
     public suspend fun reset(gameId: String)
-
-    /**
-     * Copies [fromGameId]'s timer, exactly as it is (still running if it was), to [toGameId], replacing
-     * any timer that game has. Does nothing if [fromGameId] has no timer.
-     */
-    @Query(
-        """
-        INSERT OR REPLACE INTO game_timer (game_id, duration_ms, elapsed_before_ms, running_since)
-        SELECT :toGameId, duration_ms, elapsed_before_ms, running_since FROM game_timer WHERE game_id = :fromGameId
-        """,
-    )
-    public suspend fun copy(fromGameId: String, toGameId: String)
 }

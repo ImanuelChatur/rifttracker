@@ -26,10 +26,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
@@ -164,7 +160,7 @@ internal fun SetupScreen(
                 title = stringResource(R.string.feature_setup_title),
                 navigationIcon = {
                     RiftIconButton(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = RiftIcons.ArrowBack,
                         contentDescription = stringResource(R.string.feature_setup_back),
                         onClick = onBackClick,
                     )
@@ -423,7 +419,7 @@ private fun TargetScoreTile(
                 modifier = Modifier.widthIn(min = RiftTheme.sizes.minTouchTarget),
             )
             StepButton(
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                icon = { Icon(RiftIcons.Add, contentDescription = null) },
                 description = stringResource(R.string.feature_setup_target_increase),
                 onClick = onIncrease,
             )

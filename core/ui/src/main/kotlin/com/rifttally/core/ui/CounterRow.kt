@@ -10,10 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -110,7 +106,7 @@ public fun CounterRow(
                         horizontalArrangement = Arrangement.spacedBy(RiftTheme.spacing.xxs),
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Close,
+                            imageVector = RiftIcons.Close,
                             contentDescription = null,
                             modifier = Modifier.size(RiftTheme.sizes.iconSmall),
                         )
@@ -149,7 +145,7 @@ public fun CounterRow(
                     ),
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Star,
+                        imageVector = RiftIcons.Star,
                         contentDescription = null,
                         modifier = Modifier.size(RiftTheme.sizes.iconSmall),
                     )
@@ -180,7 +176,7 @@ public fun CounterRow(
                     .size(touch)
                     .clip(RiftTheme.shapes.full),
             ) {
-                Icon(imageVector = Icons.Filled.Add, contentDescription = null)
+                Icon(imageVector = RiftIcons.Add, contentDescription = null)
             }
         }
     }

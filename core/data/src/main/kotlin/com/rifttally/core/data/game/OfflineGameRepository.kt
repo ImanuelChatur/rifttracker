@@ -1,10 +1,12 @@
 package com.rifttally.core.data.game
 
 import com.rifttally.core.common.dispatchers.IoDispatcher
+import com.rifttally.core.data.timer.NewGameTimer
 import com.rifttally.core.database.dao.GameDao
 import com.rifttally.core.database.dao.GameEventDao
 import com.rifttally.core.database.model.GameEntity
 import com.rifttally.core.database.model.GameEventEntity
+import com.rifttally.core.database.model.GameTimerEntity
 import com.rifttally.core.game.GameEvent
 import com.rifttally.core.game.IdGenerator
 import com.rifttally.core.model.GameConfig
@@ -75,9 +77,18 @@ internal class OfflineGameRepository @Inject constructor(
             game?.toRecord(events)
         }.flowOn(ioDispatcher)
 
-    override suspend fun createGame(config: GameConfig, openingEvents: List<GameEvent>): GameId {
+    override suspend fun createGame(config: GameConfig, openingEvents: List<GameEvent>, timer: NewGameTimer): GameId {
         val game = newGameEntity(config)
-        writeMutex.withLock { gameDao.insertWithEvents(game, openingEvents.toEntities(game.id)) }
+        writeMutex.withLock {
+            gameDao.insertWithEvents(
+                game = game,
+                events = openingEvents.toEntities(game.id),
+                timer = (timer as? NewGameTimer.Fresh)?.let {
+                    GameTimerEntity(game.id, durationMs = it.timer.durationMs)
+                },
+                copyTimerFrom = (timer as? NewGameTimer.CopyOf)?.gameId?.value,
+            )
+        }
         return GameId(game.id)
     }
 
@@ -86,6 +97,7 @@ internal class OfflineGameRepository @Inject constructor(
         endEvent: GameEvent.GameEnded,
         newConfig: GameConfig,
         openingEvents: List<GameEvent>,
+        carryOverTimer: Boolean,
     ): GameId {
         val game = newGameEntity(newConfig)
         writeMutex.withLock {
@@ -96,6 +108,7 @@ internal class OfflineGameRepository @Inject constructor(
                 endPayload = GameJson.encodeToString(GameEvent.serializer(), endEvent),
                 newGame = game,
                 newEvents = openingEvents.toEntities(game.id),
+                copyTimerFrom = oldGameId.value.takeIf { carryOverTimer },
             )
         }
         return GameId(game.id)

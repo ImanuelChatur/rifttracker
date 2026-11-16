@@ -18,9 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Surface
@@ -302,7 +299,7 @@ private fun TapZones(panel: SidePanelUiState, onChange: (Int) -> Unit, modifier:
                 panel.displayName,
                 panel.points,
             ),
-            glyph = { Icon(imageVector = Icons.Filled.Add, contentDescription = null, modifier = it) },
+            glyph = { Icon(imageVector = RiftIcons.Add, contentDescription = null, modifier = it) },
             onClick = { onChange(1) },
             alignment = Alignment.CenterEnd,
             modifier = Modifier.weight(1f),
@@ -486,12 +483,12 @@ private fun AddCounterButton(
             if (compact) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Filled.Add,
+                        imageVector = RiftIcons.Add,
                         contentDescription = null,
                         modifier = Modifier.size(RiftTheme.sizes.iconSmall),
                     )
                     Icon(
-                        imageVector = Icons.Filled.Star,
+                        imageVector = RiftIcons.Star,
                         contentDescription = null,
                         modifier = Modifier.size(RiftTheme.sizes.iconSmall),
                     )

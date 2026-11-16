@@ -24,9 +24,12 @@ android {
 }
 
 dependencies {
+    implementation(projects.core.common)
     implementation(projects.core.data)
     implementation(projects.core.designsystem)
     implementation(projects.core.model)
+    // LocalIoDispatcher, provided at the root.
+    implementation(projects.core.ui)
     implementation(projects.feature.history)
     implementation(projects.feature.home)
     implementation(projects.feature.settings)

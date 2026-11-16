@@ -3,8 +3,6 @@ package com.rifttally.feature.tracker
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
@@ -59,7 +57,7 @@ internal fun ControlStrip(
         }
         Box {
             RiftIconButton(
-                imageVector = Icons.Filled.MoreVert,
+                imageVector = RiftIcons.MoreVert,
                 contentDescription = stringResource(R.string.feature_tracker_menu),
                 onClick = onMenuOpen,
             )

@@ -3,13 +3,13 @@ package com.rifttally.feature.tracker
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.rifttally.core.common.dispatchers.IoDispatcher
 import com.rifttally.core.data.game.FirstPlayerPicker
 import com.rifttally.core.data.game.GameRecord
 import com.rifttally.core.data.game.GameRepository
 import com.rifttally.core.data.game.rematchConfig
 import com.rifttally.core.data.legend.LegendRepository
 import com.rifttally.core.data.repository.UserSettingsRepository
+import com.rifttally.core.data.timer.NewGameTimer
 import com.rifttally.core.data.timer.RoundTimerRepository
 import com.rifttally.core.game.GameEvent
 import com.rifttally.core.game.GameEventFactory
@@ -33,7 +33,6 @@ import javax.inject.Inject
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -66,8 +65,6 @@ internal class TrackerViewModel @Inject constructor(
     private val firstPlayerPicker: FirstPlayerPicker,
     private val timerRepository: RoundTimerRepository,
     private val clock: Clock,
-    /** Writes the shared result picture (see `rememberResultCardSharer`). */
-    @IoDispatcher val shareDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     // Navigation stores route arguments under their property names. Read by key (not toRoute()) so the
@@ -281,12 +278,8 @@ internal class TrackerViewModel @Inject constructor(
         val config = snapshot.record.rematchConfig()
         write {
             val newGameId = leavingOrReset {
-                gameRepository.createGame(config, firstPlayerPicker.openingEvents(config)).also { newId ->
-                    // A round can hold several games: the timer carries over as it is, before the switch.
-                    // Not in the same transaction as the game: a process death in this tiny gap
-                    // would leave the new game without its timer (accepted; the game itself is safe).
-                    timerRepository.copyTimer(gameId, newId)
-                }
+                // A round can hold several games: the timer carries over as it is, stored with the new game.
+                gameRepository.createGame(config, firstPlayerPicker.openingEvents(config), NewGameTimer.CopyOf(gameId))
             }
             navigation.send(TrackerNavigationEvent.OpenGame(newGameId))
         }
@@ -306,9 +299,13 @@ internal class TrackerViewModel @Inject constructor(
         if (!snapshot.state.isEnded) applyOptimistically(end)
         write {
             val newGameId = leavingOrReset {
-                gameRepository.restartGame(gameId, end, config, firstPlayerPicker.openingEvents(config)).also { newId ->
-                    timerRepository.copyTimer(gameId, newId)
-                }
+                gameRepository.restartGame(
+                    oldGameId = gameId,
+                    endEvent = end,
+                    newConfig = config,
+                    openingEvents = firstPlayerPicker.openingEvents(config),
+                    carryOverTimer = true,
+                )
             }
             navigation.send(TrackerNavigationEvent.OpenGame(newGameId))
         }

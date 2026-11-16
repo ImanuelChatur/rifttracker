@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,6 +34,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rifttally.core.designsystem.component.PreviewRiftThemes
 import com.rifttally.core.designsystem.component.RiftIconButton
+import com.rifttally.core.designsystem.icon.RiftIcons
 import com.rifttally.core.designsystem.theme.RiftTheme
 import com.rifttally.core.model.CounterId
 import com.rifttally.core.model.GameId
@@ -60,7 +59,7 @@ internal fun TrackerRoute(
     // Collected separately so the once-a-second tick only recomposes the timer, and stops when hidden.
     val timer by viewModel.timerState.collectAsStateWithLifecycle()
     val currentOnOpenGame by rememberUpdatedState(onOpenGame)
-    val sharer = rememberResultCardSharer(viewModel.shareDispatcher)
+    val sharer = rememberResultCardSharer()
     val scope = rememberCoroutineScope()
     LaunchedEffect(viewModel) {
         viewModel.navigationEvents.collect { event ->
@@ -365,7 +364,7 @@ private fun NotFound(onBackClick: () -> Unit, modifier: Modifier = Modifier) {
     ) {
         Text(text = stringResource(R.string.feature_tracker_not_found), style = RiftTheme.typography.titleMedium)
         RiftIconButton(
-            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            imageVector = RiftIcons.ArrowBack,
             contentDescription = stringResource(R.string.feature_tracker_back),
             onClick = onBackClick,
         )

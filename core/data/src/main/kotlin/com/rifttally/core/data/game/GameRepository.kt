@@ -1,5 +1,6 @@
 package com.rifttally.core.data.game
 
+import com.rifttally.core.data.timer.NewGameTimer
 import com.rifttally.core.game.GameEvent
 import com.rifttally.core.model.GameConfig
 import com.rifttally.core.model.GameId
@@ -21,22 +22,28 @@ public interface GameRepository {
 
     /**
      * Stores a new game, its log starting with [openingEvents] (e.g. the first-player pick, see
-     * [FirstPlayerPicker]), in one transaction, and returns its id.
+     * [FirstPlayerPicker]) and its round [timer], in one transaction, and returns its id.
      */
-    public suspend fun createGame(config: GameConfig, openingEvents: List<GameEvent>): GameId
+    public suspend fun createGame(
+        config: GameConfig,
+        openingEvents: List<GameEvent>,
+        timer: NewGameTimer = NewGameTimer.None,
+    ): GameId
 
     /** Appends [event] to the game's log. A [GameEvent.GameEnded] also marks the game ended. */
     public suspend fun appendEvent(gameId: GameId, event: GameEvent)
 
     /**
-     * Ends [oldGameId] with [endEvent] (unless it already ended) and creates a game with [newConfig] and
-     * [openingEvents], in one transaction, so a crash can't leave two open games. Returns the new game's id.
+     * Ends [oldGameId] with [endEvent] (unless it already ended) and creates a game with [newConfig],
+     * [openingEvents] and, if [carryOverTimer], a copy of [oldGameId]'s round timer, in one transaction,
+     * so a crash can't leave two open games. Returns the new game's id.
      */
     public suspend fun restartGame(
         oldGameId: GameId,
         endEvent: GameEvent.GameEnded,
         newConfig: GameConfig,
         openingEvents: List<GameEvent>,
+        carryOverTimer: Boolean = false,
     ): GameId
 
     /** Removes the newest event (undo). Undoing a [GameEvent.GameEnded] makes the game active again. */

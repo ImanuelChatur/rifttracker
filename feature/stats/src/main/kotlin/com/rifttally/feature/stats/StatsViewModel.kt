@@ -1,5 +1,6 @@
 package com.rifttally.feature.stats
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rifttally.core.common.dispatchers.DefaultDispatcher
@@ -15,25 +16,28 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 
-/** Stats overview and the Legend tab, derived from the ended games in the selected date range. */
+/**
+ * Stats overview and the Legend tab, derived from the ended games in the selected date range. The tab,
+ * sort and period are kept in [savedStateHandle], so they survive process death and recreation.
+ */
 @HiltViewModel
 internal class StatsViewModel @Inject constructor(
+    private val savedStateHandle: SavedStateHandle,
     gameRepository: GameRepository,
     legendRepository: LegendRepository,
     gamesFilter: StatsGamesFilter,
     @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
-    private val selectedTab = MutableStateFlow(StatsTab.OVERVIEW)
-    private val legendSort = MutableStateFlow(LegendSort.GAMES)
-    private val period = MutableStateFlow(StatsPeriod.ALL_TIME)
+    private val selectedTab = savedStateHandle.getStateFlow(KEY_TAB, StatsTab.OVERVIEW)
+    private val legendSort = savedStateHandle.getStateFlow(KEY_SORT, LegendSort.GAMES)
+    private val period = savedStateHandle.getStateFlow(KEY_PERIOD, StatsPeriod.ALL_TIME)
 
     val uiState: StateFlow<StatsUiState> = combine(
         gameRepository.endedGames(),
@@ -66,15 +70,15 @@ internal class StatsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StatsUiState.Loading)
 
     fun onTabSelect(tab: StatsTab) {
-        selectedTab.value = tab
+        savedStateHandle[KEY_TAB] = tab
     }
 
     fun onLegendSortSelect(sort: LegendSort) {
-        legendSort.value = sort
+        savedStateHandle[KEY_SORT] = sort
     }
 
     fun onPeriodSelect(period: StatsPeriod) {
-        this.period.value = period
+        savedStateHandle[KEY_PERIOD] = period
     }
 
     private fun LegendSort.comparator(): Comparator<Pair<LegendRowUiState, LegendStats>> = when (this) {
@@ -85,5 +89,11 @@ internal class StatsViewModel @Inject constructor(
             .thenByDescending { it.second.games }
 
         LegendSort.NAME -> compareBy { it.first.name.lowercase() }
+    }
+
+    private companion object {
+        const val KEY_TAB = "stats_tab"
+        const val KEY_SORT = "stats_legend_sort"
+        const val KEY_PERIOD = "stats_period"
     }
 }

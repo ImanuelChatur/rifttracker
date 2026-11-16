@@ -1,5 +1,6 @@
 package com.rifttally.feature.stats
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.rifttally.core.model.Legend
 import com.rifttally.core.stats.StatsPeriod
@@ -32,9 +33,11 @@ class StatsViewModelTest {
     private val day = 24 * 60 * 60 * 1000L
 
     // Lazy: created inside each test, after MainDispatcherRule has installed the test Main dispatcher.
-    private val viewModel by lazy {
-        StatsViewModel(games, legends, testGamesFilter(now), mainDispatcherRule.testDispatcher)
-    }
+    private val savedState = SavedStateHandle()
+    private val viewModel by lazy { newViewModel() }
+
+    private fun newViewModel() =
+        StatsViewModel(savedState, games, legends, testGamesFilter(now), mainDispatcherRule.testDispatcher)
 
     private fun addSampleGames() {
         // Ana (Jinx) 3 wins of 4; Ben (Viktor) 1 of 3; Cleo (Ahri) 0 of 1, plus a no-winner game.
@@ -134,6 +137,23 @@ class StatsViewModelTest {
             assertEquals(1, state.totalGames)
             assertEquals(listOf("Ben", "Cleo"), state.players.map { it.name })
             assertEquals("Viktor", state.mostPlayedLegend?.name)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun periodTabAndSort_surviveRecreation() = runTest {
+        games.addGame(duel("recent", "Ana" to "jinx", "Ben" to "viktor", winner = 0, endedAt = now - day))
+        viewModel.onPeriodSelect(StatsPeriod.THIS_YEAR)
+        viewModel.onTabSelect(StatsTab.LEGENDS)
+        viewModel.onLegendSortSelect(LegendSort.NAME)
+
+        // A new ViewModel on the same saved state, as after process death.
+        newViewModel().uiState.test {
+            val state = assertIs<StatsUiState.Success>(expectMostRecentItem())
+            assertEquals(StatsPeriod.THIS_YEAR, state.period)
+            assertEquals(StatsTab.LEGENDS, state.selectedTab)
+            assertEquals(LegendSort.NAME, state.legendSort)
             cancelAndIgnoreRemainingEvents()
         }
     }

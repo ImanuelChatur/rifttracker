@@ -62,7 +62,10 @@ public interface GameDao {
     @Upsert
     public suspend fun upsertTimer(timer: GameTimerEntity)
 
-    /** Copies [fromGameId]'s timer, as it is, to [toGameId]. Does nothing if [fromGameId] has no timer. */
+    /**
+     * Copies [fromGameId]'s timer, as it is, to [toGameId]. Does nothing if [fromGameId] has no timer.
+     * Same SQL as `GameEventDao.copyTimer` (used by restart): keep them in sync.
+     */
     @Query(
         """
         INSERT OR REPLACE INTO game_timer (game_id, duration_ms, elapsed_before_ms, running_since)
@@ -82,6 +85,7 @@ public interface GameDao {
         timer: GameTimerEntity? = null,
         copyTimerFrom: String? = null,
     ) {
+        require(timer == null || copyTimerFrom == null) { "A new game gets one timer: fresh or copied" }
         insert(game)
         insertEvents(events)
         timer?.let { upsertTimer(it) }

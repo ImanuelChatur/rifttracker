@@ -80,6 +80,22 @@ class LegendMatchupsTest {
         val game = teams(Seat("Ana", jinx) to Seat("Ben", viktor), Seat("Cleo", viktor) to DAN, TEAM_A)
 
         assertEquals(listOf(matchup(viktor, games = 1, wins = 1, losses = 0)), legendMatchups(listOf(game), jinx))
+        // And the other way round: the Viktor facing Jinx lost (its teammate Viktor's win isn't its own).
+        assertEquals(
+            listOf(LegendMatchup(viktor, jinx, games = 1, wins = 0, losses = 1)),
+            legendMatchups(listOf(game), viktor),
+        )
+    }
+
+    @Test
+    fun full2v2Mirror_isNeitherWinNorLoss_bothWays() {
+        val game = teams(Seat("Ana", jinx) to Seat("Ben", viktor), Seat("Cleo", jinx) to Seat("Dan", viktor), TEAM_A)
+
+        assertEquals(listOf(matchup(viktor, games = 1, wins = 0, losses = 0)), legendMatchups(listOf(game), jinx))
+        assertEquals(
+            listOf(LegendMatchup(viktor, jinx, games = 1, wins = 0, losses = 0)),
+            legendMatchups(listOf(game), viktor),
+        )
     }
 
     @Test

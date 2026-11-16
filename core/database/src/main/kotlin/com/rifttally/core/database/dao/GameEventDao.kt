@@ -45,6 +45,7 @@ public abstract class GameEventDao {
     @Query("SELECT COUNT(*) FROM game WHERE id = :gameId AND ended_at IS NULL")
     protected abstract suspend fun countActive(gameId: String): Int
 
+    /** Same SQL as [GameDao.copyTimer]: keep them in sync. */
     @Query(
         """
         INSERT OR REPLACE INTO game_timer (game_id, duration_ms, elapsed_before_ms, running_since)

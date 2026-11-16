@@ -8,6 +8,4 @@ android {
 }
 
 dependencies {
-    // @IoDispatcher for writing the shared result picture.
-    implementation(projects.core.common)
 }

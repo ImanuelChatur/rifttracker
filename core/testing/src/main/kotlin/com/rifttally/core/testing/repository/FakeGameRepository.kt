@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.update
 /**
  * In-memory [GameRepository] for ViewModel tests. Games get ids `game1`, `game2`, … The active game is
  * the most recently created or modified one that hasn't ended. A new game's [NewGameTimer] is stored in
- * [timers] when given.
+ * [timers] when given; without [timers] it is dropped, so tests that check timers must pass one.
  */
 public class FakeGameRepository(private val timers: FakeRoundTimerRepository? = null) : GameRepository {
     private val games = MutableStateFlow<List<GameRecord>>(emptyList())

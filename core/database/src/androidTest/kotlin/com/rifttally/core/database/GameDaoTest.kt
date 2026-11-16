@@ -8,6 +8,7 @@ import com.rifttally.core.database.dao.GameDao
 import com.rifttally.core.database.dao.GameEventDao
 import com.rifttally.core.database.model.GameEntity
 import com.rifttally.core.database.model.GameEventEntity
+import com.rifttally.core.database.model.GameTimerEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -227,6 +228,42 @@ class GameDaoTest {
 
         assertEquals(game, gameDao.observeGame("g").first())
         assertEquals(events, eventDao.observeEvents("g").first())
+    }
+
+    @Test
+    fun insertWithEvents_storesAFreshTimerWithTheGame() = runTest {
+        gameDao.insertWithEvents(game("g", updatedAt = 1), emptyList(), timer = GameTimerEntity("g", 60_000))
+
+        assertEquals(GameTimerEntity("g", 60_000), db.gameTimerDao().get("g"))
+    }
+
+    @Test
+    fun insertWithEvents_copiesTheTimerAsItIs() = runTest {
+        gameDao.insert(game("old", updatedAt = 1))
+        val running = GameTimerEntity("old", 60_000, elapsedBeforeMs = 1_234, runningSince = 777)
+        db.gameTimerDao().upsert(running)
+
+        gameDao.insertWithEvents(game("new", updatedAt = 2), emptyList(), copyTimerFrom = "old")
+
+        assertEquals(running.copy(gameId = "new"), db.gameTimerDao().get("new"))
+    }
+
+    @Test
+    fun restart_copiesTheEndedGamesTimer_toTheNewGame() = runTest {
+        gameDao.insert(game("old", updatedAt = 1))
+        db.gameTimerDao().upsert(GameTimerEntity("old", 60_000, elapsedBeforeMs = 5_000))
+
+        eventDao.restart(
+            oldGameId = "old",
+            endEventId = "end",
+            endTimestamp = 9,
+            endPayload = "{}",
+            newGame = game("new", updatedAt = 9),
+            copyTimerFrom = "old",
+        )
+
+        assertEquals(9L, gameDao.observeGame("old").first()?.endedAt)
+        assertEquals(GameTimerEntity("new", 60_000, elapsedBeforeMs = 5_000), db.gameTimerDao().get("new"))
     }
 
     @Test

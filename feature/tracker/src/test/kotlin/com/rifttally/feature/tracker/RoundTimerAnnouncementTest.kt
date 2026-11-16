@@ -41,7 +41,7 @@ class RoundTimerAnnouncementTest {
     private val silent = SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription)
 
     @Test
-    fun openingUnderFiveMinutes_orInOvertime_isSilent() {
+    fun openingUnderFiveMinutes_isSilent() {
         setContent(timer(RoundTimerPhase.Warning, seconds = 180))
         announcement().assert(silent)
 
@@ -70,6 +70,21 @@ class RoundTimerAnnouncementTest {
         timer = timer(RoundTimerPhase.Overtime, seconds = 0)
         composeRule.waitForIdle()
         announcement().assertContentDescriptionEquals(context.getString(R.string.feature_tracker_timer_up))
+    }
+
+    @Test
+    fun crossingSeenLate_afterTheScreenWasOff_isSilent() {
+        setContent(timer(RoundTimerPhase.Normal, seconds = 900))
+
+        // Screen off at 15:00, back on at 2:00 left: the warning is stale news.
+        timer = timer(RoundTimerPhase.Warning, seconds = 120)
+        composeRule.waitForIdle()
+        announcement().assert(silent)
+
+        // ...and 10 minutes into overtime.
+        timer = timer(RoundTimerPhase.Overtime, seconds = 600)
+        composeRule.waitForIdle()
+        announcement().assert(silent)
     }
 
     @Test

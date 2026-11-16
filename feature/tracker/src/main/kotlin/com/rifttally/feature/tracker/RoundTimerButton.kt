@@ -71,7 +71,7 @@ internal fun RoundTimerButton(
     val actionLabel = stringResource(
         if (timer.isRunning) R.string.feature_tracker_timer_pause else R.string.feature_tracker_timer_start,
     )
-    val announcement = when (rememberPhaseReachedLive(timer.phase)) {
+    val announcement = when (rememberPhaseCrossedLive(timer)) {
         null, RoundTimerPhase.Normal -> null
         RoundTimerPhase.Warning -> stringResource(R.string.feature_tracker_timer_five_minutes_left)
         RoundTimerPhase.Overtime -> stringResource(R.string.feature_tracker_timer_up)
@@ -153,6 +153,30 @@ private fun rememberPhaseReachedLive(phase: RoundTimerPhase): RoundTimerPhase? {
 }
 
 /**
+ * Like [rememberPhaseReachedLive], but only right at the crossing (5:00, or 0 in overtime): after the
+ * screen was off, the timer can jump straight to 2:00 left or 10 minutes over, which is stale news.
+ */
+@Composable
+private fun rememberPhaseCrossedLive(timer: RoundTimerUiState): RoundTimerPhase? {
+    val reached = rememberPhaseReachedLive(timer.phase)
+    var announced by remember { mutableStateOf<RoundTimerPhase?>(null) }
+    val fresh = when (reached) {
+        RoundTimerPhase.Warning -> timer.seconds >= WARNING_SECONDS - ANNOUNCE_WINDOW_SECONDS
+        RoundTimerPhase.Overtime -> timer.seconds <= ANNOUNCE_WINDOW_SECONDS
+        RoundTimerPhase.Normal, null -> false
+    }
+    // Keep the text after the window (the live region shouldn't go blank and re-speak), until the phase changes.
+    LaunchedEffect(reached, fresh) {
+        if (fresh) {
+            announced = reached
+        } else if (reached != announced) {
+            announced = null
+        }
+    }
+    return if (fresh) reached else announced
+}
+
+/**
  * One strong haptic when a running timer crosses 0 while on screen. Remembered per composition, so
  * opening a game that is already in overtime (or rotating) doesn't buzz again.
  */
@@ -177,6 +201,12 @@ internal const val ROUND_TIMER_ANNOUNCEMENT_TEST_TAG = "round_timer_announcement
 
 /** The time-up haptic fires only within this many seconds after 0. */
 private const val TIME_UP_HAPTIC_WINDOW_SECONDS = 2
+
+/** Seconds left when the warning phase starts (5:00). */
+private const val WARNING_SECONDS = 300
+
+/** 5:00 and time up are announced only within this many seconds of the crossing. */
+private const val ANNOUNCE_WINDOW_SECONDS = 2
 
 @PreviewRiftThemes
 @Composable

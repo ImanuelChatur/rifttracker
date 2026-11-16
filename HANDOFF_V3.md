@@ -138,7 +138,7 @@
 
 ### 5.2 Legend matchups
 - Tapping a Legend on the Legend tab opens **Legend detail**: its games and win rate, then a list of opposing Legends with games, wins, losses and win rate, most games first.
-- New pure function in `:core:stats`: `legendMatchups(games, legendId): List<LegendMatchup>`. Count every pair of this Legend vs another Legend **on a different side** in the same game (2v2 teammates aren't opponents). A pair is a win if this Legend's side won, a loss if the other's side won, neither otherwise (3–4 player games won by someone else, or no winner). Mirror matches (same Legend on both sides) are excluded. Fully unit tested, Kover ≥ 95% as for the rest of `:core:stats`.
+- New pure function in `:core:stats`: `legendMatchups(games, legendId): List<LegendMatchup>`. Count each opposing Legend **once per game** when a pick of it and a pick of this Legend sat **on different sides** (a "facing pair"; 2v2 teammates aren't opponents). The game is a win if this Legend's side of a facing pair won, a loss if the other's side of one won, neither otherwise (both at once, e.g. a full 2v2 mirror; 3–4 player games won by someone else; no winner). *(Changed after v3 from one count per pair, which counted a game twice when a Legend was picked twice.)* Mirror matches (same Legend on both sides) are excluded. Fully unit tested, Kover ≥ 95% as for the rest of `:core:stats`.
 - Placeholder-named players' Legends still count here (same rule as Legend stats).
 
 ### 5.3 First-player win rate

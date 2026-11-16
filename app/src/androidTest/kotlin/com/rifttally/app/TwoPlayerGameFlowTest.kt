@@ -46,13 +46,14 @@ class TwoPlayerGameFlowTest {
             .performClick()
         composeTestRule.onNodeWithText(string(com.rifttally.feature.setup.R.string.feature_setup_start))
             .performClick()
-        composeTestRule.waitUntilExactlyOneExists(hasContentDescription(increase(0)), TIMEOUT_MILLIS)
 
-        // "Pick first player" is on by default: the reveal covers the table until tapped away.
+        // "Pick first player" is on by default: the reveal covers the table (and hides it from
+        // accessibility) until tapped away, so wait for it before looking for the panels.
         val goesFirst = hasContentDescription(" goes first", substring = true)
         composeTestRule.waitUntilExactlyOneExists(goesFirst, TIMEOUT_MILLIS)
         composeTestRule.onNode(goesFirst).performClick()
         composeTestRule.waitUntilDoesNotExist(goesFirst, TIMEOUT_MILLIS)
+        composeTestRule.waitUntilExactlyOneExists(hasContentDescription(increase(0)), TIMEOUT_MILLIS)
 
         // Score twice, undo once: 1 point stored.
         composeTestRule.onNodeWithContentDescription(increase(0)).performClick()

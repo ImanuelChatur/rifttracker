@@ -83,10 +83,8 @@ internal class OfflineGameRepository @Inject constructor(
             gameDao.insertWithEvents(
                 game = game,
                 events = openingEvents.toEntities(game.id),
-                timer = (timer as? NewGameTimer.Fresh)?.let {
-                    GameTimerEntity(game.id, durationMs = it.timer.durationMs)
-                },
-                copyTimerFrom = (timer as? NewGameTimer.CopyOf)?.gameId?.value,
+                timer = timer.freshEntity(game.id),
+                copyTimerFrom = timer.copySource(),
             )
         }
         return GameId(game.id)
@@ -97,7 +95,7 @@ internal class OfflineGameRepository @Inject constructor(
         endEvent: GameEvent.GameEnded,
         newConfig: GameConfig,
         openingEvents: List<GameEvent>,
-        carryOverTimer: Boolean,
+        timer: NewGameTimer,
     ): GameId {
         val game = newGameEntity(newConfig)
         writeMutex.withLock {
@@ -108,11 +106,17 @@ internal class OfflineGameRepository @Inject constructor(
                 endPayload = GameJson.encodeToString(GameEvent.serializer(), endEvent),
                 newGame = game,
                 newEvents = openingEvents.toEntities(game.id),
-                copyTimerFrom = oldGameId.value.takeIf { carryOverTimer },
+                timer = timer.freshEntity(game.id),
+                copyTimerFrom = timer.copySource(),
             )
         }
         return GameId(game.id)
     }
+
+    private fun NewGameTimer.freshEntity(gameId: String): GameTimerEntity? =
+        (this as? NewGameTimer.Fresh)?.let { GameTimerEntity(gameId, durationMs = it.timer.durationMs) }
+
+    private fun NewGameTimer.copySource(): String? = (this as? NewGameTimer.CopyOf)?.gameId?.value
 
     /** A fresh log for [gameId]: seq 1, 2, ... in order. */
     private fun List<GameEvent>.toEntities(gameId: String): List<GameEventEntity> = mapIndexed { index, event ->

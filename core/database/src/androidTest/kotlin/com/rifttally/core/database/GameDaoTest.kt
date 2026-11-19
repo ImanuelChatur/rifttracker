@@ -267,6 +267,22 @@ class GameDaoTest {
     }
 
     @Test
+    fun restart_withFreshTimer_storesItForTheNewGame() = runTest {
+        gameDao.insert(game("old", updatedAt = 1))
+
+        eventDao.restart(
+            oldGameId = "old",
+            endEventId = "end",
+            endTimestamp = 9,
+            endPayload = "{}",
+            newGame = game("new", updatedAt = 9),
+            timer = GameTimerEntity("new", 60_000),
+        )
+
+        assertEquals(GameTimerEntity("new", 60_000), db.gameTimerDao().get("new"))
+    }
+
+    @Test
     fun lastSeq_isNullWithoutEvents() = runTest {
         gameDao.insert(game("g", updatedAt = 1))
         assertNull(eventDao.lastSeq("g"))

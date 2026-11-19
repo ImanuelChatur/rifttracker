@@ -109,6 +109,8 @@ internal class FakeGameEventDao(private val gameDao: FakeGameDao) : GameEventDao
 
     override suspend fun copyTimer(fromGameId: String, toGameId: String) = gameDao.copyTimer(fromGameId, toGameId)
 
+    override suspend fun upsertTimer(timer: GameTimerEntity) = gameDao.upsertTimer(timer)
+
     override suspend fun countActive(gameId: String): Int =
         if (gameDao.games.value[gameId]?.let { it.endedAt == null } == true) 1 else 0
 }

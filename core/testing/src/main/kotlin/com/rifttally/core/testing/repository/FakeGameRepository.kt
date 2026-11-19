@@ -108,10 +108,9 @@ public class FakeGameRepository(private val timers: FakeRoundTimerRepository? = 
         endEvent: GameEvent.GameEnded,
         newConfig: GameConfig,
         openingEvents: List<GameEvent>,
-        carryOverTimer: Boolean,
+        timer: NewGameTimer,
     ): GameId {
         if (games.value.any { it.id == oldGameId && it.endedAt == null }) appendEvent(oldGameId, endEvent)
-        val timer = if (carryOverTimer) NewGameTimer.CopyOf(oldGameId) else NewGameTimer.None
         return createGame(newConfig, openingEvents, timer)
     }
 

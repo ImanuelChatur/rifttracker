@@ -4,8 +4,10 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Upsert
 import com.rifttally.core.database.model.GameEntity
 import com.rifttally.core.database.model.GameEventEntity
+import com.rifttally.core.database.model.GameTimerEntity
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -54,6 +56,9 @@ public abstract class GameEventDao {
     )
     protected abstract suspend fun copyTimer(fromGameId: String, toGameId: String)
 
+    @Upsert
+    protected abstract suspend fun upsertTimer(timer: GameTimerEntity)
+
     @Query("UPDATE game SET updated_at = :updatedAt WHERE id = :gameId")
     protected abstract suspend fun touchGame(gameId: String, updatedAt: Long)
 
@@ -90,7 +95,7 @@ public abstract class GameEventDao {
     /**
      * Restart, in one transaction: ends [oldGameId] with the given `GameEnded` event (unless it already
      * ended or doesn't exist) and inserts [newGame] with its opening [newEvents] (e.g. the first-player
-     * pick) and, if [copyTimerFrom] is set, a copy of that game's round timer. A crash can't leave both
+     * pick) and its round timer: [timer], or a copy of [copyTimerFrom]'s, or none. A crash can't leave both
      * games open, or the new one without its timer. As in [append], [endTimestamp] becomes the old game's
      * `ended_at` and `updated_at`.
      */
@@ -102,13 +107,16 @@ public abstract class GameEventDao {
         endPayload: String,
         newGame: GameEntity,
         newEvents: List<GameEventEntity> = emptyList(),
+        timer: GameTimerEntity? = null,
         copyTimerFrom: String? = null,
     ) {
+        require(timer == null || copyTimerFrom == null) { "A new game gets one timer: fresh or copied" }
         if (countActive(oldGameId) > 0) {
             append(oldGameId, endEventId, endTimestamp, endPayload, endsGame = true)
         }
         insertGame(newGame)
         insertAll(newEvents)
+        timer?.let { upsertTimer(it) }
         copyTimerFrom?.let { copyTimer(fromGameId = it, toGameId = newGame.id) }
     }
 }

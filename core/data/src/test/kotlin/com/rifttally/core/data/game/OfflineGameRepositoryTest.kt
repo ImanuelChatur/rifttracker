@@ -181,15 +181,17 @@ class OfflineGameRepositoryTest {
     }
 
     @Test
-    fun restartGame_carryOverTimer_copiesIt_otherwiseNot() = runTest(dispatcher) {
+    fun restartGame_storesTheGivenTimer_copiedFreshOrNone() = runTest(dispatcher) {
         val old = repository.createGame(config, emptyList(), NewGameTimer.Fresh(30))
         val end = GameEvent.GameEnded("end", 30, winner = null)
 
-        val carried = repository.restartGame(old, end, config, emptyList(), carryOverTimer = true)
+        val carried = repository.restartGame(old, end, config, emptyList(), NewGameTimer.CopyOf(old))
         val plain = repository.restartGame(carried, end.copy(id = "end2"), config, emptyList())
+        val fresh = repository.restartGame(plain, end.copy(id = "end3"), config, emptyList(), NewGameTimer.Fresh(10))
 
         assertEquals(1_800_000L, gameDao.timers.value[carried.value]?.durationMs)
         assertNull(gameDao.timers.value[plain.value])
+        assertEquals(GameTimerEntity(fresh.value, durationMs = 600_000), gameDao.timers.value[fresh.value])
     }
 
     @Test

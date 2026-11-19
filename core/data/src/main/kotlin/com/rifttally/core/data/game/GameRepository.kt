@@ -35,7 +35,7 @@ public interface GameRepository {
 
     /**
      * Ends [oldGameId] with [endEvent] (unless it already ended) and creates a game with [newConfig],
-     * [openingEvents] and, if [carryOverTimer], a copy of [oldGameId]'s round timer, in one transaction,
+     * [openingEvents] and its round [timer] (e.g. [NewGameTimer.CopyOf] [oldGameId] for a rematch), in one transaction,
      * so a crash can't leave two open games. Returns the new game's id.
      */
     public suspend fun restartGame(
@@ -43,7 +43,7 @@ public interface GameRepository {
         endEvent: GameEvent.GameEnded,
         newConfig: GameConfig,
         openingEvents: List<GameEvent>,
-        carryOverTimer: Boolean = false,
+        timer: NewGameTimer = NewGameTimer.None,
     ): GameId
 
     /** Removes the newest event (undo). Undoing a [GameEvent.GameEnded] makes the game active again. */

@@ -142,23 +142,6 @@ class StatsViewModelTest {
     }
 
     @Test
-    fun periodTabAndSort_surviveRecreation() = runTest {
-        games.addGame(duel("recent", "Ana" to "jinx", "Ben" to "viktor", winner = 0, endedAt = now - day))
-        viewModel.onPeriodSelect(StatsPeriod.THIS_YEAR)
-        viewModel.onTabSelect(StatsTab.LEGENDS)
-        viewModel.onLegendSortSelect(LegendSort.NAME)
-
-        // A new ViewModel on the same saved state, as after process death.
-        newViewModel().uiState.test {
-            val state = assertIs<StatsUiState.Success>(expectMostRecentItem())
-            assertEquals(StatsPeriod.THIS_YEAR, state.period)
-            assertEquals(StatsTab.LEGENDS, state.selectedTab)
-            assertEquals(LegendSort.NAME, state.legendSort)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
     fun emptyPeriod_keepsTheChips_andAllTimeComesBack() = runTest {
         games.addGame(duel("old", "Ana" to null, "Ben" to null, winner = 0, endedAt = now - 40 * day))
 

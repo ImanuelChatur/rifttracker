@@ -304,7 +304,7 @@ internal class TrackerViewModel @Inject constructor(
                     endEvent = end,
                     newConfig = config,
                     openingEvents = firstPlayerPicker.openingEvents(config),
-                    carryOverTimer = true,
+                    timer = NewGameTimer.CopyOf(gameId),
                 )
             }
             navigation.send(TrackerNavigationEvent.OpenGame(newGameId))

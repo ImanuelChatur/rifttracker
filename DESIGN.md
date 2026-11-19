@@ -1,7 +1,7 @@
 # DESIGN.md: Rift Tally design guidelines (Material 3 Expressive, 2026)
 
-> **Status:** binding for all UI work. `CLAUDE.md` points here. When this file and `HANDOFF_V2.md` §2 disagree on
-> theme, motion, shape, elevation or components, **this file wins**. Layout changes are a last resort: change a
+> **Status:** binding for all UI work. `CLAUDE.md` points here. On theme, motion, shape, elevation and
+> components, **this file wins**. Layout changes are a last resort: change a
 > layout only when the current one breaks a rule below, and say which rule in the commit/report.
 >
 > Researched 2026-11-14. Every rule cites evidence in [§11 Evidence](#11-evidence); IDs like **[E3]** point there.
@@ -47,7 +47,7 @@ tokens and a few hand-built components. When `material3` 1.5.0 is stable, swap o
      motion scheme and quieter shapes.
 4. **Keep labels.** Removing text labels from actions hurt usability in Google's research **[E2]**. Icon-only buttons are
    allowed only where the meaning is universal (−, +, undo, back), and each has a `contentDescription`.
-5. **The Legend art is the brand.** Big art, dark scrim, player color as an *accent* (HANDOFF_V2 §2). We don't
+5. **The Legend art is the brand.** Big art, dark scrim, player color as an *accent*. We don't
    invent a separate visual language on top of it.
 
 ---
@@ -63,7 +63,7 @@ tokens and a few hand-built components. When `material3` 1.5.0 is stable, swap o
 - **Tonal surfaces over borders.** Group content by placing it on a different `surfaceContainer` tone
   (containment, **[E2]**), not by adding outlines. Outlines are for inputs and selection states.
 - **Player color = accent.** Use the player color for the edge glow (3–4dp), the name chip, chart lines and
-  selection rings, never as a full-panel fill (HANDOFF_V2 §2).
+  selection rings, never as a full-panel fill.
 - **Secondary color for the primary action** is fine when it improves findability; Google's Send-button study
   used a larger button in a secondary color **[E2]**.
 - **Dynamic color** stays opt-in (Settings), default off, because Legend art and player colors carry identity.
@@ -95,7 +95,7 @@ tokens and a few hand-built components. When `material3` 1.5.0 is stable, swap o
 
 ## 5. Typography
 
-- **One display face** (bundled OFL font, HANDOFF_V2 §2) for scores, Legend names on hero surfaces and screen
+- **One display face** (bundled OFL font) for scores, Legend names on hero surfaces and screen
   titles. **Body stays on the default** sans.
 - **Score:** sized from the panel (auto-size to fit), **tabular figures** (`fontFeatureSettings = "tnum"`) so digits
   don't jump, soft shadow on art. Androidify does the same with `TextAutoSize.StepBased(maxFontSize = 220.sp)`
@@ -152,7 +152,7 @@ Token values (generated Material tokens, verified in source **[E10]**):
   History, Stats, dialogs, list items).
 - **Which speed:** fast = small or direct-touch feedback (score roll, press morph, counter pill); default = component
   enter/exit and state changes; slow = full-screen or hero transitions.
-- **Tracker specifics** (keeps the HANDOFF_V2 caps): score roll uses **fastSpatial** for the vertical slide and
+- **Tracker specifics** (keeps the original spec's caps): score roll uses **fastSpatial** for the vertical slide and
   **fastEffects** for the fade (it settles in ≈150ms). Panel entry is a staggered **defaultEffects** fade with
   ≤ 40ms stagger. Nothing on the tracker may delay input.
 - **Reduce motion (house rule):** if `Settings.Global.ANIMATOR_DURATION_SCALE == 0`, use snap/no-op specs and a

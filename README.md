@@ -1,9 +1,8 @@
 # Rift Tally
 
 A fast, offline, table-side **points tracker** for *Riftbound*, the League of Legends trading card game.
-Each player's score sits on their Legend's portrait. See `HANDOFF.md`, `HANDOFF_V2.md` and `HANDOFF_V3.md`
-for the spec, `CLAUDE.md` for conventions, `AGENT_WORKFLOW.md` for how the work is run and `AGENTS.md` for
-the subagents' names.
+Each player's score sits on their Legend's portrait. See `CLAUDE.md` for conventions
+and `DESIGN.md` for the UI rules.
 
 ## Features
 

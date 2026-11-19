@@ -1,8 +1,8 @@
 # CLAUDE.md: Project conventions
 
-Riftbound points tracker for Android (future Riftbound companion app). The full spec and phase plan is in `HANDOFF.md` (v1) and `HANDOFF_V2.md` (v2: Legend art, design pass, history & stats). How to run the work (single agent vs parallel subagents, reviews) is in `AGENT_WORKFLOW.md`. **Work one phase at a time.**
+Riftbound points tracker for Android (Rift Tally). v1–v3 are done and released as 1.0.0; the original phase specs are in git history (`git log -- HANDOFF.md`). **Work one phase at a time.**
 
-> **UI rules live in [`DESIGN.md`](DESIGN.md) (Material 3 Expressive, 2026). Read it before touching any composable, theme, animation, shape, elevation or screen layout.** It is binding: on theme, motion, shape, elevation and components it overrides `HANDOFF.md`/`HANDOFF_V2.md`. Change a layout only when the existing one breaks a `DESIGN.md` rule, and name the rule (e.g. "DESIGN.md §8") in your report.
+> **UI rules live in [`DESIGN.md`](DESIGN.md) (Material 3 Expressive, 2026). Read it before touching any composable, theme, animation, shape, elevation or screen layout.** It is binding on theme, motion, shape, elevation and components. Change a layout only when the existing one breaks a `DESIGN.md` rule, and name the rule (e.g. "DESIGN.md §8") in your report.
 
 ## Workflow
 - Before coding a phase, restate its scope in 3–5 bullets and list the files/modules you'll touch. For UI work, also list which `DESIGN.md` sections apply.
@@ -11,7 +11,7 @@ Riftbound points tracker for Android (future Riftbound companion app). The full 
 - Commit at the end of each phase: `feat(phase-N): <summary>`.
 - Use the latest **stable** library versions; check them rather than relying on memory. All versions go in `gradle/libs.versions.toml`, never inline.
 - Don't add a dependency without a clear reason; mention any new one in your summary.
-- If the spec is ambiguous, pick the simplest option consistent with `HANDOFF.md` and note the decision in your summary.
+- If the spec is ambiguous, pick the simplest option consistent with the existing app and note the decision in your summary.
 
 ## Adding Legends (keep this working)
 - Legends live in `core/data/src/main/assets/legends/legends.json` (`id`, `name`) with optional images `<id>.webp`/`.png` (square portrait) and `<id>_wide.webp` (panel background) in the same folder.
@@ -19,7 +19,8 @@ Riftbound points tracker for Android (future Riftbound companion app). The full 
 - A missing image must fall back to a colored circle with an initial. Never crash or show a broken image.
 
 ## Architecture rules
-- Module boundaries per `HANDOFF.md` §4.2. Features never depend on other features.
+- Modules: `:app` (wiring and NavHost only); `:core:model`, `:core:game` (pure Kotlin); `:core:database`, `:core:datastore`, `:core:data` (repositories, Legend assets, Hilt bindings), `:core:stats`, `:core:designsystem`, `:core:ui`, `:core:common`, `:core:testing`; `:feature:home|setup|tracker|history|stats|settings`.
+- Features depend on `core:*` only, never on other features. Only `:core:data` touches database, datastore and assets; features talk to repositories.
 - `:core:game` and `:core:model` are **pure Kotlin**: no `android.*`, no Compose, no Hilt annotations.
 - The game state is **derived from events** (`reduce(config, events)`). Never mutate scores directly; always append an event.
 - Repositories: interface `public`, implementation `internal`, bound with Hilt `@Binds` in the same module.
@@ -51,7 +52,7 @@ Riftbound points tracker for Android (future Riftbound companion app). The full 
 - No `!!`. No `GlobalScope`. No `runBlocking` outside tests.
 
 ## Testing
-- `:core:game`: exhaustive unit tests (see `HANDOFF.md` Phase 1 list). Write tests alongside, not after.
+- `:core:game`: exhaustive unit tests (floors at 0, 2v2 shared points, target changed mid-game, multiple sides at target, counters, undo of every event type). Write tests alongside, not after.
 - ViewModels: test with fake repositories from `:core:testing`, `kotlinx-coroutines-test`, and Turbine.
 - Room: DAO tests plus a migration test for every schema version.
 - Compose: at least one UI test per screen (semantics-based, not screenshot).
@@ -65,4 +66,4 @@ Riftbound points tracker for Android (future Riftbound companion app). The full 
 - Legend art comes only from `scripts/fetch_legend_art.py` (Data Dragon) or the developer's `legend-art-inbox/`. Don't bundle other Riot logos/art, and code must still work without any image. Tests use generated placeholder images, never real Riot art.
 - Keep the app free: no ads, paywalls or donations. Keep the "Legal Jibber Jabber" notice in About and the README.
 - Keep the tracker simple: no best-of series, turn tracking or rules enforcement. A first-player pick and an optional round timer are fine.
-- Don't build future roadmap features (cards, decks, collection) or add placeholder code for them. Match history and stats (v2, `HANDOFF_V2.md`) are derived from stored games only.
+- Don't build future roadmap features (cards, decks, collection) or add placeholder code for them. Match history and stats are derived from stored games only.

@@ -14,3 +14,9 @@ __pycache__/
 
 # Personal Claude Code notes
 CLAUDE.local.md
+
+# Release signing (keystore + passwords): never commit
+keystore.properties
+*.jks
+*.keystore
+dist/

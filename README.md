@@ -21,6 +21,26 @@ the subagents' names.
 >
 > Rift Tally is free: no ads, paywalls or donations.
 
+## Install
+
+Download `RiftTally-<version>.apk` from the GitHub
+[Releases](https://github.com/ImanuelChatur/rifttracker/releases) page and open it on your phone
+(Android 8.0 or newer). Android asks you to allow installing apps from your browser or file manager the
+first time. Later versions install over the old one and keep your games.
+
+## Release
+
+1. Bump `versionCode` and `versionName` in `app/build.gradle.kts`.
+2. `./gradlew :app:assembleRelease`. The APK is `app/build/outputs/apk/release/app-release.apk`
+   (minified with R8). Smoke-test it on a device: start a game, finish it, open History and Stats.
+3. Tag the commit (`git tag v<version>`), push it, create a GitHub release from the tag and attach the APK
+   renamed to `RiftTally-<version>.apk`.
+
+Signing reads the untracked `keystore.properties` in the project root (`storeFile`, `storePassword`,
+`keyAlias`, `keyPassword`). Without it the release APK is built unsigned. **Back up the keystore and
+`keystore.properties` somewhere safe:** an update signed with a different key won't install over an
+existing install.
+
 ## Build & check
 
 Requires the Android SDK (compile SDK 37, min SDK 26). The Gradle daemon runs on JDK 25
